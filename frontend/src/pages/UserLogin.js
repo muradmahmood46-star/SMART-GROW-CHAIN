@@ -1,0 +1,65 @@
+import React, { useState } from 'react';
+import API from '../api';
+import { useNavigate, Link } from 'react-router-dom';
+
+export default function UserLogin() {
+  const [form, setForm] = useState({ username: '', password: '' });
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await API.post('/auth/login', form);
+      if (res.data.is_admin) {
+        setError('Use Admin Login for admin access');
+        return;
+      }
+      localStorage.setItem('token', res.data.access_token);
+      localStorage.setItem('is_admin', res.data.is_admin);
+      localStorage.setItem('username', res.data.username);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Login failed');
+    }
+  };
+
+  return (
+    <div style={s.container}>
+      <div style={s.card}>
+        <Link to="/" style={s.back}>← Back to Home</Link>
+        <div style={s.icon}>👤</div>
+        <h2 style={s.title}>User Login</h2>
+        <p style={s.sub}>Access your earning dashboard</p>
+        {error && <p style={s.error}>{error}</p>}
+        <form onSubmit={handleSubmit}>
+          <input style={s.input} placeholder="Username" value={form.username}
+            onChange={e => setForm({ ...form, username: e.target.value })} required />
+          <input style={s.input} type="password" placeholder="Password" value={form.password}
+            onChange={e => setForm({ ...form, password: e.target.value })} required />
+          <button style={s.btn} type="submit">Login to Dashboard</button>
+        </form>
+        <p style={{ marginTop: 16, color: '#64748b', fontSize: 13, textAlign: 'center' }}>
+          No account? <Link to="/register" style={{ color: '#38bdf8' }}>Register Free</Link>
+        </p>
+        <div style={s.divider}></div>
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#475569' }}>
+          Admin? <Link to="/admin/login" style={{ color: '#f59e0b' }}>Go to Admin Login</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const s = {
+  container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#0f172a' },
+  card: { background: '#1e293b', padding: 40, borderRadius: 16, width: 380, color: '#fff', border: '1px solid #334155' },
+  back: { color: '#64748b', textDecoration: 'none', fontSize: 13, display: 'block', marginBottom: 20 },
+  icon: { fontSize: 40, textAlign: 'center', marginBottom: 8 },
+  title: { textAlign: 'center', margin: '0 0 6px 0', color: '#38bdf8', fontSize: 22 },
+  sub: { textAlign: 'center', color: '#64748b', fontSize: 13, marginBottom: 24 },
+  input: { width: '100%', padding: '11px 14px', marginBottom: 14, borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#fff', boxSizing: 'border-box', fontSize: 14 },
+  btn: { width: '100%', padding: 12, background: '#38bdf8', color: '#0f172a', border: 'none', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', fontSize: 14 },
+  error: { color: '#f87171', marginBottom: 12, fontSize: 13, background: '#450a0a', padding: '8px 12px', borderRadius: 6 },
+  divider: { borderTop: '1px solid #334155', margin: '16px 0' }
+};
