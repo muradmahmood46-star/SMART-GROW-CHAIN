@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'https://barracuda-manor-splashing.ngrok-free.dev'
-});
+  baseURL: 'https://muradmahmood-smart-grow-chain.hf.space'
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
