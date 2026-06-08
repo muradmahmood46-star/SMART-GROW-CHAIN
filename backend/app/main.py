@@ -13,13 +13,19 @@ async def lifespan(app: FastAPI):
     os.makedirs("uploads/screenshots", exist_ok=True)
     yield
 
-app = FastAPI(title="PTC Pro API", lifespan=lifespan)
+app = FastAPI(
+    title="PTC Pro API", 
+    lifespan=lifespan, 
+    docs_url="/docs", 
+    openapi_url="/openapi.json"
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*", "https://smart-grow-chain-z98j.vercel.app"],
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    # Yahan "https://ptc-pro-fullstack.vercel.app" daal diya hai
+    allow_origins=["https://ptc-pro-fullstack.vercel.app"], 
+    allow_credentials=True, # Credentials True karna behtar hai agar login use kar rahe ho
+    allow_methods=["*"], 
     allow_headers=["*"],
 )
 
