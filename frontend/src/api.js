@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const API = axios.create({
   baseURL: 'https://muradmahmood-smart-grow-chain.hf.space'
+}); // <--- Yahan par ye closing bracket aur parenthesis lagana zaroori tha
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
