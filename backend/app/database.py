@@ -6,16 +6,12 @@ import os
 
 load_dotenv()
 
-# Railway provides DATABASE_URL directly, otherwise build from parts
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    DATABASE_URL = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('DB_NAME')}"
+# Use SQLite as the default database for universal compatibility
+# Vercel's filesystem is read-only except for /tmp
+db_path = "/tmp/sql_app.db" if os.getenv("VERCEL") else "./sql_app.db"
+DATABASE_URL = f"sqlite:///{db_path}"
 
-# Railway MySQL uses mysql:// prefix, fix it
-if DATABASE_URL.startswith("mysql://"):
-    DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
-
-engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

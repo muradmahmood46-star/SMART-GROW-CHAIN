@@ -1,4 +1,5 @@
 {
+  "name": "ptc-pro-fullstack",
   "version": 2,
   "builds": [
     {

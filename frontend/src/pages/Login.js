@@ -14,6 +14,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
+
     try {
       const res = await API.post('/auth/login', form);
       if (res.data.requires_2fa) {
@@ -21,7 +22,7 @@ export default function Login() {
         setFaStep(true);
       } else {
         localStorage.setItem('token', res.data.access_token);
-        localStorage.setItem('is_admin', res.data.is_admin);
+        localStorage.setItem('is_admin', String(res.data.is_admin));
         localStorage.setItem('username', res.data.username);
         navigate(res.data.is_admin ? '/admin' : '/dashboard');
       }

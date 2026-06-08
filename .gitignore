@@ -20,6 +20,10 @@ frontend/build/
 frontend/.env.local
 frontend/.env.production
 
+# Database
+backend/sql_app.db
+*.db
+
 # IDE
 .vscode/
 .idea/
@@ -27,3 +31,5 @@ frontend/.env.production
 # OS
 .DS_Store
 Thumbs.db
+
+.vercel
