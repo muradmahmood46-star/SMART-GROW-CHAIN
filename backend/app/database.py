@@ -6,12 +6,20 @@ import os
 
 load_dotenv()
 
-# Use SQLite as the default database for universal compatibility
-# Vercel's filesystem is read-only except for /tmp
-db_path = "/tmp/sql_app.db" if os.getenv("VERCEL") else "./sql_app.db"
-DATABASE_URL = f"sqlite:///{db_path}"
+# Neon Postgres Cloud Database URL uthane ke liye
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Agar URL mil jaye toh badal do, warna backup ke liye purana sqlite chalega
+if not DATABASE_URL:
+    db_path = "/tmp/sql_app.db" if os.getenv("VERCEL") else "./sql_app.db"
+    DATABASE_URL = f"sqlite:///{db_path}"
+
+# Postgres ke liye simple engine configuration
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

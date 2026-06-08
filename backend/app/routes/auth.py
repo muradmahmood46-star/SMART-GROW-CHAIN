@@ -40,6 +40,18 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(data: UserLogin, db: Session = Depends(get_db)):
+    # 🔥 1. Admin Hardcoded Bypass Logic
+    if data.username == "admin" and data.password == "admin123":
+        # Direct admin token generate karein bina database check kiye
+        token = create_access_token({"sub": "admin_bypass", "is_admin": True})
+        return {
+            "access_token": token, 
+            "token_type": "bearer", 
+            "is_admin": True, 
+            "username": "admin"
+        }
+
+    # 2. Baki normal users ke liye database query
     user = db.query(User).filter(User.username == data.username).first()
     if not user or not verify_password(data.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
