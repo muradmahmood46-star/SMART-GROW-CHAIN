@@ -43,7 +43,7 @@ export default function Dashboard() {
   const [activeAd, setActiveAd]       = useState(null);
   const [countdown, setCountdown]     = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [lockedAccount, setLockedAccount] = useState(null);
+
   const [deposit, setDeposit]           = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', transaction_id:'', screenshot_note:'' });
   const [screenshot, setScreenshot]     = useState(null);
   const [selectedMethod, setSelectedMethod] = useState('easypaisa');
