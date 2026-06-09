@@ -171,9 +171,10 @@ class ReferralSetting(Base):
 
 class AdBudgetRate(Base):
     __tablename__ = "ad_budget_rates"
-    id         = Column(Integer, primary_key=True, index=True)
-    rate_pkr   = Column(Float, default=1.0)  # Rs. per member
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    id              = Column(Integer, primary_key=True, index=True)
+    rate_pkr        = Column(Float, default=1.0)
+    welcome_message = Column(String(200), nullable=True)
+    updated_at      = Column(DateTime, default=func.now(), onupdate=func.now())
 
 
 class UserAdRequest(Base):

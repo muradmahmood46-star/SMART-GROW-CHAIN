@@ -35,6 +35,9 @@ export default function Dashboard() {
   const [plans, setPlans]             = useState([]);
   const [twoFA, setTwoFA]             = useState(null);
   const [adRate, setAdRate]           = useState(1);
+  const [adWelcomeMsg, setAdWelcomeMsg] = useState('');
+  const [showAdWelcome, setShowAdWelcome] = useState(false);
+  const [campaignViewers, setCampaignViewers] = useState({});
   const [adForm, setAdForm]           = useState({ title:'', url:'', members_needed:'' });
   const [adPayMethod, setAdPayMethod] = useState('wallet');
   const [adScreenshot, setAdScreenshot] = useState(null);
@@ -69,7 +72,7 @@ export default function Dashboard() {
     API.get('/user/transactions').then(r=>setTransactions(r.data));
     API.get('/user/tickets').then(r=>setTickets(r.data));
     API.get('/user/plans').then(r=>setPlans(r.data));
-    API.get('/user/ad-request/rate').then(r=>setAdRate(r.data.rate_pkr)).catch(()=>{});
+    API.get('/user/ad-request/rate').then(r=>{ setAdRate(r.data.rate_pkr); setAdWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
   },[]);
 
@@ -215,7 +218,7 @@ export default function Dashboard() {
         <nav className="sgc-nav">
           {TABS.map(({key,icon,label})=>(
             <button key={key} className={`nav-btn ${tab===key?'active':''}`}
-              onClick={()=>{ setTab(key); setSidebarOpen(false); }}>
+              onClick={()=>{ setTab(key); setSidebarOpen(false); if(key==='create-ad'){ setShowAdWelcome(true); } }}>
               <span className="nav-icon">{icon}</span>
               <span className="nav-label">{label}</span>
               {key==='ads' && availableAds>0 && <span className="nav-badge">{availableAds}</span>}
@@ -239,6 +242,18 @@ export default function Dashboard() {
 
         <div className="panel-body">
           {msg.text && <div className="sgc-toast" style={{background:msg.type==='error'?'var(--red)':'var(--green)',color:msg.type==='error'?'#fff':'var(--bg)'}}>{msg.text}</div>}
+
+          {/* ── ADVERTISE WELCOME MODAL ── */}
+          {showAdWelcome && adWelcomeMsg && (
+            <div className="sgc-modal-overlay" onClick={()=>setShowAdWelcome(false)}>
+              <div className="sgc-modal" style={{textAlign:'center',maxWidth:340}} onClick={e=>e.stopPropagation()}>
+                <div style={{fontSize:40,marginBottom:12}}>📢</div>
+                <h3 style={{color:'var(--accent)',fontSize:17,fontWeight:800,marginBottom:12}}>Advertise Your Link</h3>
+                <p style={{color:'var(--muted)',fontSize:14,lineHeight:1.7,marginBottom:20}}>{adWelcomeMsg}</p>
+                <button className="sgc-btn-primary" onClick={()=>setShowAdWelcome(false)}>Get Started →</button>
+              </div>
+            </div>
+          )}
 
           {activeAd && (
             <div className="sgc-timer-wrap">
@@ -850,7 +865,7 @@ export default function Dashboard() {
                                 <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,var(--accent),var(--green))`,borderRadius:4,transition:'width .5s'}}/>
                               </div>
                             </div>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                               <span style={{color:'var(--muted)',fontSize:11}}>Rs. {r.total_cost} · {r.payment_method}</span>
                               {(r.status==='rejected'||r.status==='completed') && (
                                 <button onClick={async()=>{
@@ -865,6 +880,31 @@ export default function Dashboard() {
                                 </button>
                               )}
                             </div>
+                            {/* Viewers List */}
+                            {(r.status==='approved'||r.status==='completed') && (
+                              <div>
+                                <button onClick={async()=>{
+                                  if(campaignViewers[r.id]) { setCampaignViewers(p=>({...p,[r.id]:null})); return; }
+                                  try{
+                                    const res = await API.get(`/admin/campaign-viewers/${r.id}`, {headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}});
+                                    setCampaignViewers(p=>({...p,[r.id]:res.data}));
+                                  }catch{ notify('Could not load viewers','error'); }
+                                }} style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:7,padding:'4px 12px',cursor:'pointer',fontSize:11,fontWeight:600,fontFamily:'var(--font)',marginBottom:8}}>
+                                  {campaignViewers[r.id]?'👁️ Hide Viewers':'👥 Show Viewers'}
+                                </button>
+                                {campaignViewers[r.id] && (
+                                  <div style={{background:'var(--bg)',borderRadius:8,padding:'8px 10px',maxHeight:120,overflowY:'auto'}}>
+                                    {campaignViewers[r.id].length===0 && <p style={{color:'var(--dim)',fontSize:11,margin:0}}>No viewers yet.</p>}
+                                    {campaignViewers[r.id].map((v,vi)=>(
+                                      <div key={vi} style={{display:'flex',justifyContent:'space-between',padding:'3px 0',borderBottom:'1px solid var(--border)'}}>
+                                        <span style={{color:'var(--accent)',fontSize:12,fontWeight:600}}>@{v.username}</span>
+                                        <span style={{color:'var(--dim)',fontSize:11}}>{new Date(v.viewed_at).toLocaleDateString()}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {r.admin_note&&<p style={{color:'var(--yellow)',fontSize:11,marginTop:6}}>Admin: {r.admin_note}</p>}
                           </div>
                         );

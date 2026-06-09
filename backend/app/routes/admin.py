@@ -522,21 +522,23 @@ def delete_referral_level(setting_id: int, db: Session = Depends(get_db), admin=
 # ── AD BUDGET RATE ──────────────────────────────────────────────────
 class BudgetRateUpdate(BaseModel):
     rate_pkr: float
+    welcome_message: Optional[str] = ""
 
 @router.get("/ad-budget-rate")
 def get_ad_budget_rate(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     rate = db.query(AdBudgetRate).first()
-    return {"rate_pkr": rate.rate_pkr if rate else 1.0}
+    return {"rate_pkr": rate.rate_pkr if rate else 1.0, "welcome_message": rate.welcome_message if rate else ""}
 
 @router.put("/ad-budget-rate")
 def update_ad_budget_rate(data: BudgetRateUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     rate = db.query(AdBudgetRate).first()
     if rate:
         rate.rate_pkr = data.rate_pkr
+        rate.welcome_message = data.welcome_message
     else:
-        db.add(AdBudgetRate(rate_pkr=data.rate_pkr))
+        db.add(AdBudgetRate(rate_pkr=data.rate_pkr, welcome_message=data.welcome_message))
     db.commit()
-    return {"message": "Rate updated", "rate_pkr": data.rate_pkr}
+    return {"message": "Updated", "rate_pkr": data.rate_pkr}
 
 
 # ── USER AD REQUESTS ────────────────────────────────────────────────
@@ -600,6 +602,22 @@ def reject_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(
     req.admin_note = data.admin_note
     db.commit()
     return {"message": "Ad request rejected and balance refunded"}
+
+
+# ── CAMPAIGN VIEWERS ────────────────────────────────────────────────
+@router.get("/campaign-viewers/{req_id}")
+def get_campaign_viewers(req_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Not found")
+    earnings = db.query(Earning).filter(Earning.type == "click").join(
+        Ad, Earning.ad_id == Ad.id
+    ).filter(Ad.url == req.url).all()
+    result = []
+    for e in earnings:
+        user = db.query(User).filter(User.id == e.user_id).first()
+        result.append({"username": user.username if user else "?", "viewed_at": e.clicked_at})
+    return result
 
 
 # ── AD VIEW LOG ─────────────────────────────────────────────────────

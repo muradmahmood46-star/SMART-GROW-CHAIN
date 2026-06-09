@@ -278,7 +278,22 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   .sgc-sidebar { position:fixed; top:0; left:0; height:100%; transform:translateX(-100%); box-shadow:6px 0 28px rgba(0,0,0,.6); }
   .sgc-sidebar.open { transform:translateX(0); }
   .sgc-topbar { display:flex !important; }
-  .panel-body { padding:20px 16px; }
-  .sgc-stats { grid-template-columns:repeat(2,1fr); }
+  .panel-body { padding:16px 12px 80px; }
+  .sgc-stats { grid-template-columns:repeat(2,1fr); gap:10px; }
   .sgc-ads-grid { grid-template-columns:1fr; }
+  .sgc-form { padding:16px; }
+  .sgc-modal { width:calc(100vw - 32px) !important; padding:20px !important; }
+  .sgc-table-wrap { overflow-x:auto; }
+  .sgc-table { min-width:500px; }
+  .sgc-th, .sgc-td { padding:10px 12px; font-size:13px; }
+  .sgc-heading { font-size:17px; }
+  .sgc-stat-val { font-size:19px; }
+  .sgc-btn-primary, .sgc-btn-yellow { font-size:14px; padding:12px; }
+  .sgc-input { padding:11px 12px; font-size:14px; }
+  .sgc-timer-wrap { flex-direction:column; gap:10px; text-align:center; }
+  .sgc-chart { height:90px; }
+  .sgc-page-header { flex-wrap:wrap; gap:8px; }
+  .sgc-bal-amount { font-size:22px; }
+  .sgc-logo-text { font-size:16px; }
+  input, select, textarea { font-size:16px !important; } /* prevent iOS zoom */
 }

@@ -50,6 +50,7 @@ export default function AdminPanel() {
   const [adRequests, setAdRequests]   = useState([]);
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
+  const [welcomeMsg, setWelcomeMsg] = useState('');
   const [msg, setMsg]                 = useState({ text:'', type:'' });
   const [balanceModal, setBalanceModal] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -74,7 +75,7 @@ export default function AdminPanel() {
     API.get('/admin/referral-settings').then(r=>setRefSettings(r.data));
     API.get('/admin/ad-view-log').then(r=>setAdViewLog(r.data));
     API.get('/admin/user-ad-requests').then(r=>setAdRequests(r.data)).catch(()=>{});
-    API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); }).catch(()=>{});
+    API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
   };
 
   useEffect(()=>{ loadAll(); },[]);
@@ -878,17 +879,21 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Budget Rate Setting */}
-                <div className="sgc-form" style={{maxWidth:360,marginBottom:24}}>
+                <div className="sgc-form" style={{maxWidth:420,marginBottom:24}}>
                   <h4 style={{color:'var(--yellow)',fontSize:13,fontWeight:700,marginBottom:12}}>💰 Rate Per Member (Rs.)</h4>
-                  <div style={{display:'flex',gap:10}}>
+                  <div style={{display:'flex',gap:10,marginBottom:12}}>
                     <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="0.1" step="0.1" value={newBudgetRate} onChange={e=>setNewBudgetRate(e.target.value)}/>
-                    <button className="sgc-btn-yellow" style={{width:'auto',padding:'0 20px',whiteSpace:'nowrap'}} onClick={async()=>{
-                      await API.put('/admin/ad-budget-rate',{rate_pkr:parseFloat(newBudgetRate)});
-                      setAdBudgetRate(parseFloat(newBudgetRate));
-                      notify('Rate updated ✅');
-                    }}>Save</button>
                   </div>
-                  <p style={{color:'var(--dim)',fontSize:12,marginTop:6}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
+                  <label className="sgc-label">Welcome Message <span style={{color:'var(--dim)',fontSize:11}}>(max 20 words)</span></label>
+                  <input className="sgc-input" placeholder="e.g. Reach thousands of real members instantly!" value={welcomeMsg}
+                    onChange={e=>{ const words=e.target.value.trim().split(/\s+/).filter(Boolean); if(words.length<=20) setWelcomeMsg(e.target.value); }}/>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Words: {welcomeMsg.trim().split(/\s+/).filter(Boolean).length} / 20</p>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{
+                    await API.put('/admin/ad-budget-rate',{rate_pkr:parseFloat(newBudgetRate),welcome_message:welcomeMsg});
+                    setAdBudgetRate(parseFloat(newBudgetRate));
+                    notify('Settings updated ✅');
+                  }}>Save</button>
+                  <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
                 </div>
 
                 <div style={{display:'flex',flexDirection:'column',gap:14}}>

@@ -27,7 +27,11 @@ def get_rate(db: Session) -> float:
 
 @router.get("/rate")
 def get_ad_rate(db: Session = Depends(get_db)):
-    return {"rate_pkr": get_rate(db)}
+    rate = db.query(AdBudgetRate).first()
+    return {
+        "rate_pkr": rate.rate_pkr if rate else 1.0,
+        "welcome_message": rate.welcome_message if rate else "Welcome! Create your campaign and reach thousands of members instantly."
+    }
 
 @router.post("/submit")
 async def submit_ad_request(
