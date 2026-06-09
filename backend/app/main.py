@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.database import engine
 from app.models.models import Base
-from app.routes import auth, user, admin, deposit
+from app.routes import auth, user, admin, deposit, userad
 import os
 
 @asynccontextmanager
@@ -37,6 +37,7 @@ app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(admin.router)
 app.include_router(deposit.router)
+app.include_router(userad.router)
 
 @app.get("/")
 def root():

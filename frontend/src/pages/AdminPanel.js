@@ -16,6 +16,7 @@ const TABS = [
   { key:'referrals',   icon:'👥', label:'Referrals'       },
   { key:'ref-settings',icon:'⚙️', label:'Referral Commission'},
   { key:'ad-view-log', icon:'📌', label:'Ad View Log'     },
+  { key:'ad-requests', icon:'💰', label:'Ad Rate Setting'  },
   { key:'easypaisa',   icon:'📱', label:'Easypaisa'       },
   { key:'emails',      icon:'📧', label:'Admin Emails'    },
 ];

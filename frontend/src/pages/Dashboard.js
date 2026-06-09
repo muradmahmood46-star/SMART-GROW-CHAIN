@@ -789,6 +789,26 @@ export default function Dashboard() {
                   </div>
                   {adPayMethod==='easypaisa' && (
                     <>
+                      {/* Admin Easypaisa Account Info */}
+                      {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
+                        <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
+                          <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>📱 SEND TO THIS EASYPAISA ACCOUNT</p>
+                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                            <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
+                            <div>
+                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
+                              <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Account Name</p>
+                            </div>
+                          </div>
+                          <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <div>
+                              <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Number</p>
+                              <p style={{color:'#3cb559',fontFamily:'monospace',fontSize:16,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
+                            </div>
+                            <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#3cb55922',border:'1px solid #3cb559',color:'#3cb559',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
+                          </div>
+                        </div>
+                      ))}
                       <label className="sgc-label">Payment Screenshot</label>
                       <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
                         <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setAdScreenshot(e.target.files[0])}/>

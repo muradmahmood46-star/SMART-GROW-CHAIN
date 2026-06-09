@@ -167,3 +167,27 @@ class ReferralSetting(Base):
     is_active    = Column(Boolean, default=True)
     level        = Column(Integer)      # 1,2,3,4...
     percent      = Column(Float, default=0.0)
+
+
+class AdBudgetRate(Base):
+    __tablename__ = "ad_budget_rates"
+    id         = Column(Integer, primary_key=True, index=True)
+    rate_pkr   = Column(Float, default=1.0)  # Rs. per member
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class UserAdRequest(Base):
+    __tablename__ = "user_ad_requests"
+    id              = Column(Integer, primary_key=True, index=True)
+    user_id         = Column(Integer, ForeignKey("users.id"))
+    title           = Column(String(100))
+    url             = Column(String(255))
+    members_needed  = Column(Integer)
+    rate_pkr        = Column(Float)        # rate at time of request
+    total_cost      = Column(Float)        # members * rate
+    payment_method  = Column(String(20), default="wallet")  # wallet or easypaisa
+    screenshot_path = Column(String(255), nullable=True)
+    status          = Column(String(20), default="pending")  # pending, approved, rejected
+    admin_note      = Column(String(255), nullable=True)
+    created_at      = Column(DateTime, default=func.now())
+    user = relationship("User", backref="ad_requests")

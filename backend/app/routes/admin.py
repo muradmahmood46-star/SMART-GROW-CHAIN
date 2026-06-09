@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest
 from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
@@ -517,6 +517,77 @@ def delete_referral_level(setting_id: int, db: Session = Depends(get_db), admin=
         raise HTTPException(status_code=404, detail="Not found")
     db.delete(r); db.commit()
     return {"message": "Deleted"}
+
+
+# ── AD BUDGET RATE ──────────────────────────────────────────────────
+class BudgetRateUpdate(BaseModel):
+    rate_pkr: float
+
+@router.get("/ad-budget-rate")
+def get_ad_budget_rate(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    rate = db.query(AdBudgetRate).first()
+    return {"rate_pkr": rate.rate_pkr if rate else 1.0}
+
+@router.put("/ad-budget-rate")
+def update_ad_budget_rate(data: BudgetRateUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    rate = db.query(AdBudgetRate).first()
+    if rate:
+        rate.rate_pkr = data.rate_pkr
+    else:
+        db.add(AdBudgetRate(rate_pkr=data.rate_pkr))
+    db.commit()
+    return {"message": "Rate updated", "rate_pkr": data.rate_pkr}
+
+
+# ── USER AD REQUESTS ────────────────────────────────────────────────
+@router.get("/user-ad-requests")
+def get_user_ad_requests(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    reqs = db.query(UserAdRequest).order_by(UserAdRequest.created_at.desc()).all()
+    import os
+    result = []
+    for r in reqs:
+        user = db.query(User).filter(User.id == r.user_id).first()
+        result.append({
+            "id": r.id,
+            "username": user.username if user else "?",
+            "title": r.title, "url": r.url,
+            "members_needed": r.members_needed,
+            "rate_pkr": r.rate_pkr,
+            "total_cost": r.total_cost,
+            "payment_method": r.payment_method,
+            "screenshot_url": f"{os.getenv('BACKEND_URL', 'https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{r.screenshot_path}" if r.screenshot_path else None,
+            "status": r.status,
+            "admin_note": r.admin_note,
+            "created_at": r.created_at
+        })
+    return result
+
+class AdRequestAction(BaseModel):
+    admin_note: Optional[str] = ""
+
+@router.put("/user-ad-requests/{req_id}/approve")
+def approve_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Not found")
+    req.status = "approved"
+    req.admin_note = data.admin_note
+    db.commit()
+    return {"message": "Ad request approved"}
+
+@router.put("/user-ad-requests/{req_id}/reject")
+def reject_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Not found")
+    if req.payment_method == "wallet" and req.status == "pending":
+        user = db.query(User).filter(User.id == req.user_id).first()
+        if user:
+            user.balance += req.total_cost
+    req.status = "rejected"
+    req.admin_note = data.admin_note
+    db.commit()
+    return {"message": "Ad request rejected and balance refunded"}
 
 
 # ── AD VIEW LOG ─────────────────────────────────────────────────────

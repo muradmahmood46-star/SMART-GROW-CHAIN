@@ -33,3 +33,4 @@ backend/sql_app.db
 Thumbs.db
 
 .vercel
+.env*
