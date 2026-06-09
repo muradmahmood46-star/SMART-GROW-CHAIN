@@ -46,6 +46,9 @@ export default function AdminPanel() {
   const [adLogSearch, setAdLogSearch] = useState('');
   const [editEmail, setEditEmail]     = useState(null);
   const [editEmailVal, setEditEmailVal] = useState('');
+  const [adRequests, setAdRequests]   = useState([]);
+  const [adBudgetRate, setAdBudgetRate] = useState(1);
+  const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [msg, setMsg]                 = useState({ text:'', type:'' });
   const [balanceModal, setBalanceModal] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -69,6 +72,8 @@ export default function AdminPanel() {
     API.get('/admin/referrals').then(r=>setReferrals(r.data));
     API.get('/admin/referral-settings').then(r=>setRefSettings(r.data));
     API.get('/admin/ad-view-log').then(r=>setAdViewLog(r.data));
+    API.get('/admin/user-ad-requests').then(r=>setAdRequests(r.data)).catch(()=>{});
+    API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); }).catch(()=>{});
   };
 
   useEffect(()=>{ loadAll(); },[]);
