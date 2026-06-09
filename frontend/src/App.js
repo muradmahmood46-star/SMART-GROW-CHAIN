@@ -15,11 +15,19 @@ function AdminRoute({ children }) {
     ? children : <Navigate to="/login" />;
 }
 
+function HomeRoute() {
+  const token = localStorage.getItem('token');
+  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  if (token && isAdmin) return <Navigate to="/admin" />;
+  if (token) return <Navigate to="/dashboard" />;
+  return <Landing />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
