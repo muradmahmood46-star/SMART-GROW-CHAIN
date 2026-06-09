@@ -19,11 +19,7 @@ def get_admin_user(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
         payload = decode_token(token)
         if not payload.get("is_admin"):
             raise HTTPException(status_code=403, detail="Admin access required")
-        sub = payload.get("sub", "")
-        if sub == "admin_bypass":
-            return None  # hardcoded admin, no DB user
-        user = db.query(User).filter(User.id == int(sub)).first()
-        return user
+        return payload  # return payload, no DB lookup needed for hardcoded admin
     except HTTPException:
         raise
     except:

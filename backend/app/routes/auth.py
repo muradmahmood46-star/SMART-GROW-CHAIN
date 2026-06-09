@@ -42,12 +42,11 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 def login(data: UserLogin, db: Session = Depends(get_db)):
     # 🔥 1. Admin Hardcoded Bypass Logic
     if data.username == "admin" and data.password == "admin123":
-        # Direct admin token generate karein bina database check kiye
-        token = create_access_token({"sub": "admin_bypass", "is_admin": True})
+        token = create_access_token({"sub": "0", "is_admin": True})
         return {
-            "access_token": token, 
-            "token_type": "bearer", 
-            "is_admin": True, 
+            "access_token": token,
+            "token_type": "bearer",
+            "is_admin": True,
             "username": "admin"
         }
 
