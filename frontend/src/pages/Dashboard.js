@@ -743,96 +743,136 @@ export default function Dashboard() {
             {tab==='create-ad' && (
               <div>
                 <h2 className="sgc-heading">📢 Advertise Your Link</h2>
-                <div className="sgc-stats" style={{maxWidth:420,marginBottom:24}}>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Rate Per Member</div><div className="sgc-stat-val" style={{color:'var(--yellow)'}}>Rs. {adRate}</div></div>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Your Balance</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {profile.balance.toFixed(2)}</div></div>
-                </div>
 
-                <form className="sgc-form" style={{maxWidth:520,marginBottom:32}} onSubmit={async(e)=>{
-                  e.preventDefault();
-                  try{
-                    const fd = new FormData();
-                    fd.append('title', adForm.title);
-                    fd.append('url', adForm.url);
-                    fd.append('members_needed', parseInt(adForm.members_needed));
-                    fd.append('payment_method', adPayMethod);
-                    if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
-                    await API.post('/user/ad-request/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
-                    notify('Ad request submitted! ✅');
-                    setAdForm({title:'',url:'',members_needed:''});
-                    setAdScreenshot(null);
-                    API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data));
-                    API.get('/user/profile').then(r=>setProfile(r.data));
-                  } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-                }}>
-                  <label className="sgc-label">Ad Title</label>
-                  <input className="sgc-input" placeholder="e.g. Visit my YouTube channel" value={adForm.title} onChange={e=>setAdForm({...adForm,title:e.target.value})} required/>
-                  <label className="sgc-label">Ad Link (URL)</label>
-                  <input className="sgc-input" placeholder="https://yourlink.com" value={adForm.url} onChange={e=>setAdForm({...adForm,url:e.target.value})} required/>
-                  <label className="sgc-label">Members Needed</label>
-                  <input className="sgc-input" type="number" min="1" placeholder="e.g. 100" value={adForm.members_needed} onChange={e=>setAdForm({...adForm,members_needed:e.target.value})} required/>
-                  {adForm.members_needed>0 && (
-                    <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
-                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>Total Cost</p>
-                      <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0}}>Rs. {(adForm.members_needed * adRate).toFixed(2)}</p>
-                      <p style={{color:'var(--dim)',fontSize:11,margin:'4px 0 0'}}>{adForm.members_needed} members × Rs. {adRate}/member</p>
+                <div style={{display:'flex',gap:24,flexWrap:'wrap',alignItems:'flex-start'}}>
+
+                  {/* ── LEFT: Form ── */}
+                  <div style={{flex:'1 1 320px',minWidth:0}}>
+                    <div className="sgc-stats" style={{maxWidth:420,marginBottom:24}}>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Rate Per Member</div><div className="sgc-stat-val" style={{color:'var(--yellow)'}}>Rs. {adRate}</div></div>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Your Balance</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {profile.balance.toFixed(2)}</div></div>
                     </div>
-                  )}
-                  <label className="sgc-label">Payment Method</label>
-                  <div style={{display:'flex',gap:10,marginBottom:16}}>
-                    {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
-                      <div key={val} onClick={()=>setAdPayMethod(val)}
-                        style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${adPayMethod===val?'var(--accent)':'var(--border)'}`,background:adPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:adPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-                  {adPayMethod==='easypaisa' && (
-                    <>
-                      {/* Admin Easypaisa Account Info */}
-                      {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
-                        <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                          <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>📱 SEND TO THIS EASYPAISA ACCOUNT</p>
-                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                            <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
-                            <div>
-                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
-                              <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Account Name</p>
-                            </div>
-                          </div>
-                          <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                            <div>
-                              <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Number</p>
-                              <p style={{color:'#3cb559',fontFamily:'monospace',fontSize:16,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
-                            </div>
-                            <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#3cb55922',border:'1px solid #3cb559',color:'#3cb559',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
-                          </div>
+
+                    <form className="sgc-form" style={{maxWidth:520}} onSubmit={async(e)=>{
+                      e.preventDefault();
+                      try{
+                        const fd = new FormData();
+                        fd.append('title', adForm.title);
+                        fd.append('url', adForm.url);
+                        fd.append('members_needed', parseInt(adForm.members_needed));
+                        fd.append('payment_method', adPayMethod);
+                        if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
+                        await API.post('/user/ad-request/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
+                        notify('Ad request submitted! ✅');
+                        setAdForm({title:'',url:'',members_needed:''});
+                        setAdScreenshot(null);
+                        API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data));
+                        API.get('/user/profile').then(r=>setProfile(r.data));
+                      } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+                    }}>
+                      <label className="sgc-label">Ad Title</label>
+                      <input className="sgc-input" placeholder="e.g. Visit my YouTube channel" value={adForm.title} onChange={e=>setAdForm({...adForm,title:e.target.value})} required/>
+                      <label className="sgc-label">Ad Link (URL)</label>
+                      <input className="sgc-input" placeholder="https://yourlink.com" value={adForm.url} onChange={e=>setAdForm({...adForm,url:e.target.value})} required/>
+                      <label className="sgc-label">Members Needed</label>
+                      <input className="sgc-input" type="number" min="1" placeholder="e.g. 100" value={adForm.members_needed} onChange={e=>setAdForm({...adForm,members_needed:e.target.value})} required/>
+                      {adForm.members_needed>0 && (
+                        <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
+                          <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>Total Cost</p>
+                          <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0}}>Rs. {(adForm.members_needed * adRate).toFixed(2)}</p>
+                          <p style={{color:'var(--dim)',fontSize:11,margin:'4px 0 0'}}>{adForm.members_needed} members × Rs. {adRate}/member</p>
                         </div>
-                      ))}
-                      <label className="sgc-label">Payment Screenshot</label>
-                      <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
-                        <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setAdScreenshot(e.target.files[0])}/>
-                        {adScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {adScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
-                      </label>
-                    </>
-                  )}
-                  <button className="sgc-btn-primary" type="submit">📢 Submit Ad Request</button>
-                </form>
-
-                <h3 className="sgc-subheading">My Ad Requests</h3>
-                <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                  {myAdRequests.map((r,i)=>(
-                    <div key={i} style={{background:'var(--card)',border:`1px solid ${r.status==='approved'?'#166534':r.status==='rejected'?'#7f1d1d':'#92400e'}`,borderRadius:12,padding:'14px 18px'}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                        <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{r.title}</p>
-                        <span className="sgc-badge" style={{background:r.status==='approved'?'#064e3b':r.status==='rejected'?'#450a0a':'#451a03'}}>{r.status}</span>
+                      )}
+                      <label className="sgc-label">Payment Method</label>
+                      <div style={{display:'flex',gap:10,marginBottom:16}}>
+                        {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
+                          <div key={val} onClick={()=>setAdPayMethod(val)}
+                            style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${adPayMethod===val?'var(--accent)':'var(--border)'}`,background:adPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:adPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
+                            {label}
+                          </div>
+                        ))}
                       </div>
-                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>🔗 {r.url}</p>
-                      <p style={{color:'var(--muted)',fontSize:12,margin:0}}>👥 {r.members_needed} members · Rs. {r.total_cost} · {r.payment_method}</p>
-                      {r.admin_note&&<p style={{color:'var(--yellow)',fontSize:12,marginTop:6}}>Admin: {r.admin_note}</p>}
+                      {adPayMethod==='easypaisa' && (
+                        <>
+                          {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
+                            <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
+                              <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>📱 SEND TO THIS EASYPAISA ACCOUNT</p>
+                              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                                <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
+                                <div>
+                                  <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
+                                  <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Account Name</p>
+                                </div>
+                              </div>
+                              <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div>
+                                  <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Number</p>
+                                  <p style={{color:'#3cb559',fontFamily:'monospace',fontSize:16,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
+                                </div>
+                                <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#3cb55922',border:'1px solid #3cb559',color:'#3cb559',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
+                              </div>
+                            </div>
+                          ))}
+                          <label className="sgc-label">Payment Screenshot</label>
+                          <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                            <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setAdScreenshot(e.target.files[0])}/>
+                            {adScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {adScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
+                          </label>
+                        </>
+                      )}
+                      <button className="sgc-btn-primary" type="submit">📢 Submit Ad Request</button>
+                    </form>
+                  </div>
+
+                  {/* ── RIGHT: My Campaigns ── */}
+                  <div style={{flex:'1 1 280px',minWidth:0}}>
+                    <h3 className="sgc-subheading" style={{marginBottom:14}}>📁 My Campaigns</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {myAdRequests.map((r,i)=>{
+                        const reached = r.members_reached || 0;
+                        const pct = r.members_needed > 0 ? Math.min((reached/r.members_needed)*100,100) : 0;
+                        const statusColor = r.status==='approved'?'#4ade80':r.status==='rejected'?'#fca5a5':r.status==='completed'?'#38bdf8':'#fbbf24';
+                        const statusBg = r.status==='approved'?'#064e3b':r.status==='rejected'?'#450a0a':r.status==='completed'?'#1e3a6e':'#451a03';
+                        return (
+                          <div key={i} style={{background:'var(--card)',border:`1px solid ${r.status==='approved'?'#166534':r.status==='rejected'?'#7f1d1d':r.status==='completed'?'#1e4080':'#92400e'}`,borderRadius:12,padding:'14px 16px'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0,flex:1,marginRight:8}}>{r.title}</p>
+                              <span style={{background:statusBg,color:statusColor,padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0}}>{r.status.toUpperCase()}</span>
+                            </div>
+                            <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 10px',wordBreak:'break-all'}}>🔗 {r.url}</p>
+                            {/* Progress Bar */}
+                            <div style={{marginBottom:8}}>
+                              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                                <span style={{color:'var(--dim)',fontSize:11}}>Progress</span>
+                                <span style={{color:'var(--accent)',fontSize:11,fontWeight:700}}>{reached} / {r.members_needed} members</span>
+                              </div>
+                              <div style={{height:6,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                                <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,var(--accent),var(--green))`,borderRadius:4,transition:'width .5s'}}/>
+                              </div>
+                            </div>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                              <span style={{color:'var(--muted)',fontSize:11}}>Rs. {r.total_cost} · {r.payment_method}</span>
+                              {(r.status==='rejected'||r.status==='completed') && (
+                                <button onClick={async()=>{
+                                  try{
+                                    await API.post(`/user/ad-request/reactivate/${r.id}`);
+                                    notify('Campaign reactivated! 🚀');
+                                    API.get('/user/ad-request/my-requests').then(res=>setMyAdRequests(res.data));
+                                    API.get('/user/profile').then(res=>setProfile(res.data));
+                                  } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+                                }} style={{background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:7,padding:'4px 12px',cursor:'pointer',fontSize:11,fontWeight:700,fontFamily:'var(--font)'}}>
+                                  🔄 Reactivate
+                                </button>
+                              )}
+                            </div>
+                            {r.admin_note&&<p style={{color:'var(--yellow)',fontSize:11,marginTop:6}}>Admin: {r.admin_note}</p>}
+                          </div>
+                        );
+                      })}
+                      {myAdRequests.length===0&&<div className="sgc-empty" style={{fontSize:13}}>No campaigns yet.</div>}
                     </div>
-                  ))}
-                  {myAdRequests.length===0&&<div className="sgc-empty">No ad requests yet.</div>}
+                  </div>
+
                 </div>
               </div>
             )}

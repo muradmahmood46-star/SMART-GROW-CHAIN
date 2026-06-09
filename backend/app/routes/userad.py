@@ -76,9 +76,30 @@ async def submit_ad_request(
 @router.get("/my-requests")
 def my_requests(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     reqs = db.query(UserAdRequest).filter(UserAdRequest.user_id == current_user.id).order_by(UserAdRequest.created_at.desc()).all()
-    return [{"id": r.id, "title": r.title, "url": r.url, "members_needed": r.members_needed,
-             "total_cost": r.total_cost, "payment_method": r.payment_method,
-             "status": r.status, "admin_note": r.admin_note, "created_at": r.created_at} for r in reqs]
+    return [{
+        "id": r.id, "title": r.title, "url": r.url,
+        "members_needed": r.members_needed,
+        "members_reached": r.members_reached or 0,
+        "total_cost": r.total_cost, "payment_method": r.payment_method,
+        "status": r.status, "admin_note": r.admin_note, "created_at": r.created_at
+    } for r in reqs]
+
+@router.post("/reactivate/{req_id}")
+def reactivate_request(req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id, UserAdRequest.user_id == current_user.id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req.status not in ["rejected", "completed"]:
+        raise HTTPException(status_code=400, detail="Only rejected or completed requests can be reactivated")
+    # Wallet payment: deduct balance again
+    if req.payment_method == "wallet":
+        if current_user.balance < req.total_cost:
+            raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {req.total_cost}")
+        current_user.balance -= req.total_cost
+    req.status = "pending"
+    req.members_reached = 0
+    db.commit()
+    return {"message": "Request reactivated successfully"}
 
 @router.get("/easypaisa-accounts")
 def get_accounts(db: Session = Depends(get_db)):

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, Date, cast, or_
 import os
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest
 from app.schemas.schemas import WithdrawalCreate, UserOut
 from app.utils import decode_token, hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
@@ -34,21 +34,23 @@ def get_profile(current_user: User = Depends(get_current_user)):
 @router.get("/ads")
 def get_ads(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ads = db.query(Ad).filter(Ad.is_active == True).all()
-    today = date.today()
     result = []
     for ad in ads:
+        # Permanent — agar kabhi bhi click kiya ho toh dubara nahi
         already_clicked = db.query(Earning).filter(
             Earning.user_id == current_user.id,
             Earning.ad_id == ad.id,
-            cast(Earning.clicked_at, Date) == today
+            Earning.type == "click"
         ).first()
+        if already_clicked:
+            continue  # clicked ads list mein show hi mat karo
         result.append({
             "id": ad.id, "title": ad.title, "url": ad.url,
             "description": ad.description,
             "earning_amount": ad.earning_amount,
             "timer_seconds": ad.timer_seconds,
             "total_clicks": ad.total_clicks,
-            "already_clicked": bool(already_clicked)
+            "already_clicked": False
         })
     return result
 
@@ -57,15 +59,16 @@ def start_click(ad_id: int, request: Request, current_user: User = Depends(get_c
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
-    today = date.today()
+    # Permanent check
     already_clicked = db.query(Earning).filter(
         Earning.user_id == current_user.id, Earning.ad_id == ad_id,
-        cast(Earning.clicked_at, Date) == today
+        Earning.type == "click"
     ).first()
     if already_clicked:
-        raise HTTPException(status_code=400, detail="Already clicked today")
+        raise HTTPException(status_code=400, detail="Already clicked this ad")
     ip = request.client.host
     ua = request.headers.get("user-agent", "")
+    today = date.today()
     ip_clicks = db.query(ClickLog).filter(
         ClickLog.ip_address == ip, cast(ClickLog.created_at, Date) == today
     ).count()
@@ -80,13 +83,14 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
-    today = date.today()
+    # Permanent check
     already_clicked = db.query(Earning).filter(
         Earning.user_id == current_user.id, Earning.ad_id == ad_id,
-        cast(Earning.clicked_at, Date) == today
+        Earning.type == "click"
     ).first()
     if already_clicked:
-        raise HTTPException(status_code=400, detail="Already clicked today")
+        raise HTTPException(status_code=400, detail="Already clicked this ad")
+    today = date.today()
     log = db.query(ClickLog).filter(
         ClickLog.user_id == current_user.id, ClickLog.ad_id == ad_id,
         cast(ClickLog.created_at, Date) == today
@@ -98,6 +102,15 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
     current_user.balance += ad.earning_amount
     current_user.total_earned += ad.earning_amount
     ad.total_clicks += 1
+    # ── members_reached increment for approved UserAdRequest ──
+    active_req = db.query(UserAdRequest).filter(
+        UserAdRequest.url == ad.url,
+        UserAdRequest.status == "approved"
+    ).first()
+    if active_req:
+        active_req.members_reached = (active_req.members_reached or 0) + 1
+        if active_req.members_reached >= active_req.members_needed:
+            active_req.status = "completed"
     if current_user.referred_by:
         referrer = db.query(User).filter(User.id == current_user.referred_by).first()
         if referrer:

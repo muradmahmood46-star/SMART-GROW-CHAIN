@@ -183,9 +183,10 @@ class UserAdRequest(Base):
     title           = Column(String(100))
     url             = Column(String(255))
     members_needed  = Column(Integer)
-    rate_pkr        = Column(Float)        # rate at time of request
-    total_cost      = Column(Float)        # members * rate
-    payment_method  = Column(String(20), default="wallet")  # wallet or easypaisa
+    members_reached = Column(Integer, default=0)   # kitne log dekh chuke
+    rate_pkr        = Column(Float)
+    total_cost      = Column(Float)
+    payment_method  = Column(String(20), default="wallet")
     screenshot_path = Column(String(255), nullable=True)
     status          = Column(String(20), default="pending")  # pending, approved, rejected
     admin_note      = Column(String(255), nullable=True)
