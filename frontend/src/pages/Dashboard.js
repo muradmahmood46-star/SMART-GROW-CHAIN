@@ -194,7 +194,7 @@ export default function Dashboard() {
         <p className="sgc-logo-sub">Earn money by viewing ads</p>
 
         <div className="sgc-profile">
-          <div className="sgc-avatar" style={{background:'linear-gradient(135deg,var(--accent),var(--accent2))'}}>
+          <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#0d9488,#0891b2)'}}>
             {profile.username[0].toUpperCase()}
           </div>
           <div style={{minWidth:0}}>
@@ -234,8 +234,8 @@ export default function Dashboard() {
       <div className="panel-main">
         <div className="sgc-topbar">
           <button className="hamburger" onClick={()=>setSidebarOpen(true)}>☰</button>
-          <span style={{color:'var(--accent)',fontWeight:800,fontSize:15}}>🌱 Smart Grow Chain</span>
-          <div className="sgc-avatar" style={{background:'linear-gradient(135deg,var(--accent),var(--accent2))',width:36,height:36,fontSize:15,flexShrink:0}}>
+          <span style={{color:'#fff',fontWeight:800,fontSize:15}}>🌱 Smart Grow Chain</span>
+          <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#0d9488,#0891b2)',width:36,height:36,fontSize:15,flexShrink:0}}>
             {profile.username[0].toUpperCase()}
           </div>
         </div>
@@ -275,14 +275,14 @@ export default function Dashboard() {
                 <h2 className="sgc-heading">🏠 Dashboard</h2>
                 <div className="sgc-stats">
                   {[
-                    ['Total Balance',`Rs. ${profile.balance.toFixed(2)}`,'var(--green)'],
-                    ['Total Earned',`Rs. ${profile.total_earned.toFixed(2)}`,'var(--accent)'],
-                    ['Today Earned',`Rs. ${todayEarned.toFixed(2)}`,'var(--yellow)'],
-                    ['Ads Available',availableAds,'var(--purple)'],
-                    ['Total Clicks',earnings.filter(e=>e.type==='click').length,'var(--accent)'],
-                    ['Referrals',referrals?.total_referrals||0,'var(--green)'],
-                    ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#f472b6'],
-                    ['Membership',profile.membership.toUpperCase(),'var(--yellow)'],
+                    ['Total Balance',`Rs. ${profile.balance.toFixed(2)}`,'#0d9488'],
+                    ['Total Earned',`Rs. ${profile.total_earned.toFixed(2)}`,'#0891b2'],
+                    ['Today Earned',`Rs. ${todayEarned.toFixed(2)}`,'#d97706'],
+                    ['Ads Available',availableAds,'#7c3aed'],
+                    ['Total Clicks',earnings.filter(e=>e.type==='click').length,'#0891b2'],
+                    ['Referrals',referrals?.total_referrals||0,'#059669'],
+                    ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777'],
+                    ['Membership',profile.membership.toUpperCase(),'#d97706'],
                   ].map(([l,v,c],i)=>(
                     <div key={i} className="sgc-stat-card">
                       <div className="sgc-stat-label">{l}</div>
