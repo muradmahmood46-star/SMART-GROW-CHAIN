@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
 from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting
@@ -18,8 +19,13 @@ def get_admin_user(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
         payload = decode_token(token)
         if not payload.get("is_admin"):
             raise HTTPException(status_code=403, detail="Admin access required")
-        user = db.query(User).filter(User.id == int(payload["sub"])).first()
+        sub = payload.get("sub", "")
+        if sub == "admin_bypass":
+            return None  # hardcoded admin, no DB user
+        user = db.query(User).filter(User.id == int(sub)).first()
         return user
+    except HTTPException:
+        raise
     except:
         raise HTTPException(status_code=403, detail="Admin access required")
 
@@ -274,7 +280,7 @@ def get_deposits(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
             "sender_name": d.sender_name or "-",
             "transaction_id": d.transaction_id,
             "easypaisa_number": acc.account_number if acc else "-",
-            "screenshot_url": f"http://localhost:8000/uploads/screenshots/{d.screenshot_path}" if d.screenshot_path else None,
+            "screenshot_url": f"{os.getenv('BACKEND_URL', 'https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{d.screenshot_path}" if d.screenshot_path else None,
             "status": d.status,
             "admin_note": d.admin_note,
             "created_at": d.created_at

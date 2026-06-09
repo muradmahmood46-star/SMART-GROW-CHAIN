@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, Date, cast, or_
+import os
 from app.database import get_db
 from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan
 from app.schemas.schemas import WithdrawalCreate, UserOut
@@ -166,7 +167,7 @@ def get_referrals(current_user: User = Depends(get_current_user), db: Session = 
     ).scalar() or 0
     return {
         "referral_code": current_user.referral_code,
-        "referral_link": f"http://localhost:3000/register?ref={current_user.referral_code}",
+        "referral_link": f"{os.getenv('FRONTEND_URL', 'https://ptc-pro-fullstack.vercel.app')}/register?ref={current_user.referral_code}",
         "total_referrals": len(refs),
         "total_commission": round(total_commission, 2),
         "referrals": [{"username": r.username, "joined": r.created_at} for r in refs]
