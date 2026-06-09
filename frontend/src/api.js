@@ -7,7 +7,7 @@ const API = axios.create({
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
-  config.headers['ngrok-skip-browser-warning'] = 'true';
+  // config.headers['ngrok-skip-browser-warning'] = 'true'; // ngrok not used
   return config;
 });
 
