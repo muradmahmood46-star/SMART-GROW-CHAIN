@@ -572,8 +572,20 @@ def approve_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends
         raise HTTPException(status_code=404, detail="Not found")
     req.status = "approved"
     req.admin_note = data.admin_note
+    # Auto-create Ad so all users can see it
+    existing = db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).first()
+    if not existing:
+        db.add(Ad(
+            title=req.title,
+            url=req.url,
+            description=f"Sponsored campaign",
+            earning_amount=0.5,
+            timer_seconds=15,
+            daily_limit=req.members_needed,
+            is_active=True
+        ))
     db.commit()
-    return {"message": "Ad request approved"}
+    return {"message": "Ad request approved and ad published"}
 
 @router.put("/user-ad-requests/{req_id}/reject")
 def reject_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
