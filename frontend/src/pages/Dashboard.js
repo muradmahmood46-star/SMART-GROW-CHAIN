@@ -840,76 +840,133 @@ export default function Dashboard() {
                   </div>
 
                   {/* ── RIGHT: My Campaigns ── */}
-                  <div style={{flex:'1 1 280px',minWidth:0}}>
-                    <h3 className="sgc-subheading" style={{marginBottom:14}}>📁 My Campaigns</h3>
-                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  <div style={{flex:'1 1 300px',minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                      <h3 style={{color:'var(--text)',fontWeight:800,fontSize:16,margin:0}}>📁 My Campaigns</h3>
+                      <span style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--dim)',padding:'3px 12px',borderRadius:20,fontSize:12}}>{myAdRequests.length} total</span>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:16}}>
                       {myAdRequests.map((r,i)=>{
-                        const reached = r.members_reached || 0;
-                        const pct = r.members_needed > 0 ? Math.min((reached/r.members_needed)*100,100) : 0;
-                        const statusColor = r.status==='approved'?'#4ade80':r.status==='rejected'?'#fca5a5':r.status==='completed'?'#38bdf8':'#fbbf24';
-                        const statusBg = r.status==='approved'?'#064e3b':r.status==='rejected'?'#450a0a':r.status==='completed'?'#1e3a6e':'#451a03';
+                        const reached = r.members_reached||0;
+                        const pct = r.members_needed>0?Math.min((reached/r.members_needed)*100,100):0;
+                        const isApproved=r.status==='approved';
+                        const isCompleted=r.status==='completed';
+                        const isRejected=r.status==='rejected';
+                        const isPending=r.status==='pending';
+                        const accentCol = isApproved?'#4ade80':isCompleted?'#38bdf8':isRejected?'#f87171':'#fbbf24';
+                        const borderCol = isApproved?'#166534':isCompleted?'#1e4080':isRejected?'#7f1d1d':'#92400e';
+                        const bgCol    = isApproved?'#052e16':isCompleted?'#0c1e3e':isRejected?'#1c0a0a':'#1c1000';
                         return (
-                          <div key={i} style={{background:'var(--card)',border:`1px solid ${r.status==='approved'?'#166534':r.status==='rejected'?'#7f1d1d':r.status==='completed'?'#1e4080':'#92400e'}`,borderRadius:12,padding:'14px 16px'}}>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
-                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0,flex:1,marginRight:8}}>{r.title}</p>
-                              <span style={{background:statusBg,color:statusColor,padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap',flexShrink:0}}>{r.status.toUpperCase()}</span>
+                          <div key={i} style={{background:bgCol,border:`1.5px solid ${borderCol}`,borderRadius:16,overflow:'hidden',animation:'fadeUp .3s ease both'}}>
+                            {/* Header */}
+                            <div style={{padding:'14px 16px',borderBottom:`1px solid ${borderCol}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <p style={{color:'var(--text)',fontWeight:800,fontSize:15,margin:'0 0 3px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.title}</p>
+                                <p style={{color:'var(--dim)',fontSize:11,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>🔗 {r.url}</p>
+                              </div>
+                              <span style={{background:isApproved?'#064e3b':isCompleted?'#1e3a6e':isRejected?'#450a0a':'#451a03',color:accentCol,padding:'4px 14px',borderRadius:20,fontSize:12,fontWeight:800,flexShrink:0,whiteSpace:'nowrap'}}>
+                                {isApproved?'✅ ACTIVE':isCompleted?'🏁 DONE':isRejected?'❌ REJECTED':'⏳ PENDING'}
+                              </span>
                             </div>
-                            <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 10px',wordBreak:'break-all'}}>🔗 {r.url}</p>
+
+                            {/* Stats Row */}
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:0,borderBottom:`1px solid ${borderCol}`}}>
+                              {[
+                                ['👥','Members',`${reached}/${r.members_needed}`],
+                                ['💰','Cost',`Rs.${r.total_cost}`],
+                                ['📊','Progress',`${pct.toFixed(0)}%`],
+                              ].map(([icon,label,val],si)=>(
+                                <div key={si} style={{padding:'12px 10px',textAlign:'center',borderRight:si<2?`1px solid ${borderCol}`:'none'}}>
+                                  <p style={{fontSize:18,margin:'0 0 2px'}}>{icon}</p>
+                                  <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600}}>{label}</p>
+                                  <p style={{color:accentCol,fontSize:13,fontWeight:800,margin:0}}>{val}</p>
+                                </div>
+                              ))}
+                            </div>
+
                             {/* Progress Bar */}
-                            <div style={{marginBottom:8}}>
-                              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                                <span style={{color:'var(--dim)',fontSize:11}}>Progress</span>
-                                <span style={{color:'var(--accent)',fontSize:11,fontWeight:700}}>{reached} / {r.members_needed} members</span>
+                            <div style={{padding:'12px 16px',borderBottom:`1px solid ${borderCol}`}}>
+                              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                                <span style={{color:'var(--dim)',fontSize:11,fontWeight:600}}>CAMPAIGN PROGRESS</span>
+                                <span style={{color:accentCol,fontSize:11,fontWeight:800}}>{reached} of {r.members_needed} reached</span>
                               </div>
-                              <div style={{height:6,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
-                                <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,var(--accent),var(--green))`,borderRadius:4,transition:'width .5s'}}/>
+                              <div style={{height:10,background:'#0b1120',borderRadius:6,overflow:'hidden',border:'1px solid var(--border)'}}>
+                                <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,${accentCol},${isCompleted?'#818cf8':isApproved?'#86efac':'#fde68a'})`,borderRadius:6,transition:'width .6s ease',boxShadow:`0 0 8px ${accentCol}66`}}/>
                               </div>
                             </div>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                              <span style={{color:'var(--muted)',fontSize:11}}>Rs. {r.total_cost} · {r.payment_method}</span>
-                              {(r.status==='rejected'||r.status==='completed') && (
+
+                            {/* Action Buttons */}
+                            <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:10}}>
+                              {/* Viewers Button */}
+                              {(isApproved||isCompleted) && (
+                                <button onClick={async()=>{
+                                  if(campaignViewers[r.id]!==undefined){ setCampaignViewers(p=>({...p,[r.id]:undefined})); return; }
+                                  try{
+                                    const res=await API.get(`/admin/campaign-viewers/${r.id}`,{headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}});
+                                    setCampaignViewers(p=>({...p,[r.id]:res.data}));
+                                  }catch{ notify('Could not load viewers','error'); }
+                                }} style={{width:'100%',padding:'12px',background:campaignViewers[r.id]!==undefined?'#1e3a6e':'#0f2a4a',border:`1.5px solid #38bdf8`,borderRadius:10,color:'#38bdf8',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
+                                  <span style={{fontSize:18}}>👥</span>
+                                  {campaignViewers[r.id]!==undefined?'Hide Viewers':'View Who Watched My Ad'}
+                                  {campaignViewers[r.id]&&<span style={{background:'#38bdf8',color:'#0b1120',borderRadius:20,padding:'1px 8px',fontSize:11,fontWeight:800}}>{campaignViewers[r.id].length}</span>}
+                                </button>
+                              )}
+
+                              {/* Viewers List */}
+                              {campaignViewers[r.id]!==undefined && (
+                                <div style={{background:'#0b1120',borderRadius:10,border:'1px solid var(--border)',overflow:'hidden'}}>
+                                  <div style={{padding:'8px 12px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
+                                    <span style={{fontSize:14}}>👁️</span>
+                                    <span style={{color:'var(--muted)',fontSize:12,fontWeight:700}}>VIEWERS ({campaignViewers[r.id].length})</span>
+                                  </div>
+                                  <div style={{maxHeight:180,overflowY:'auto'}}>
+                                    {campaignViewers[r.id].length===0&&(
+                                      <p style={{color:'var(--dim)',fontSize:12,textAlign:'center',padding:'16px',margin:0}}>No viewers yet — campaign may be pending approval.</p>
+                                    )}
+                                    {campaignViewers[r.id].map((v,vi)=>(
+                                      <div key={vi} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 12px',borderBottom:vi<campaignViewers[r.id].length-1?'1px solid var(--border)':'none'}}>
+                                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                          <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'var(--bg)',flexShrink:0}}>{v.username[0].toUpperCase()}</div>
+                                          <span style={{color:'var(--text)',fontSize:13,fontWeight:600}}>@{v.username}</span>
+                                        </div>
+                                        <span style={{color:'var(--dim)',fontSize:11}}>{new Date(v.viewed_at).toLocaleDateString()}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Reactivate Button */}
+                              {(isRejected||isCompleted) && (
                                 <button onClick={async()=>{
                                   try{
                                     await API.post(`/user/ad-request/reactivate/${r.id}`);
                                     notify('Campaign reactivated! 🚀');
                                     API.get('/user/ad-request/my-requests').then(res=>setMyAdRequests(res.data));
                                     API.get('/user/profile').then(res=>setProfile(res.data));
-                                  } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-                                }} style={{background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:7,padding:'4px 12px',cursor:'pointer',fontSize:11,fontWeight:700,fontFamily:'var(--font)'}}>
-                                  🔄 Reactivate
+                                  }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+                                }} style={{width:'100%',padding:'12px',background:'linear-gradient(135deg,#7c3aed,#6d28d9)',border:'none',borderRadius:10,color:'#fff',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
+                                  <span style={{fontSize:18}}>🔄</span> Reactivate Campaign
                                 </button>
                               )}
+
+                              {r.admin_note&&(
+                                <div style={{background:'#1c1500',border:'1px solid #92400e',borderRadius:8,padding:'8px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                                  <span style={{fontSize:14,flexShrink:0}}>💬</span>
+                                  <p style={{color:'#fbbf24',fontSize:12,margin:0,fontWeight:600}}>Admin: {r.admin_note}</p>
+                                </div>
+                              )}
                             </div>
-                            {/* Viewers List */}
-                            {(r.status==='approved'||r.status==='completed') && (
-                              <div>
-                                <button onClick={async()=>{
-                                  if(campaignViewers[r.id]) { setCampaignViewers(p=>({...p,[r.id]:null})); return; }
-                                  try{
-                                    const res = await API.get(`/admin/campaign-viewers/${r.id}`, {headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}});
-                                    setCampaignViewers(p=>({...p,[r.id]:res.data}));
-                                  }catch{ notify('Could not load viewers','error'); }
-                                }} style={{background:'var(--bg)',border:'1px solid var(--border)',color:'var(--muted)',borderRadius:7,padding:'4px 12px',cursor:'pointer',fontSize:11,fontWeight:600,fontFamily:'var(--font)',marginBottom:8}}>
-                                  {campaignViewers[r.id]?'👁️ Hide Viewers':'👥 Show Viewers'}
-                                </button>
-                                {campaignViewers[r.id] && (
-                                  <div style={{background:'var(--bg)',borderRadius:8,padding:'8px 10px',maxHeight:120,overflowY:'auto'}}>
-                                    {campaignViewers[r.id].length===0 && <p style={{color:'var(--dim)',fontSize:11,margin:0}}>No viewers yet.</p>}
-                                    {campaignViewers[r.id].map((v,vi)=>(
-                                      <div key={vi} style={{display:'flex',justifyContent:'space-between',padding:'3px 0',borderBottom:'1px solid var(--border)'}}>
-                                        <span style={{color:'var(--accent)',fontSize:12,fontWeight:600}}>@{v.username}</span>
-                                        <span style={{color:'var(--dim)',fontSize:11}}>{new Date(v.viewed_at).toLocaleDateString()}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {r.admin_note&&<p style={{color:'var(--yellow)',fontSize:11,marginTop:6}}>Admin: {r.admin_note}</p>}
                           </div>
                         );
                       })}
-                      {myAdRequests.length===0&&<div className="sgc-empty" style={{fontSize:13}}>No campaigns yet.</div>}
+                      {myAdRequests.length===0&&(
+                        <div style={{background:'var(--card)',border:'1px dashed var(--border)',borderRadius:16,padding:'36px 20px',textAlign:'center'}}>
+                          <p style={{fontSize:36,margin:'0 0 10px'}}>📢</p>
+                          <p style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:'0 0 6px'}}>No Campaigns Yet</p>
+                          <p style={{color:'var(--dim)',fontSize:13,margin:0}}>Create your first campaign using the form on the left!</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
