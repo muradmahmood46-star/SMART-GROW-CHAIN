@@ -15,6 +15,7 @@ const TABS = [
   { key:'referral',     icon:'👥', label:'My Referral'     },
   { key:'transactions', icon:'📊', label:'All Transaction' },
   { key:'ref-bonus',    icon:'🎁', label:'Referral Bonus'  },
+  { key:'create-ad',   icon:'📢', label:'Advertise'       },
   { key:'support',      icon:'🎫', label:'Support Ticket'  },
   { key:'2fa',          icon:'🔐', label:'2FA Security'    },
 ];
@@ -33,6 +34,11 @@ export default function Dashboard() {
   const [tickets, setTickets]         = useState([]);
   const [plans, setPlans]             = useState([]);
   const [twoFA, setTwoFA]             = useState(null);
+  const [adRate, setAdRate]           = useState(1);
+  const [adForm, setAdForm]           = useState({ title:'', url:'', members_needed:'' });
+  const [adPayMethod, setAdPayMethod] = useState('wallet');
+  const [adScreenshot, setAdScreenshot] = useState(null);
+  const [myAdRequests, setMyAdRequests] = useState([]);
   const [tab, setTab]                 = useState('dashboard');
   const [activeAd, setActiveAd]       = useState(null);
   const [countdown, setCountdown]     = useState(0);
@@ -63,6 +69,8 @@ export default function Dashboard() {
     API.get('/user/transactions').then(r=>setTransactions(r.data));
     API.get('/user/tickets').then(r=>setTickets(r.data));
     API.get('/user/plans').then(r=>setPlans(r.data));
+    API.get('/user/ad-request/rate').then(r=>setAdRate(r.data.rate_pkr)).catch(()=>{});
+    API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
   },[]);
 
   useEffect(()=>{ loadData(); },[loadData]);
@@ -727,6 +735,84 @@ export default function Dashboard() {
                     {earnings.filter(e=>e.type==='click').length===0&&<tr><td colSpan={5} className="sgc-td" style={{textAlign:'center',padding:32}}>No ad views yet</td></tr>}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* ── CREATE AD ── */}
+            {tab==='create-ad' && (
+              <div>
+                <h2 className="sgc-heading">📢 Advertise Your Link</h2>
+                <div className="sgc-stats" style={{maxWidth:420,marginBottom:24}}>
+                  <div className="sgc-stat-card"><div className="sgc-stat-label">Rate Per Member</div><div className="sgc-stat-val" style={{color:'var(--yellow)'}}>Rs. {adRate}</div></div>
+                  <div className="sgc-stat-card"><div className="sgc-stat-label">Your Balance</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {profile.balance.toFixed(2)}</div></div>
+                </div>
+
+                <form className="sgc-form" style={{maxWidth:520,marginBottom:32}} onSubmit={async(e)=>{
+                  e.preventDefault();
+                  try{
+                    const fd = new FormData();
+                    fd.append('title', adForm.title);
+                    fd.append('url', adForm.url);
+                    fd.append('members_needed', parseInt(adForm.members_needed));
+                    fd.append('payment_method', adPayMethod);
+                    if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
+                    await API.post('/user/ad-request/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
+                    notify('Ad request submitted! ✅');
+                    setAdForm({title:'',url:'',members_needed:''});
+                    setAdScreenshot(null);
+                    API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data));
+                    API.get('/user/profile').then(r=>setProfile(r.data));
+                  } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+                }}>
+                  <label className="sgc-label">Ad Title</label>
+                  <input className="sgc-input" placeholder="e.g. Visit my YouTube channel" value={adForm.title} onChange={e=>setAdForm({...adForm,title:e.target.value})} required/>
+                  <label className="sgc-label">Ad Link (URL)</label>
+                  <input className="sgc-input" placeholder="https://yourlink.com" value={adForm.url} onChange={e=>setAdForm({...adForm,url:e.target.value})} required/>
+                  <label className="sgc-label">Members Needed</label>
+                  <input className="sgc-input" type="number" min="1" placeholder="e.g. 100" value={adForm.members_needed} onChange={e=>setAdForm({...adForm,members_needed:e.target.value})} required/>
+                  {adForm.members_needed>0 && (
+                    <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>Total Cost</p>
+                      <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0}}>Rs. {(adForm.members_needed * adRate).toFixed(2)}</p>
+                      <p style={{color:'var(--dim)',fontSize:11,margin:'4px 0 0'}}>{adForm.members_needed} members × Rs. {adRate}/member</p>
+                    </div>
+                  )}
+                  <label className="sgc-label">Payment Method</label>
+                  <div style={{display:'flex',gap:10,marginBottom:16}}>
+                    {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
+                      <div key={val} onClick={()=>setAdPayMethod(val)}
+                        style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${adPayMethod===val?'var(--accent)':'var(--border)'}`,background:adPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:adPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                  {adPayMethod==='easypaisa' && (
+                    <>
+                      <label className="sgc-label">Payment Screenshot</label>
+                      <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                        <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setAdScreenshot(e.target.files[0])}/>
+                        {adScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {adScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
+                      </label>
+                    </>
+                  )}
+                  <button className="sgc-btn-primary" type="submit">📢 Submit Ad Request</button>
+                </form>
+
+                <h3 className="sgc-subheading">My Ad Requests</h3>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {myAdRequests.map((r,i)=>(
+                    <div key={i} style={{background:'var(--card)',border:`1px solid ${r.status==='approved'?'#166534':r.status==='rejected'?'#7f1d1d':'#92400e'}`,borderRadius:12,padding:'14px 18px'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                        <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{r.title}</p>
+                        <span className="sgc-badge" style={{background:r.status==='approved'?'#064e3b':r.status==='rejected'?'#450a0a':'#451a03'}}>{r.status}</span>
+                      </div>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>🔗 {r.url}</p>
+                      <p style={{color:'var(--muted)',fontSize:12,margin:0}}>👥 {r.members_needed} members · Rs. {r.total_cost} · {r.payment_method}</p>
+                      {r.admin_note&&<p style={{color:'var(--yellow)',fontSize:12,marginTop:6}}>Admin: {r.admin_note}</p>}
+                    </div>
+                  ))}
+                  {myAdRequests.length===0&&<div className="sgc-empty">No ad requests yet.</div>}
                 </div>
               </div>
             )}

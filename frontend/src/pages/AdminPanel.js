@@ -144,6 +144,7 @@ export default function AdminPanel() {
   const pendingW = withdrawals.filter(w=>w.status==='pending').length;
   const pendingD = deposits.filter(d=>d.status==='pending').length;
   const openT    = tickets.filter(t=>t.status==='open').length;
+  const pendingAdReqs = adRequests.filter(r=>r.status==='pending').length;
 
   return (
     <div className="panel-wrap">
@@ -206,6 +207,7 @@ export default function AdminPanel() {
               {key==='withdrawals' && pendingW>0 && <span className="nav-badge">{pendingW}</span>}
               {key==='deposits'    && pendingD>0 && <span className="nav-badge">{pendingD}</span>}
               {key==='tickets'     && openT>0    && <span className="nav-badge">{openT}</span>}
+              {key==='ad-requests' && pendingAdReqs>0 && <span className="nav-badge">{pendingAdReqs}</span>}
             </button>
           ))}
         </nav>
@@ -858,6 +860,76 @@ export default function AdminPanel() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* ── AD REQUESTS ── */}
+            {tab==='ad-requests' && (
+              <div>
+                <div className="sgc-page-header">
+                  <h2 className="sgc-heading">📢 Ad Requests</h2>
+                  <span style={{color:'var(--red)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{pendingAdReqs} pending</span>
+                </div>
+
+                {/* Budget Rate Setting */}
+                <div className="sgc-form" style={{maxWidth:360,marginBottom:24}}>
+                  <h4 style={{color:'var(--yellow)',fontSize:13,fontWeight:700,marginBottom:12}}>💰 Rate Per Member (Rs.)</h4>
+                  <div style={{display:'flex',gap:10}}>
+                    <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="0.1" step="0.1" value={newBudgetRate} onChange={e=>setNewBudgetRate(e.target.value)}/>
+                    <button className="sgc-btn-yellow" style={{width:'auto',padding:'0 20px',whiteSpace:'nowrap'}} onClick={async()=>{
+                      await API.put('/admin/ad-budget-rate',{rate_pkr:parseFloat(newBudgetRate)});
+                      setAdBudgetRate(parseFloat(newBudgetRate));
+                      notify('Rate updated ✅');
+                    }}>Save</button>
+                  </div>
+                  <p style={{color:'var(--dim)',fontSize:12,marginTop:6}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
+                </div>
+
+                <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                  {adRequests.map(r=>{
+                    const isPending=r.status==='pending';
+                    const borderCol=isPending?'#f59e0b':r.status==='approved'?'#3cb559':'#ef4444';
+                    return (
+                      <div key={r.id} style={{background:'var(--card)',border:`1.5px solid ${borderCol}40`,borderRadius:14,overflow:'hidden'}}>
+                        <div style={{background:isPending?'#451a0320':r.status==='approved'?'#064e3b20':'#450a0a20',padding:'10px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${borderCol}30`}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:'var(--bg)',flexShrink:0}}>
+                              {r.username?.[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>@{r.username}</p>
+                              <p style={{color:'var(--dim)',fontSize:11,margin:0}}>{new Date(r.created_at).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <span style={{background:isPending?'#451a03':r.status==='approved'?'#064e3b':'#450a0a',color:isPending?'#f59e0b':r.status==='approved'?'#4ade80':'#fca5a5',padding:'3px 14px',borderRadius:20,fontSize:11,fontWeight:700}}>
+                            {r.status.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{padding:'16px 20px'}}>
+                          <p style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:'0 0 4px'}}>{r.title}</p>
+                          <p style={{color:'var(--accent)',fontSize:12,margin:'0 0 10px'}}>🔗 {r.url}</p>
+                          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:12}}>
+                            <span className="sgc-badge" style={{background:'#1e3a6e'}}>👥 {r.members_needed} members</span>
+                            <span className="sgc-badge" style={{background:'#064e3b',color:'var(--green)'}}>Rs. {r.total_cost}</span>
+                            <span className="sgc-badge" style={{background:'#2d1b69',color:'var(--purple)'}}>{r.payment_method}</span>
+                          </div>
+                          {r.screenshot_url&&(
+                            <a href={r.screenshot_url} target="_blank" rel="noreferrer">
+                              <img src={r.screenshot_url} alt="proof" style={{width:120,height:100,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)',marginBottom:12,display:'block'}}/>
+                            </a>
+                          )}
+                          {isPending&&(
+                            <div style={{display:'flex',gap:8}}>
+                              <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/user-ad-requests/${r.id}/approve`,{admin_note:''}); loadAll(); notify('Ad request approved ✅'); }}>✓ Approve</button>
+                              <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/user-ad-requests/${r.id}/reject`,{admin_note:''}); loadAll(); notify('Rejected & refunded'); }}>✗ Reject</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {adRequests.length===0&&<div className="sgc-empty">No ad requests yet</div>}
+                </div>
               </div>
             )}
 
