@@ -21,6 +21,7 @@ class UserOut(BaseModel):
     membership: str
     referral_code: str
     two_fa_enabled: bool
+    kyc_status: str
     created_at: datetime
     class Config:
         from_attributes = True

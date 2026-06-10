@@ -745,3 +745,66 @@ def reject_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = De
     req.admin_note = data.admin_note
     db.commit()
     return {"message": "Plan purchase rejected and balance refunded"}
+
+
+# ── KYC MANAGEMENT ─────────────────────────────────────────────────────────────
+@router.get("/kyc")
+def get_all_kyc(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    from app.models.models import KYCRequest
+    kycs = db.query(KYCRequest).order_by(KYCRequest.created_at.desc()).all()
+    result = []
+    for k in kycs:
+        user = db.query(User).filter(User.id == k.user_id).first()
+        result.append({
+            "id": k.id, "user_id": k.user_id,
+            "username": user.username if user else "?",
+            "full_name": k.full_name, "cnic": k.cnic,
+            "front_photo_url": f"{os.getenv('BACKEND_URL','https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{k.front_photo}" if k.front_photo else None,
+            "selfie_photo_url": f"{os.getenv('BACKEND_URL','https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{k.selfie_photo}" if k.selfie_photo else None,
+            "status": k.status, "admin_note": k.admin_note, "created_at": k.created_at
+        })
+    return result
+
+class KYCAction(BaseModel):
+    admin_note: Optional[str] = ""
+
+@router.put("/kyc/{kyc_id}/approve")
+def approve_kyc(kyc_id: int, data: KYCAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    from app.models.models import KYCRequest
+    k = db.query(KYCRequest).filter(KYCRequest.id == kyc_id).first()
+    if not k: raise HTTPException(status_code=404, detail="Not found")
+    k.status = "approved"
+    k.admin_note = data.admin_note
+    user = db.query(User).filter(User.id == k.user_id).first()
+    if user: user.kyc_status = "approved"
+    db.commit()
+    return {"message": "KYC approved"}
+
+@router.put("/kyc/{kyc_id}/reject")
+def reject_kyc(kyc_id: int, data: KYCAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    from app.models.models import KYCRequest
+    k = db.query(KYCRequest).filter(KYCRequest.id == kyc_id).first()
+    if not k: raise HTTPException(status_code=404, detail="Not found")
+    k.status = "rejected"
+    k.admin_note = data.admin_note
+    user = db.query(User).filter(User.id == k.user_id).first()
+    if user: user.kyc_status = "rejected"
+    db.commit()
+    return {"message": "KYC rejected"}
+
+# ── FREE PLAN DAYS SETTING (in ad-requests tab) ────────────────────────────────
+class FreePlanDays(BaseModel):
+    days: int
+
+@router.get("/free-plan-days")
+def get_free_plan_days(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    s = db.query(SiteSettings).filter(SiteSettings.key == "free_plan_days").first()
+    return {"days": int(s.value) if s and s.value else 7}
+
+@router.put("/free-plan-days")
+def set_free_plan_days(data: FreePlanDays, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    s = db.query(SiteSettings).filter(SiteSettings.key == "free_plan_days").first()
+    if s: s.value = str(data.days)
+    else: db.add(SiteSettings(key="free_plan_days", value=str(data.days)))
+    db.commit()
+    return {"message": "Updated", "days": data.days}

@@ -3,13 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, Date, cast, or_
 import os, shutil, uuid
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount, KYCRequest
 from app.schemas.schemas import WithdrawalCreate, UserOut
 from app.utils import decode_token, hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
-from datetime import date
+from datetime import date, datetime, timedelta
 import pyotp, qrcode, io, base64
 
 router = APIRouter(prefix="/user", tags=["User"])
@@ -126,6 +126,8 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
 # ── WITHDRAW ─────────────────────────────────────────────────────────────────
 @router.post("/withdraw")
 def request_withdrawal(data: WithdrawalCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.kyc_status != "approved":
+        raise HTTPException(status_code=400, detail="Please complete your KYC verification first before withdrawing.")
     if data.amount < 500:
         raise HTTPException(status_code=400, detail="Minimum withdrawal is Rs. 500")
     if current_user.balance < data.amount:
@@ -355,3 +357,70 @@ def my_plan_purchases(current_user: User = Depends(get_current_user), db: Sessio
         "payment_method": r.payment_method, "status": r.status,
         "admin_note": r.admin_note, "created_at": r.created_at
     } for r in reqs]
+
+
+# ── KYC ───────────────────────────────────────────────────────────────────────
+@router.get("/kyc/status")
+def kyc_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    kyc = db.query(KYCRequest).filter(KYCRequest.user_id == current_user.id).first()
+    # free plan expiry check
+    settings_row = db.query(SiteSettings).filter(SiteSettings.key == "free_plan_days").first()
+    free_days = int(settings_row.value) if settings_row and settings_row.value else 7
+    expired = False
+    days_left = None
+    if current_user.membership == "free":
+        if current_user.free_plan_expires_at:
+            expired = datetime.utcnow() > current_user.free_plan_expires_at
+            delta = current_user.free_plan_expires_at - datetime.utcnow()
+            days_left = max(0, delta.days)
+        else:
+            # set expiry if not set
+            expires = datetime.utcnow() + timedelta(days=free_days)
+            current_user.free_plan_expires_at = expires
+            db.commit()
+            days_left = free_days
+    return {
+        "kyc_status": current_user.kyc_status,
+        "kyc": {"full_name": kyc.full_name, "cnic": kyc.cnic, "status": kyc.status, "admin_note": kyc.admin_note, "created_at": kyc.created_at} if kyc else None,
+        "free_plan_expired": expired,
+        "free_plan_days_left": days_left,
+    }
+
+@router.post("/kyc/submit")
+async def submit_kyc(
+    full_name: str = Form(...),
+    cnic: str = Form(...),
+    front_photo: UploadFile = File(...),
+    selfie_photo: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    existing = db.query(KYCRequest).filter(KYCRequest.user_id == current_user.id).first()
+    if existing and existing.status == "approved":
+        raise HTTPException(status_code=400, detail="KYC already approved")
+
+    def save_file(f: UploadFile):
+        ext = os.path.splitext(f.filename)[-1].lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            raise HTTPException(status_code=400, detail="Only JPG/PNG allowed")
+        fname = f"{uuid.uuid4().hex}{ext}"
+        with open(os.path.join(UPLOAD_DIR, fname), "wb") as out:
+            shutil.copyfileobj(f.file, out)
+        return fname
+
+    fp = save_file(front_photo)
+    sp = save_file(selfie_photo)
+
+    if existing:
+        existing.full_name = full_name
+        existing.cnic = cnic
+        existing.front_photo = fp
+        existing.selfie_photo = sp
+        existing.status = "pending"
+        existing.admin_note = None
+    else:
+        db.add(KYCRequest(user_id=current_user.id, full_name=full_name, cnic=cnic, front_photo=fp, selfie_photo=sp))
+
+    current_user.kyc_status = "pending"
+    db.commit()
+    return {"message": "KYC submitted successfully. Admin will verify shortly."}

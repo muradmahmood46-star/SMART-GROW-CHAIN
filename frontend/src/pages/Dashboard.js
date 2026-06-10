@@ -17,6 +17,7 @@ const TABS = [
   { key:'ref-bonus',    icon:'🎁', label:'Referral Bonus'  },
   { key:'create-ad',   icon:'📢', label:'Advertise'       },
   { key:'support',      icon:'🎫', label:'Support Ticket'  },
+  { key:'kyc',          icon:'🪪', label:'KYC Verification'},
   { key:'2fa',          icon:'🔐', label:'2FA Security'    },
 ];
 
@@ -35,6 +36,12 @@ export default function Dashboard() {
   const [plans, setPlans]             = useState([]);
   const [twoFA, setTwoFA]             = useState(null);
   const [adRate, setAdRate]           = useState(1);
+  const [kycData, setKycData]         = useState(null);
+  const [kycForm, setKycForm]         = useState({ full_name:'', cnic:'' });
+  const [kycFront, setKycFront]       = useState(null);
+  const [kycSelfie, setKycSelfie]     = useState(null);
+  const [freePlanExpired, setFreePlanExpired] = useState(false);
+  const [freePlanDaysLeft, setFreePlanDaysLeft] = useState(null);
   const [adWelcomeMsg, setAdWelcomeMsg] = useState('');
   const [showAdWelcome, setShowAdWelcome] = useState(false);
   const [campaignViewers, setCampaignViewers] = useState({});
@@ -84,6 +91,7 @@ export default function Dashboard() {
     API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
     API.get('/user/settings').then(r=>setSiteSettings(r.data)).catch(()=>{});
     API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
+    API.get('/user/kyc/status').then(r=>{ setKycData(r.data); setFreePlanExpired(r.data.free_plan_expired); setFreePlanDaysLeft(r.data.free_plan_days_left); }).catch(()=>{});
   },[]);
 
   useEffect(()=>{ loadData(); },[loadData]);
@@ -239,6 +247,8 @@ export default function Dashboard() {
               <span className="nav-label">{label}</span>
               {key==='ads' && availableAds>0 && <span className="nav-badge">{availableAds}</span>}
               {key==='support' && tickets.filter(t=>t.status==='replied').length>0 && <span className="nav-badge">{tickets.filter(t=>t.status==='replied').length}</span>}
+              {key==='kyc' && kycData?.kyc_status==='none' && <span className="nav-badge" style={{background:'var(--red)'}}>!</span>}
+              {key==='kyc' && kycData?.kyc_status==='rejected' && <span className="nav-badge" style={{background:'var(--red)'}}>!</span>}
             </button>
           ))}
         </nav>
@@ -258,6 +268,44 @@ export default function Dashboard() {
 
         <div className="panel-body">
           {msg.text && <div className="sgc-toast" style={{background:msg.type==='error'?'var(--red)':'var(--green)',color:msg.type==='error'?'#fff':'var(--bg)'}}>{msg.text}</div>}
+
+          {/* Free plan expiry warning */}
+          {freePlanExpired && profile?.membership==='free' && (
+            <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:12,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+              <span style={{fontSize:24}}>⚠️</span>
+              <div style={{flex:1}}>
+                <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Free Plan Expired!</p>
+                <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Your free plan has expired. Please purchase a plan to continue earning.</p>
+              </div>
+              <button onClick={()=>setTab('plans')} style={{background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'8px 16px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Buy Plan</button>
+            </div>
+          )}
+          {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
+            <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+              <span style={{fontSize:20}}>⏰</span>
+              <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
+              <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
+            </div>
+          )}
+
+          {/* Free plan expiry warning */}
+          {freePlanExpired && profile?.membership==='free' && (
+            <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:12,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+              <span style={{fontSize:24}}>⚠️</span>
+              <div style={{flex:1}}>
+                <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Free Plan Expired!</p>
+                <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Your free plan has expired. Please purchase a plan to continue earning.</p>
+              </div>
+              <button onClick={()=>setTab('plans')} style={{background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'8px 16px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Buy Plan</button>
+            </div>
+          )}
+          {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
+            <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+              <span style={{fontSize:20}}>⏰</span>
+              <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
+              <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
+            </div>
+          )}
 
           {/* ── ADVERTISE WELCOME MODAL ── */}
           {showAdWelcome && adWelcomeMsg && (
@@ -457,23 +505,36 @@ export default function Dashboard() {
             {tab==='payout' && (
               <div>
                 <h2 className="sgc-heading">💸 Payout</h2>
-                <div className="sgc-stats" style={{maxWidth:420,marginBottom:24}}>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Available Balance</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {profile.balance.toFixed(2)}</div></div>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Min Payout</div><div className="sgc-stat-val" style={{color:'var(--yellow)'}}>Rs. 500</div></div>
-                </div>
-                <form onSubmit={handleWithdraw} className="sgc-form">
-                  <label className="sgc-label">Amount (Rs.)</label>
-                  <input className="sgc-input" type="number" step="1" min="500" placeholder="Min Rs. 500" value={withdraw.amount} onChange={e=>setWithdraw({...withdraw,amount:e.target.value})} required/>
-                  <label className="sgc-label">Payment Method</label>
-                  <select className="sgc-input" value={withdraw.method} onChange={e=>setWithdraw({...withdraw,method:e.target.value})}>
-                    <option value="easypaisa">Easypaisa</option>
-                    <option value="jazzcash">JazzCash</option>
-                    <option value="bank">Bank Transfer</option>
-                  </select>
-                  <label className="sgc-label">Account Number</label>
-                  <input className="sgc-input" placeholder="Enter your account number" value={withdraw.wallet_address} onChange={e=>setWithdraw({...withdraw,wallet_address:e.target.value})} required/>
-                  <button className="sgc-btn-primary" type="submit">Submit Payout Request</button>
-                </form>
+                {kycData?.kyc_status !== 'approved' ? (
+                  <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:14,padding:'28px 24px',textAlign:'center',maxWidth:480}}>
+                    <div style={{fontSize:48,marginBottom:12}}>🚪</div>
+                    <h3 style={{color:'#fca5a5',fontSize:18,fontWeight:800,margin:'0 0 8px'}}>KYC Verification Required</h3>
+                    <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 20px'}}>Please complete your KYC verification before withdrawing funds.</p>
+                    <button onClick={()=>setTab('kyc')} style={{background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>🪪 Complete KYC Now</button>
+                    {kycData?.kyc_status==='pending' && <p style={{color:'#fbbf24',fontSize:12,marginTop:12}}>⏳ KYC is under review. Please wait for admin approval.</p>}
+                    {kycData?.kyc_status==='rejected' && <p style={{color:'#fca5a5',fontSize:12,marginTop:12}}>❌ KYC was rejected. Please resubmit with correct documents.</p>}
+                  </div>
+                ) : (
+                  <>
+                    <div className="sgc-stats" style={{maxWidth:420,marginBottom:24}}>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Available Balance</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {profile.balance.toFixed(2)}</div></div>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Min Payout</div><div className="sgc-stat-val" style={{color:'var(--yellow)'}}>Rs. 500</div></div>
+                    </div>
+                    <form onSubmit={handleWithdraw} className="sgc-form">
+                      <label className="sgc-label">Amount (Rs.)</label>
+                      <input className="sgc-input" type="number" step="1" min="500" placeholder="Min Rs. 500" value={withdraw.amount} onChange={e=>setWithdraw({...withdraw,amount:e.target.value})} required/>
+                      <label className="sgc-label">Payment Method</label>
+                      <select className="sgc-input" value={withdraw.method} onChange={e=>setWithdraw({...withdraw,method:e.target.value})}>
+                        <option value="easypaisa">Easypaisa</option>
+                        <option value="jazzcash">JazzCash</option>
+                        <option value="bank">Bank Transfer</option>
+                      </select>
+                      <label className="sgc-label">Account Number</label>
+                      <input className="sgc-input" placeholder="Enter your account number" value={withdraw.wallet_address} onChange={e=>setWithdraw({...withdraw,wallet_address:e.target.value})} required/>
+                      <button className="sgc-btn-primary" type="submit">Submit Payout Request</button>
+                    </form>
+                  </>
+                )}
               </div>
             )}
 
@@ -876,25 +937,36 @@ export default function Dashboard() {
             {tab==='ref-bonus' && refBonus && (
               <div>
                 <h2 className="sgc-heading">🎁 Referral Bonus</h2>
-                <div className="sgc-stats" style={{marginBottom:24}}>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Total Bonus</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {refBonus.total_bonus.toFixed(2)}</div></div>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Total Entries</div><div className="sgc-stat-val" style={{color:'var(--accent)'}}>{refBonus.count}</div></div>
-                  <div className="sgc-stat-card"><div className="sgc-stat-label">Rate Per Click</div><div className="sgc-stat-val" style={{color:'var(--purple)'}}>10%</div></div>
-                </div>
-                <div className="sgc-table-wrap">
-                  <table className="sgc-table">
-                    <thead><tr><th className="sgc-th">Amount</th><th className="sgc-th">Ad ID</th><th className="sgc-th">Date</th></tr></thead>
-                    <tbody>{refBonus.bonuses.map((b,i)=>(
-                      <tr key={i} className="sgc-tr">
-                        <td className="sgc-td" style={{color:'var(--green)',fontWeight:600}}>+Rs. {b.amount.toFixed(2)}</td>
-                        <td className="sgc-td">#{b.ad_id}</td>
-                        <td className="sgc-td">{new Date(b.date).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                    {refBonus.bonuses.length===0&&<tr><td colSpan={3} className="sgc-td" style={{textAlign:'center',padding:32}}>No referral bonus yet</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
+                {kycData?.kyc_status !== 'approved' ? (
+                  <div style={{background:'#1e3a6e',border:'1px solid var(--accent)',borderRadius:14,padding:'28px 24px',textAlign:'center',maxWidth:480}}>
+                    <div style={{fontSize:48,marginBottom:12}}>🔒</div>
+                    <h3 style={{color:'var(--accent)',fontSize:18,fontWeight:800,margin:'0 0 8px'}}>KYC Required for Bonus</h3>
+                    <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 20px'}}>Complete KYC verification to unlock referral bonuses.</p>
+                    <button onClick={()=>setTab('kyc')} style={{background:'var(--accent)',color:'var(--bg)',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>🪪 Complete KYC</button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="sgc-stats" style={{marginBottom:24}}>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Total Bonus</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {refBonus.total_bonus.toFixed(2)}</div></div>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Total Entries</div><div className="sgc-stat-val" style={{color:'var(--accent)'}}>{refBonus.count}</div></div>
+                      <div className="sgc-stat-card"><div className="sgc-stat-label">Rate Per Click</div><div className="sgc-stat-val" style={{color:'var(--purple)'}}>10%</div></div>
+                    </div>
+                    <div className="sgc-table-wrap">
+                      <table className="sgc-table">
+                        <thead><tr><th className="sgc-th">Amount</th><th className="sgc-th">Ad ID</th><th className="sgc-th">Date</th></tr></thead>
+                        <tbody>{refBonus.bonuses.map((b,i)=>(
+                          <tr key={i} className="sgc-tr">
+                            <td className="sgc-td" style={{color:'var(--green)',fontWeight:600}}>+Rs. {b.amount.toFixed(2)}</td>
+                            <td className="sgc-td">#{b.ad_id}</td>
+                            <td className="sgc-td">{new Date(b.date).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                        {refBonus.bonuses.length===0&&<tr><td colSpan={3} className="sgc-td" style={{textAlign:'center',padding:32}}>No referral bonus yet</td></tr>}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -1182,6 +1254,83 @@ export default function Dashboard() {
                   ))}
                   {tickets.length===0&&<div className="sgc-empty">No tickets submitted yet.</div>}
                 </div>
+              </div>
+            )}
+
+            {/* ── KYC VERIFICATION ── */}
+            {tab==='kyc' && (
+              <div>
+                <h2 className="sgc-heading">🪪 KYC Verification</h2>
+                {/* Status badge */}
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24,padding:'14px 18px',background:'var(--card)',borderRadius:12,border:'1px solid var(--border)',maxWidth:480}}>
+                  <span style={{fontSize:32}}>
+                    {kycData?.kyc_status==='approved'?'✅':kycData?.kyc_status==='pending'?'⏳':kycData?.kyc_status==='rejected'?'❌':'🚪'}
+                  </span>
+                  <div>
+                    <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>KYC Status</p>
+                    <p style={{color:kycData?.kyc_status==='approved'?'var(--green)':kycData?.kyc_status==='pending'?'var(--yellow)':kycData?.kyc_status==='rejected'?'var(--red)':'var(--dim)',fontSize:13,margin:'2px 0 0',fontWeight:600,textTransform:'capitalize'}}>
+                      {kycData?.kyc_status==='none'?'Not Submitted':kycData?.kyc_status}
+                    </p>
+                    {kycData?.kyc?.admin_note && <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Note: {kycData.kyc.admin_note}</p>}
+                  </div>
+                </div>
+
+                {kycData?.kyc_status==='approved' ? (
+                  <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:12,padding:'20px 24px',maxWidth:480}}>
+                    <p style={{color:'#4ade80',fontWeight:700,fontSize:15,margin:'0 0 8px'}}>✅ KYC Verified Successfully</p>
+                    <p style={{color:'var(--dim)',fontSize:13,margin:0}}>Your identity has been verified. You can now withdraw funds and access all bonuses.</p>
+                    {kycData.kyc && (
+                      <div style={{marginTop:14,borderTop:'1px solid var(--border)',paddingTop:14}}>
+                        <p style={{color:'var(--muted)',fontSize:12,margin:'0 0 4px'}}>Name: <b style={{color:'var(--text)'}}>{kycData.kyc.full_name}</b></p>
+                        <p style={{color:'var(--muted)',fontSize:12,margin:0}}>CNIC: <b style={{color:'var(--text)'}}>{kycData.kyc.cnic}</b></p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <form className="sgc-form" style={{maxWidth:480}} onSubmit={async(e)=>{
+                    e.preventDefault();
+                    if(!kycFront||!kycSelfie){ notify('Please upload both photos','error'); return; }
+                    try{
+                      const fd=new FormData();
+                      fd.append('full_name', kycForm.full_name);
+                      fd.append('cnic', kycForm.cnic);
+                      fd.append('front_photo', kycFront);
+                      fd.append('selfie_photo', kycSelfie);
+                      await API.post('/user/kyc/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
+                      notify('KYC submitted! Admin will verify shortly. ✅');
+                      API.get('/user/kyc/status').then(r=>{ setKycData(r.data); setFreePlanExpired(r.data.free_plan_expired); setFreePlanDaysLeft(r.data.free_plan_days_left); });
+                      API.get('/user/profile').then(r=>setProfile(r.data));
+                    }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+                  }}>
+                    <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
+                      <p style={{color:'var(--accent)',fontSize:13,fontWeight:700,margin:'0 0 6px'}}>📋 KYC Requirements</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• Valid CNIC (front photo)</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• Selfie holding your CNIC</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:0}}>• Photos must be clear and readable</p>
+                    </div>
+                    <label className="sgc-label">Full Name (as on CNIC)</label>
+                    <input className="sgc-input" placeholder="e.g. Muhammad Ali" value={kycForm.full_name} onChange={e=>setKycForm({...kycForm,full_name:e.target.value})} required/>
+                    <label className="sgc-label">CNIC Number</label>
+                    <input className="sgc-input" placeholder="XXXXX-XXXXXXX-X" value={kycForm.cnic} onChange={e=>setKycForm({...kycForm,cnic:e.target.value})} required/>
+                    <label className="sgc-label">CNIC Front Photo <span style={{color:'var(--red)'}}>*</span></label>
+                    <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setKycFront(e.target.files[0])}/>
+                      {kycFront?<p style={{color:'var(--green)',margin:0}}>✓ {kycFront.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📷 Upload CNIC Front</p>}
+                    </label>
+                    <label className="sgc-label">Selfie with CNIC <span style={{color:'var(--red)'}}>*</span></label>
+                    <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setKycSelfie(e.target.files[0])}/>
+                      {kycSelfie?<p style={{color:'var(--green)',margin:0}}>✓ {kycSelfie.name}</p>:<p style={{color:'var(--dim)',margin:0}}>🤳 Upload Selfie with CNIC</p>}
+                    </label>
+                    {kycData?.kyc_status==='pending' ? (
+                      <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:10,padding:'12px 16px',textAlign:'center'}}>
+                        <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>⏳ KYC is under review. Please wait for admin approval.</p>
+                      </div>
+                    ) : (
+                      <button className="sgc-btn-primary" type="submit">🚀 Submit KYC</button>
+                    )}
+                  </form>
+                )}
               </div>
             )}
 

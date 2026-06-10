@@ -17,6 +17,7 @@ const TABS = [
   { key:'ref-settings',icon:'⚙️', label:'Referral Commission'},
   { key:'ad-view-log', icon:'📌', label:'Ad View Log'     },
   { key:'ad-requests', icon:'💰', label:'Ad Rate Setting'  },
+  { key:'kyc',         icon:'🪪', label:'KYC Requests'    },
   { key:'plan-purchases', icon:'🏆', label:'Plan Purchases'   },
   { key:'easypaisa',   icon:'📱', label:'Easypaisa'       },
   { key:'emails',      icon:'📧', label:'Admin Emails'    },
@@ -50,6 +51,8 @@ export default function AdminPanel() {
   const [editEmailVal, setEditEmailVal] = useState('');
   const [adRequests, setAdRequests]   = useState([]);
   const [planPurchases, setPlanPurchases] = useState([]);
+  const [kycRequests, setKycRequests]   = useState([]);
+  const [freePlanDays, setFreePlanDays] = useState(7);
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [welcomeMsg, setWelcomeMsg] = useState('');
@@ -80,6 +83,8 @@ export default function AdminPanel() {
     API.get('/admin/ad-view-log').then(r=>setAdViewLog(r.data));
     API.get('/admin/user-ad-requests').then(r=>setAdRequests(r.data)).catch(()=>{});
     API.get('/admin/plan-purchases').then(r=>setPlanPurchases(r.data)).catch(()=>{});
+    API.get('/admin/kyc').then(r=>setKycRequests(r.data)).catch(()=>{});
+    API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); }).catch(()=>{});
   };
@@ -221,6 +226,7 @@ export default function AdminPanel() {
               {key==='deposits'    && pendingD>0 && <span className="nav-badge">{pendingD}</span>}
               {key==='tickets'     && openT>0    && <span className="nav-badge">{openT}</span>}
               {key==='ad-requests' && pendingAdReqs>0 && <span className="nav-badge">{pendingAdReqs}</span>}
+              {key==='kyc' && kycRequests.filter(k=>k.status==='pending').length>0 && <span className="nav-badge">{kycRequests.filter(k=>k.status==='pending').length}</span>}
               {key==='plan-purchases' && planPurchases.filter(r=>r.status==='pending').length>0 && <span className="nav-badge">{planPurchases.filter(r=>r.status==='pending').length}</span>}
             </button>
           ))}
@@ -922,6 +928,19 @@ export default function AdminPanel() {
                   {whatsappLink && <p style={{color:'#25d366',fontSize:12,marginTop:8}}>Current: {whatsappLink}</p>}
                 </div>
 
+                {/* Free Plan Days Setting */}
+                <div className="sgc-form" style={{maxWidth:420,marginBottom:24}}>
+                  <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:12}}>⏰ Free Plan Duration (Days)</h4>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="365" value={freePlanDays} onChange={e=>setFreePlanDays(parseInt(e.target.value))}/>
+                    <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{
+                      await API.put('/admin/free-plan-days',{days:freePlanDays});
+                      notify('Free plan duration updated ✅');
+                    }}>Save</button>
+                  </div>
+                  <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>After <b style={{color:'var(--yellow)'}}>{freePlanDays} days</b>, free users must buy a plan to continue.</p>
+                </div>
+
                 <div style={{display:'flex',flexDirection:'column',gap:14}}>
                   {adRequests.map(r=>{
                     const isPending=r.status==='pending';
@@ -966,6 +985,74 @@ export default function AdminPanel() {
                     );
                   })}
                   {adRequests.length===0&&<div className="sgc-empty">No ad requests yet</div>}
+                </div>
+              </div>
+            )}
+
+            {/* ── KYC REQUESTS ── */}
+            {tab==='kyc' && (
+              <div>
+                <div className="sgc-page-header">
+                  <h2 className="sgc-heading">🪪 KYC Requests</h2>
+                  <span style={{color:'var(--red)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{kycRequests.filter(k=>k.status==='pending').length} pending</span>
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                  {kycRequests.map(k=>{
+                    const isPending=k.status==='pending';
+                    const borderCol=isPending?'#f59e0b':k.status==='approved'?'#3cb559':'#ef4444';
+                    return (
+                      <div key={k.id} style={{background:'var(--card)',border:`1.5px solid ${borderCol}40`,borderRadius:14,overflow:'hidden'}}>
+                        <div style={{background:isPending?'#451a0320':k.status==='approved'?'#064e3b20':'#450a0a20',padding:'10px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${borderCol}30`}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10}}>
+                            <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:'var(--bg)',flexShrink:0}}>{k.username?.[0]?.toUpperCase()}</div>
+                            <div>
+                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>@{k.username}</p>
+                              <p style={{color:'var(--dim)',fontSize:11,margin:0}}>{new Date(k.created_at).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <span style={{background:isPending?'#451a03':k.status==='approved'?'#064e3b':'#450a0a',color:isPending?'#f59e0b':k.status==='approved'?'#4ade80':'#fca5a5',padding:'3px 14px',borderRadius:20,fontSize:11,fontWeight:700}}>{k.status.toUpperCase()}</span>
+                        </div>
+                        <div style={{padding:'16px 20px',display:'flex',gap:20,flexWrap:'wrap'}}>
+                          <div style={{flex:'1 1 200px'}}>
+                            <div style={{background:'var(--bg)',borderRadius:8,padding:'8px 12px',marginBottom:8}}>
+                              <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600,letterSpacing:.5}}>FULL NAME</p>
+                              <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{k.full_name}</p>
+                            </div>
+                            <div style={{background:'var(--bg)',borderRadius:8,padding:'8px 12px',marginBottom:12}}>
+                              <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600,letterSpacing:.5}}>CNIC</p>
+                              <p style={{color:'var(--accent)',fontFamily:'monospace',fontWeight:700,fontSize:14,margin:0}}>{k.cnic}</p>
+                            </div>
+                            {isPending&&(
+                              <div style={{display:'flex',gap:8}}>
+                                <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/kyc/${k.id}/approve`,{admin_note:''}); loadAll(); notify('KYC Approved ✅'); }}>✓ Approve</button>
+                                <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ const note=prompt('Rejection reason (optional):',''); await API.put(`/admin/kyc/${k.id}/reject`,{admin_note:note||''}); loadAll(); notify('KYC Rejected'); }}>✗ Reject</button>
+                              </div>
+                            )}
+                            {k.status==='rejected' && k.admin_note && <p style={{color:'var(--red)',fontSize:12,marginTop:8}}>Reason: {k.admin_note}</p>}
+                          </div>
+                          <div style={{flex:'1 1 300px',display:'flex',gap:12,flexWrap:'wrap'}}>
+                            {k.front_photo_url&&(
+                              <div style={{textAlign:'center'}}>
+                                <p style={{color:'var(--dim)',fontSize:10,fontWeight:600,letterSpacing:.5,marginBottom:6}}>CNIC FRONT</p>
+                                <a href={k.front_photo_url} target="_blank" rel="noreferrer">
+                                  <img src={k.front_photo_url} alt="cnic" style={{width:150,height:110,objectFit:'cover',borderRadius:8,border:'2px solid var(--border)'}}/>
+                                </a>
+                              </div>
+                            )}
+                            {k.selfie_photo_url&&(
+                              <div style={{textAlign:'center'}}>
+                                <p style={{color:'var(--dim)',fontSize:10,fontWeight:600,letterSpacing:.5,marginBottom:6}}>SELFIE WITH CNIC</p>
+                                <a href={k.selfie_photo_url} target="_blank" rel="noreferrer">
+                                  <img src={k.selfie_photo_url} alt="selfie" style={{width:150,height:110,objectFit:'cover',borderRadius:8,border:'2px solid var(--border)'}}/>
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {kycRequests.length===0&&<div className="sgc-empty">No KYC requests yet</div>}
                 </div>
               </div>
             )}

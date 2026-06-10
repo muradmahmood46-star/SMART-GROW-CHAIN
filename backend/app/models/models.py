@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -14,6 +14,8 @@ class User(Base):
     referral_code = Column(String(20), unique=True)
     referred_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     membership = Column(String(20), default="free")
+    free_plan_expires_at = Column(DateTime, nullable=True)  # free plan expiry
+    kyc_status = Column(String(20), default="none")  # none, pending, approved, rejected
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     two_fa_enabled = Column(Boolean, default=False)
@@ -218,3 +220,18 @@ class PlanPurchaseRequest(Base):
     created_at      = Column(DateTime, default=func.now())
     user = relationship("User", backref="plan_purchases")
     plan = relationship("MembershipPlan")
+
+
+class KYCRequest(Base):
+    __tablename__ = "kyc_requests"
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), unique=True)
+    full_name    = Column(String(100))
+    cnic         = Column(String(20))
+    front_photo  = Column(String(255), nullable=True)
+    selfie_photo = Column(String(255), nullable=True)
+    status       = Column(String(20), default="pending")  # pending, approved, rejected
+    admin_note   = Column(String(255), nullable=True)
+    created_at   = Column(DateTime, default=func.now())
+    updated_at   = Column(DateTime, default=func.now(), onupdate=func.now())
+    user = relationship("User", backref="kyc_request")
