@@ -388,21 +388,25 @@ def kyc_status(current_user: User = Depends(get_current_user), db: Session = Dep
 
 @router.post("/kyc/submit")
 async def submit_kyc(
-    full_name: str = Form(...),
-    cnic: str = Form(...),
-    front_photo: UploadFile = File(...),
-    selfie_photo: UploadFile = File(...),
+    full_name: str = Form(""),
+    cnic: str = Form(""),
+    front_photo: UploadFile = File(None),
+    selfie_photo: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if not full_name or not cnic:
+        raise HTTPException(status_code=400, detail="Full name and phone number are required")
+    if not front_photo or not front_photo.filename:
+        raise HTTPException(status_code=400, detail="CNIC front photo is required")
+    if not selfie_photo or not selfie_photo.filename:
+        raise HTTPException(status_code=400, detail="Selfie with CNIC is required")
     existing = db.query(KYCRequest).filter(KYCRequest.user_id == current_user.id).first()
     if existing and existing.status == "approved":
         raise HTTPException(status_code=400, detail="KYC already approved")
 
     def save_file(f: UploadFile):
         ext = os.path.splitext(f.filename)[-1].lower()
-        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
-            raise HTTPException(status_code=400, detail="Only JPG/PNG allowed")
         fname = f"{uuid.uuid4().hex}{ext}"
         with open(os.path.join(UPLOAD_DIR, fname), "wb") as out:
             shutil.copyfileobj(f.file, out)
@@ -412,10 +416,10 @@ async def submit_kyc(
     sp = save_file(selfie_photo)
 
     if existing:
-        existing.full_name = full_name
-        existing.cnic = cnic
-        existing.front_photo = fp
-        existing.selfie_photo = sp
+        existing.full_name = full_name or existing.full_name
+        existing.cnic = cnic or existing.cnic
+        if fp: existing.front_photo = fp
+        if sp: existing.selfie_photo = sp
         existing.status = "pending"
         existing.admin_note = None
     else:

@@ -3,22 +3,21 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.env
 *.egg-info/
-dist/
-build/
 .venv/
 venv/
 env/
 
-# Uploads (screenshots)
+# Backend secrets
+backend/.env
+
+# Uploads
 backend/uploads/
 
 # Node
 frontend/node_modules/
 frontend/build/
 frontend/.env.local
-frontend/.env.production
 
 # Database
 backend/sql_app.db
@@ -32,5 +31,5 @@ backend/sql_app.db
 .DS_Store
 Thumbs.db
 
+# Vercel
 .vercel
-.env*

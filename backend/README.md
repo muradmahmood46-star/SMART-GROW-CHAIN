@@ -7,4 +7,6 @@ sdk: docker
 pinned: false
 ---
 
-# Smart Grow Chain Backend API
+# Smart Grow Chain - Backend API
+
+FastAPI backend running on Hugging Face Spaces.

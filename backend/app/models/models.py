@@ -106,6 +106,7 @@ class EasypaisaAccount(Base):
     account_number = Column(String(20))
     phone_number = Column(String(20), nullable=True)
     method_type = Column(String(20), default="easypaisa")  # easypaisa or jazzcash
+    deposit_message = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     in_use_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     in_use_since = Column(DateTime, nullable=True)

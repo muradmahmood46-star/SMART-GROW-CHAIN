@@ -209,6 +209,7 @@ def get_easypaisa(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
         "account_number": a.account_number,
         "phone_number": a.phone_number or a.account_number,
         "method_type": a.method_type or "easypaisa",
+        "deposit_message": a.deposit_message or "",
         "is_active": a.is_active,
         "in_use": a.in_use_by is not None,
         "created_at": a.created_at
@@ -223,7 +224,8 @@ def add_easypaisa(data: EasypaisaAccountCreate, db: Session = Depends(get_db), a
         account_title=data.account_title,
         account_number=data.account_number,
         phone_number=data.phone_number or data.account_number,
-        method_type=data.method_type or "easypaisa"
+        method_type=data.method_type or "easypaisa",
+        deposit_message=data.deposit_message or None
     )
     db.add(acc)
     db.commit()
@@ -239,6 +241,7 @@ def update_easypaisa(acc_id: int, data: EasypaisaAccountCreate, db: Session = De
     acc.account_number = data.account_number
     acc.phone_number = data.phone_number or data.account_number
     acc.method_type = data.method_type or "easypaisa"
+    acc.deposit_message = data.deposit_message or None
     db.commit()
     return acc
 

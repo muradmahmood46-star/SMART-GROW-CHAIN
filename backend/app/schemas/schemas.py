@@ -56,6 +56,7 @@ class EasypaisaAccountCreate(BaseModel):
     account_number: str
     phone_number: Optional[str] = None
     method_type: Optional[str] = "easypaisa"
+    deposit_message: Optional[str] = None
 
 class PlanCreate(BaseModel):
     name: str

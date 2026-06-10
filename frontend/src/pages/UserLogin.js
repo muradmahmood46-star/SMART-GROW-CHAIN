@@ -3,25 +3,46 @@ import API from '../api';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function UserLogin() {
-  const [form, setForm] = useState({ username: '', password: '' });
-  const [error, setError] = useState('');
+  const [form, setForm]         = useState({ username: '', password: '' });
+  const [step, setStep]         = useState('login'); // login | otp
+  const [otpCode, setOtpCode]   = useState('');
+  const [pendingData, setPendingData] = useState(null);
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); setError('');
     try {
       const res = await API.post('/auth/login', form);
-      if (res.data.is_admin) {
-        setError('Use Admin Login for admin access');
-        return;
+      if (res.data.is_admin) { setError('Use Admin Login for admin access'); return; }
+      if (res.data.requires_otp) {
+        setPendingData(res.data); setMaskedEmail(res.data.masked_email); setStep('otp');
+      } else {
+        localStorage.setItem('token', res.data.access_token);
+        localStorage.setItem('is_admin', res.data.is_admin);
+        localStorage.setItem('username', res.data.username);
+        navigate('/dashboard');
       }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Login failed');
+    } finally { setLoading(false); }
+  };
+
+  const handleOTP = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      const res = await API.post('/auth/verify-otp', { temp_token: pendingData.temp_token, otp: otpCode });
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed');
-    }
+      setError(err.response?.data?.detail || 'Invalid OTP code');
+    } finally { setLoading(false); }
   };
 
   return (
@@ -30,22 +51,42 @@ export default function UserLogin() {
         <Link to="/" style={s.back}>← Back to Home</Link>
         <div style={s.icon}>👤</div>
         <h2 style={s.title}>User Login</h2>
-        <p style={s.sub}>Access your earning dashboard</p>
+        <p style={s.sub}>{step==='otp' ? 'Check your email for OTP' : 'Access your earning dashboard'}</p>
         {error && <p style={s.error}>{error}</p>}
-        <form onSubmit={handleSubmit}>
-          <input style={s.input} placeholder="Username" value={form.username}
-            onChange={e => setForm({ ...form, username: e.target.value })} required />
-          <input style={s.input} type="password" placeholder="Password" value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })} required />
-          <button style={s.btn} type="submit">Login to Dashboard</button>
-        </form>
-        <p style={{ marginTop: 16, color: '#64748b', fontSize: 13, textAlign: 'center' }}>
-          No account? <Link to="/register" style={{ color: '#38bdf8' }}>Register Free</Link>
-        </p>
-        <div style={s.divider}></div>
-        <p style={{ textAlign: 'center', fontSize: 12, color: '#475569' }}>
-          Admin? <Link to="/admin/login" style={{ color: '#f59e0b' }}>Go to Admin Login</Link>
-        </p>
+
+        {step==='login' && (
+          <form onSubmit={handleSubmit}>
+            <input style={s.input} placeholder="Username" value={form.username}
+              onChange={e=>setForm({...form,username:e.target.value})} required/>
+            <input style={s.input} type="password" placeholder="Password" value={form.password}
+              onChange={e=>setForm({...form,password:e.target.value})} required/>
+            <button style={s.btn} type="submit" disabled={loading}>{loading?'Sending OTP...':'Login'}</button>
+          </form>
+        )}
+
+        {step==='otp' && (
+          <form onSubmit={handleOTP}>
+            <div style={{background:'#1e293b',border:'1px solid #38bdf8',borderRadius:10,padding:'12px 16px',marginBottom:16,textAlign:'center'}}>
+              <p style={{color:'#94a3b8',fontSize:13,margin:'0 0 4px'}}>📧 Code sent to</p>
+              <p style={{color:'#38bdf8',fontWeight:700,fontSize:14,margin:0}}>{maskedEmail}</p>
+              <p style={{color:'#64748b',fontSize:11,margin:'6px 0 0'}}>Valid for 10 minutes</p>
+            </div>
+            <input style={{...s.input,letterSpacing:10,textAlign:'center',fontSize:22,fontWeight:700}}
+              placeholder="000000" value={otpCode} onChange={e=>setOtpCode(e.target.value)}
+              maxLength={6} required autoFocus/>
+            <button style={s.btn} type="submit" disabled={loading}>{loading?'Verifying...':'Verify & Login'}</button>
+            <button type="button" onClick={()=>{setStep('login');setOtpCode('');setError('');}}
+              style={{...s.btn,marginTop:8,background:'transparent',color:'#64748b',border:'1px solid #334155'}}>← Back</button>
+          </form>
+        )}
+
+        {step==='login' && (
+          <>
+            <p style={{marginTop:16,color:'#64748b',fontSize:13,textAlign:'center'}}>No account? <Link to="/register" style={{color:'#38bdf8'}}>Register Free</Link></p>
+            <div style={s.divider}/>
+            <p style={{textAlign:'center',fontSize:12,color:'#475569'}}>Admin? <Link to="/admin/login" style={{color:'#f59e0b'}}>Go to Admin Login</Link></p>
+          </>
+        )}
       </div>
     </div>
   );

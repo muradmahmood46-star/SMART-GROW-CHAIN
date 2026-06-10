@@ -11,6 +11,20 @@ import os
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     os.makedirs("uploads/screenshots", exist_ok=True)
+    # Safe column migrations
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS kyc_status VARCHAR(20) DEFAULT 'none'",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS free_plan_expires_at TIMESTAMP",
+        "ALTER TABLE easypaisa_accounts ADD COLUMN IF NOT EXISTS deposit_message VARCHAR(500)",
+    ]
+    with engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass
     yield
 
 app = FastAPI(
@@ -22,22 +36,21 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    # Yahan "https://ptc-pro-fullstack.vercel.app" daal diya hai
-    allow_origins=["https://ptc-pro-fullstack.vercel.app"], 
-    allow_credentials=True, # Credentials True karna behtar hai agar login use kar rahe ho
-    allow_methods=["*"], 
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount uploads only if directory exists
-if os.path.exists("uploads"):
-    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(admin.router)
 app.include_router(deposit.router)
 app.include_router(userad.router)
+
+# Always mount uploads (dir created in lifespan)
+os.makedirs("uploads/screenshots", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():

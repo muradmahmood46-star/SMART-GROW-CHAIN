@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [twoFA, setTwoFA]             = useState(null);
   const [adRate, setAdRate]           = useState(1);
   const [kycData, setKycData]         = useState(null);
-  const [kycForm, setKycForm]         = useState({ full_name:'', cnic:'' });
+  const [kycForm, setKycForm]         = useState({ first_name:'', last_name:'', phone:'', cnic:'' });
   const [kycFront, setKycFront]       = useState(null);
   const [kycSelfie, setKycSelfie]     = useState(null);
   const [freePlanExpired, setFreePlanExpired] = useState(false);
@@ -633,6 +633,12 @@ export default function Dashboard() {
                             </div>
                             <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:col+'22',border:`1px solid ${col}`,color:col,borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
                           </div>
+                          {a.deposit_message && (
+                            <div style={{marginTop:10,background:'#0d1e38',border:'1px solid #1e4080',borderRadius:8,padding:'10px 14px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                              <span style={{fontSize:15,flexShrink:0}}>💬</span>
+                              <p style={{color:'#94a3b8',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{a.deposit_message}</p>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1289,11 +1295,15 @@ export default function Dashboard() {
                 ) : (
                   <form className="sgc-form" style={{maxWidth:480}} onSubmit={async(e)=>{
                     e.preventDefault();
-                    if(!kycFront||!kycSelfie){ notify('Please upload both photos','error'); return; }
+                    if(!kycForm.first_name.trim()){ notify('First name is required','error'); return; }
+                    if(!kycForm.last_name.trim()){ notify('Last name is required','error'); return; }
+                    if(!kycForm.phone.trim()){ notify('Phone number is required','error'); return; }
+                    if(!kycFront){ notify('CNIC front photo is required','error'); return; }
+                    if(!kycSelfie){ notify('Selfie with CNIC is required','error'); return; }
                     try{
                       const fd=new FormData();
-                      fd.append('full_name', kycForm.full_name);
-                      fd.append('cnic', kycForm.cnic);
+                      fd.append('full_name', `${kycForm.first_name.trim()} ${kycForm.last_name.trim()}`);
+                      fd.append('cnic', kycForm.phone.trim());
                       fd.append('front_photo', kycFront);
                       fd.append('selfie_photo', kycSelfie);
                       await API.post('/user/kyc/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
@@ -1304,23 +1314,26 @@ export default function Dashboard() {
                   }}>
                     <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
                       <p style={{color:'var(--accent)',fontSize:13,fontWeight:700,margin:'0 0 6px'}}>📋 KYC Requirements</p>
-                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• Valid CNIC (front photo)</p>
-                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• Selfie holding your CNIC</p>
-                      <p style={{color:'var(--dim)',fontSize:12,margin:0}}>• Photos must be clear and readable</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• First & Last name required</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• Valid phone number required</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>• Valid CNIC front photo</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:0}}>• Selfie holding your CNIC</p>
                     </div>
-                    <label className="sgc-label">Full Name (as on CNIC)</label>
-                    <input className="sgc-input" placeholder="e.g. Muhammad Ali" value={kycForm.full_name} onChange={e=>setKycForm({...kycForm,full_name:e.target.value})} required/>
-                    <label className="sgc-label">CNIC Number</label>
-                    <input className="sgc-input" placeholder="XXXXX-XXXXXXX-X" value={kycForm.cnic} onChange={e=>setKycForm({...kycForm,cnic:e.target.value})} required/>
+                    <label className="sgc-label">First Name <span style={{color:'var(--red)'}}>*</span></label>
+                    <input className="sgc-input" placeholder="e.g. Muhammad" value={kycForm.first_name} onChange={e=>setKycForm({...kycForm,first_name:e.target.value})} required/>
+                    <label className="sgc-label">Last Name <span style={{color:'var(--red)'}}>*</span></label>
+                    <input className="sgc-input" placeholder="e.g. Ali" value={kycForm.last_name} onChange={e=>setKycForm({...kycForm,last_name:e.target.value})} required/>
+                    <label className="sgc-label">Phone Number <span style={{color:'var(--red)'}}>*</span></label>
+                    <input className="sgc-input" type="tel" placeholder="03XX-XXXXXXX" value={kycForm.phone} onChange={e=>setKycForm({...kycForm,phone:e.target.value})} required/>
                     <label className="sgc-label">CNIC Front Photo <span style={{color:'var(--red)'}}>*</span></label>
-                    <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                    <label style={{display:'block',border:`2px dashed ${kycFront?'var(--green)':'var(--border)'}`,borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
                       <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setKycFront(e.target.files[0])}/>
-                      {kycFront?<p style={{color:'var(--green)',margin:0}}>✓ {kycFront.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📷 Upload CNIC Front</p>}
+                      {kycFront?<p style={{color:'var(--green)',margin:0}}>✓ {kycFront.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📷 Upload CNIC Front <span style={{color:'var(--red)'}}>*</span></p>}
                     </label>
                     <label className="sgc-label">Selfie with CNIC <span style={{color:'var(--red)'}}>*</span></label>
-                    <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                    <label style={{display:'block',border:`2px dashed ${kycSelfie?'var(--green)':'var(--border)'}`,borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
                       <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setKycSelfie(e.target.files[0])}/>
-                      {kycSelfie?<p style={{color:'var(--green)',margin:0}}>✓ {kycSelfie.name}</p>:<p style={{color:'var(--dim)',margin:0}}>🤳 Upload Selfie with CNIC</p>}
+                      {kycSelfie?<p style={{color:'var(--green)',margin:0}}>✓ {kycSelfie.name}</p>:<p style={{color:'var(--dim)',margin:0}}>🤳 Upload Selfie with CNIC <span style={{color:'var(--red)'}}>*</span></p>}
                     </label>
                     {kycData?.kyc_status==='pending' ? (
                       <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:10,padding:'12px 16px',textAlign:'center'}}>
