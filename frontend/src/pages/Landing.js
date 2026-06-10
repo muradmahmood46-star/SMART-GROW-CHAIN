@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import API from '../api';
 
 export default function Landing() {
+  const [plans, setPlans] = useState([]);
+
+  useEffect(() => {
+    API.get('/user/plans').then(r => setPlans(r.data)).catch(() => {});
+  }, []);
+
+  const planColors = ['#64748b', '#38bdf8', '#f59e0b', '#a78bfa'];
   return (
     <div style={s.page}>
       {/* Navbar */}
@@ -79,19 +87,32 @@ export default function Landing() {
         <h2 style={s.sectionTitle}>Membership Plans</h2>
         <p style={s.sectionSub}>Choose the plan that fits you</p>
         <div style={s.plans}>
-          {[
-            { name: 'Free', price: '$0', color: '#64748b', features: ['5 ads/day', '$0.001 per click', '5% referral commission', 'Basic support'] },
-            { name: 'Basic', price: '$5/mo', color: '#38bdf8', features: ['15 ads/day', '$0.003 per click', '8% referral commission', 'Priority support'], popular: true },
-            { name: 'Premium', price: '$20/mo', color: '#f59e0b', features: ['50 ads/day', '$0.01 per click', '10% referral commission', 'VIP support'] },
-          ].map(plan => (
-            <div key={plan.name} style={{ ...s.planCard, border: `2px solid ${plan.popular ? plan.color : '#1e293b'}` }}>
-              {plan.popular && <div style={{ ...s.popularBadge, background: plan.color }}>Most Popular</div>}
-              <h3 style={{ color: plan.color, marginBottom: 4 }}>{plan.name}</h3>
-              <h2 style={{ color: '#f1f5f9', margin: '0 0 20px 0', fontSize: 28 }}>{plan.price}</h2>
-              {plan.features.map(f => <p key={f} style={s.planFeature}>✓ {f}</p>)}
-              <Link to="/register" style={{ ...s.planBtn, background: plan.popular ? plan.color : 'transparent', color: plan.popular ? '#0f172a' : plan.color, border: `1px solid ${plan.color}` }}>
-                Get Started
-              </Link>
+          {plans.map((p, i) => {
+            const col = planColors[i] || '#38bdf8';
+            const isPopular = i === 1;
+            return (
+              <div key={p.id} style={{ ...s.planCard, border: `2px solid ${isPopular ? col : '#1e293b'}` }}>
+                {isPopular && <div style={{ ...s.popularBadge, background: col }}>Most Popular</div>}
+                <h3 style={{ color: col, marginBottom: 4, textTransform: 'capitalize' }}>{p.name}</h3>
+                <h2 style={{ color: '#f1f5f9', margin: '0 0 20px 0', fontSize: 28 }}>
+                  {p.price === 0 ? 'Free' : `Rs. ${p.price}`}
+                  {p.price > 0 && <span style={{ fontSize: 13, color: '#64748b', fontWeight: 400 }}>/{p.period_days}d</span>}
+                </h2>
+                {[
+                  `${p.daily_ads} ads/day`,
+                  `Rs. ${p.earning_per_click} per click`,
+                  `${(p.referral_commission * 100).toFixed(0)}% referral commission`,
+                  `${p.referral_levels || 'N/A'} referral levels`,
+                ].map(f => <p key={f} style={s.planFeature}>✓ {f}</p>)}
+                <Link to="/register" style={{ ...s.planBtn, background: isPopular ? col : 'transparent', color: isPopular ? '#0f172a' : col, border: `1px solid ${col}` }}>
+                  Get Started
+                </Link>
+              </div>
+            );
+          })}
+          {plans.length === 0 && [0,1,2].map(i => (
+            <div key={i} style={{ ...s.planCard, opacity: 0.4 }}>
+              <div style={{ height: 120, background: '#334155', borderRadius: 8 }} />
             </div>
           ))}
         </div>
