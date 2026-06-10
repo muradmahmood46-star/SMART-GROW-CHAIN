@@ -106,7 +106,11 @@ export default function Landing() {
 
       {/* Footer */}
       <footer style={s.footer}>
-        <p style={{ color: '#475569', fontSize: 13, margin: 0 }}>© 2025 PTC Pro. All rights reserved.</p>
+        <p style={{ color: '#475569', fontSize: 13, margin: '0 0 6px 0' }}>© 2025 Smart Grow Chain. All rights reserved.</p>
+        <p style={{ margin: 0, fontSize: 13 }}>
+          Designed & Developed by{' '}
+          <span style={{ color: '#f97316', fontWeight: 700, letterSpacing: '.3px' }}>TAMSAL TECHNOLOGIES</span>
+        </p>
       </footer>
     </div>
   );

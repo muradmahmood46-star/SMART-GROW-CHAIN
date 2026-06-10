@@ -38,10 +38,17 @@ export default function Dashboard() {
   const [adWelcomeMsg, setAdWelcomeMsg] = useState('');
   const [showAdWelcome, setShowAdWelcome] = useState(false);
   const [campaignViewers, setCampaignViewers] = useState({});
+  const [siteSettings, setSiteSettings] = useState({});
   const [adForm, setAdForm]           = useState({ title:'', url:'', members_needed:'' });
   const [adPayMethod, setAdPayMethod] = useState('wallet');
   const [adScreenshot, setAdScreenshot] = useState(null);
   const [myAdRequests, setMyAdRequests] = useState([]);
+  const [planPayMethod, setPlanPayMethod] = useState('wallet');
+  const [planScreenshot, setPlanScreenshot] = useState(null);
+  const [planSenderName, setPlanSenderName] = useState('');
+  const [planSenderPhone, setPlanSenderPhone] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [myPlanPurchases, setMyPlanPurchases] = useState([]);
   const [tab, setTab]                 = useState('dashboard');
   const [activeAd, setActiveAd]       = useState(null);
   const [countdown, setCountdown]     = useState(0);
@@ -54,6 +61,7 @@ export default function Dashboard() {
   const [transfer, setTransfer]       = useState({ receiver_username:'', amount:'', note:'' });
   const [ticket, setTicket]           = useState({ subject:'', message:'' });
   const [faCode, setFaCode]           = useState('');
+  const [showAllTx, setShowAllTx] = useState(false);
   const [msg, setMsg]                 = useState({ text:'', type:'' });
   const navigate = useNavigate();
 
@@ -74,6 +82,8 @@ export default function Dashboard() {
     API.get('/user/plans').then(r=>setPlans(r.data));
     API.get('/user/ad-request/rate').then(r=>{ setAdRate(r.data.rate_pkr); setAdWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
+    API.get('/user/settings').then(r=>setSiteSettings(r.data)).catch(()=>{});
+    API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
   },[]);
 
   useEffect(()=>{ loadData(); },[loadData]);
@@ -213,6 +223,12 @@ export default function Dashboard() {
               <span style={{color:'#fbbf24',fontSize:11,fontWeight:600}}>Deposit awaiting admin approval</span>
             </div>
           )}
+          {siteSettings.whatsapp_link && (
+            <a href={siteSettings.whatsapp_link} target="_blank" rel="noreferrer"
+              style={{marginTop:10,display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:'#25d366',borderRadius:10,padding:'9px 12px',textDecoration:'none',fontWeight:700,fontSize:13,color:'#fff',boxShadow:'0 2px 10px rgba(37,211,102,.35)'}}>
+              <span style={{fontSize:18}}>💬</span> Join WhatsApp Group
+            </a>
+          )}
         </div>
 
         <nav className="sgc-nav">
@@ -293,6 +309,21 @@ export default function Dashboard() {
 
                 {/* Quick Actions */}
                 <h3 className="sgc-subheading" style={{marginBottom:12}}>Quick Actions</h3>
+
+                {/* ── Advertise Big Button ── */}
+                <button onClick={()=>{ setTab('create-ad'); setShowAdWelcome(true); }}
+                  style={{width:'100%',padding:'18px 20px',marginBottom:12,background:'linear-gradient(135deg,#f97316,#ea580c,#dc2626)',border:'none',borderRadius:16,color:'#fff',cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:14,boxShadow:'0 4px 20px rgba(249,115,22,.4)',transition:'transform .2s,box-shadow .2s',animation:'fadeUp .3s ease both'}}
+                  onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';e.currentTarget.style.boxShadow='0 8px 28px rgba(249,115,22,.5)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 4px 20px rgba(249,115,22,.4)';}}>
+                  <div style={{width:48,height:48,borderRadius:12,background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,flexShrink:0}}>📢</div>
+                  <div style={{textAlign:'left'}}>
+                    <p style={{margin:0,fontSize:16,fontWeight:800,letterSpacing:.3}}>Advertise Your Link</p>
+                    <p style={{margin:0,fontSize:12,opacity:.85,marginTop:2}}>Reach thousands of real members · Rs. {adRate}/member</p>
+                  </div>
+                  <span style={{marginLeft:'auto',fontSize:22,opacity:.8}}>→</span>
+                </button>
+
+                {/* ── Other Actions ── */}
                 <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:28}}>
                   {[['📺','View Ads','ads'],['📲','Deposit','transfer'],['💸','Payout','payout'],['🎫','Support','support']].map(([icon,label,key])=>(
                     <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,transition:'all .2s'}}
@@ -301,6 +332,12 @@ export default function Dashboard() {
                       {icon} {label}
                     </button>
                   ))}
+                  {siteSettings.whatsapp_link && (
+                    <a href={siteSettings.whatsapp_link} target="_blank" rel="noreferrer"
+                      style={{padding:'10px 18px',background:'#25d366',border:'1px solid #25d366',borderRadius:10,color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,textDecoration:'none'}}>
+                      💬 WhatsApp Group
+                    </a>
+                  )}
                 </div>
 
                 {/* Recent Transactions */}
@@ -308,7 +345,7 @@ export default function Dashboard() {
                 <div className="sgc-table-wrap">
                   <table className="sgc-table">
                     <thead><tr><th className="sgc-th">Type</th><th className="sgc-th">Amount</th><th className="sgc-th">Note</th><th className="sgc-th">Date</th></tr></thead>
-                    <tbody>{transactions.slice(0,8).map((t,i)=>(
+                    <tbody>{(showAllTx?transactions:transactions.slice(0,3)).map((t,i)=>(
                       <tr key={i} className="sgc-tr">
                         <td className="sgc-td"><span className="sgc-badge" style={{background:t.direction==='credit'?'#064e3b':'#450a0a'}}>{t.type}</span></td>
                         <td className="sgc-td" style={{color:t.direction==='credit'?'var(--green)':'var(--red)',fontWeight:600}}>{t.direction==='credit'?'+':'-'}Rs. {t.amount?.toFixed(2)}</td>
@@ -320,6 +357,22 @@ export default function Dashboard() {
                     </tbody>
                   </table>
                 </div>
+                {transactions.length>3&&(
+                  <button onClick={()=>setShowAllTx(s=>!s)} style={{width:'100%',marginTop:8,padding:'10px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,color:'var(--accent)',fontWeight:600,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
+                    {showAllTx?'▲ Show Less':'▼ Show More ('+( transactions.length-3)+' more)'}
+                  </button>
+                )}
+
+                {/* ── Admin Message Box ── */}
+                {adWelcomeMsg&&(
+                  <div style={{background:'linear-gradient(135deg,#fff7ed,#ffedd5)',border:'1px solid #fed7aa',borderRadius:16,padding:'16px 20px',marginTop:20}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                      <span style={{fontSize:20}}>📣</span>
+                      <span style={{color:'#ea580c',fontWeight:800,fontSize:14,letterSpacing:.3}}>MESSAGE FROM ADMIN</span>
+                    </div>
+                    <p style={{color:'#7c2d12',fontSize:14,lineHeight:1.8,margin:0,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{adWelcomeMsg}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -590,39 +643,163 @@ export default function Dashboard() {
               <div>
                 <h2 className="sgc-heading">🏆 Membership Plans</h2>
                 <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{profile.membership}</span></p>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16}}>
-                  {plans.map((p,i)=>{
-                    const isCurrent=profile.membership===p.name;
-                    const colors=['var(--dim)','var(--accent)','var(--yellow)','var(--purple)'];
-                    const col=colors[i]||'var(--accent)';
-                    return (
-                      <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isCurrent?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
-                        {isCurrent&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>✓ Current Plan</div>}
-                        <h3 style={{color:col,textTransform:'capitalize',marginBottom:4,fontSize:17}}>{p.name}</h3>
-                        <p style={{color:'var(--text)',fontSize:26,fontWeight:800,marginBottom:16}}>Rs. {p.price}<span style={{fontSize:13,color:'var(--dim)',fontWeight:400}}>/{p.period_days}d</span></p>
-                        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                          {[
-                            ['📺',`${p.daily_ads} ads/day`],
-                            ['💰',`Rs. ${p.earning_per_click} per click`],
-                            ['👥',`${(p.referral_commission*100).toFixed(0)}% referral commission`],
-                            ['🔗',`${p.referral_levels||'N/A'} referral levels`],
-                          ].map(([icon,text])=>(
-                            <div key={text} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--muted)'}}>
-                              <span>{icon}</span><span>{text}</span>
-                            </div>
-                          ))}
+
+                {/* Plan cards */}
+                {!selectedPlan && (
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16,marginBottom:28}}>
+                    {plans.map((p,i)=>{
+                      const isCurrent=profile.membership===p.name;
+                      const colors=['var(--dim)','var(--accent)','var(--yellow)','var(--purple)'];
+                      const col=colors[i]||'var(--accent)';
+                      return (
+                        <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isCurrent?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
+                          {isCurrent&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>✓ Current Plan</div>}
+                          <h3 style={{color:col,textTransform:'capitalize',marginBottom:4,fontSize:17}}>{p.name}</h3>
+                          <p style={{color:'var(--text)',fontSize:26,fontWeight:800,marginBottom:16}}>Rs. {p.price}<span style={{fontSize:13,color:'var(--dim)',fontWeight:400}}>/{p.period_days}d</span></p>
+                          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                            {[
+                              ['📺',`${p.daily_ads} ads/day`],
+                              ['💰',`Rs. ${p.earning_per_click} per click`],
+                              ['👥',`${(p.referral_commission*100).toFixed(0)}% referral commission`],
+                              ['🔗',`${p.referral_levels||'N/A'} referral levels`],
+                            ].map(([icon,text])=>(
+                              <div key={text} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--muted)'}}>
+                                <span>{icon}</span><span>{text}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {!isCurrent && p.price>0 && (
+                            <button onClick={()=>{ setSelectedPlan(p); setPlanPayMethod('wallet'); setPlanScreenshot(null); setPlanSenderName(''); setPlanSenderPhone(''); }}
+                              style={{width:'100%',padding:'10px',background:col,color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
+                              Upgrade to {p.name}
+                            </button>
+                          )}
+                          {!isCurrent && p.price===0 && (
+                            <div style={{padding:'8px',background:'var(--bg)',borderRadius:10,textAlign:'center',color:'var(--dim)',fontSize:12}}>Free Plan</div>
+                          )}
                         </div>
-                        {!isCurrent&&p.price>0&&(
-                          <button onClick={()=>setTab('transfer')} style={{marginTop:16,width:'100%',padding:'10px',background:col,color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>Upgrade — Contact Support</button>
-                        )}
-                        {!isCurrent&&p.price===0&&(
-                          <div style={{marginTop:16,padding:'8px',background:'var(--bg)',borderRadius:10,textAlign:'center',color:'var(--dim)',fontSize:12}}>Free Plan</div>
-                        )}
+                      );
+                    })}
+                    {plans.length===0&&<div className="sgc-empty">No plans available.</div>}
+                  </div>
+                )}
+
+                {/* Payment form */}
+                {selectedPlan && (
+                  <div style={{maxWidth:520}}>
+                    <button onClick={()=>setSelectedPlan(null)} style={{background:'none',border:'none',color:'var(--accent)',cursor:'pointer',fontSize:13,fontWeight:600,marginBottom:16,fontFamily:'var(--font)',padding:0}}>← Back to Plans</button>
+                    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px',marginBottom:20}}>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px',fontWeight:600}}>SELECTED PLAN</p>
+                      <p style={{color:'var(--yellow)',fontSize:20,fontWeight:800,margin:0,textTransform:'capitalize'}}>{selectedPlan.name} — Rs. {selectedPlan.price}</p>
+                    </div>
+
+                    {/* Method selector */}
+                    <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>SELECT PAYMENT METHOD</p>
+                    <div style={{display:'flex',gap:10,marginBottom:20}}>
+                      {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
+                        <div key={val} onClick={()=>setPlanPayMethod(val)}
+                          style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${planPayMethod===val?'var(--accent)':'var(--border)'}`,background:planPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:planPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
+                          {label}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Wallet */}
+                    {planPayMethod==='wallet' && (
+                      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'16px 18px',marginBottom:16}}>
+                        <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 8px',fontWeight:600}}>WALLET BALANCE</p>
+                        <p style={{color:profile.balance>=selectedPlan.price?'var(--green)':'var(--red)',fontSize:22,fontWeight:800,margin:'0 0 4px'}}>Rs. {profile.balance.toFixed(2)}</p>
+                        {profile.balance < selectedPlan.price
+                          ? <p style={{color:'var(--red)',fontSize:12,margin:0}}>⚠️ Insufficient balance. Need Rs. {(selectedPlan.price - profile.balance).toFixed(2)} more. Please deposit first.</p>
+                          : <p style={{color:'var(--green)',fontSize:12,margin:0}}>✓ Sufficient balance. Rs. {selectedPlan.price} will be deducted.</p>
+                        }
                       </div>
-                    );
-                  })}
-                  {plans.length===0&&<div className="sgc-empty">No plans available.</div>}
-                </div>
+                    )}
+
+                    {/* Easypaisa */}
+                    {planPayMethod==='easypaisa' && (
+                      <>
+                        {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
+                          <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
+                            <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>📱 SEND PAYMENT TO THIS ACCOUNT</p>
+                            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                              <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
+                              <div>
+                                <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
+                                <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Account Name</p>
+                              </div>
+                            </div>
+                            <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                              <div>
+                                <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Number</p>
+                                <p style={{color:'#3cb559',fontFamily:'monospace',fontSize:16,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
+                              </div>
+                              <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'#3cb55922',border:'1px solid #3cb559',color:'#3cb559',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
+                            </div>
+                            <p style={{color:'var(--yellow)',fontSize:13,fontWeight:700,margin:0}}>Send exactly: Rs. {selectedPlan.price}</p>
+                          </div>
+                        ))}
+                        {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').length===0&&(
+                          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
+                            <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No Easypaisa account available. Use wallet or contact support.</p>
+                          </div>
+                        )}
+                        <label className="sgc-label">Your Name (Account Holder)</label>
+                        <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)}/>
+                        <label className="sgc-label">Your Easypaisa Number</label>
+                        <input className="sgc-input" type="tel" placeholder="03XX-XXXXXXX" value={planSenderPhone} onChange={e=>setPlanSenderPhone(e.target.value)}/>
+                        <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
+                        <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                          <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setPlanScreenshot(e.target.files[0])}/>
+                          {planScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {planScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
+                        </label>
+                      </>
+                    )}
+
+                    <button className="sgc-btn-primary" onClick={async()=>{
+                      try{
+                        if(planPayMethod==='wallet' && profile.balance < selectedPlan.price){
+                          notify('Insufficient balance','error'); return;
+                        }
+                        if(planPayMethod==='easypaisa' && !planScreenshot){
+                          notify('Please upload payment screenshot','error'); return;
+                        }
+                        const fd=new FormData();
+                        fd.append('plan_id', selectedPlan.id);
+                        fd.append('payment_method', planPayMethod);
+                        fd.append('sender_name', planSenderName);
+                        fd.append('sender_phone', planSenderPhone);
+                        if(planPayMethod==='easypaisa' && planScreenshot) fd.append('screenshot', planScreenshot);
+                        await API.post('/user/plan/purchase', fd, {headers:{'Content-Type':'multipart/form-data'}});
+                        notify('Plan purchase request submitted! Admin will activate shortly. ✅');
+                        setSelectedPlan(null);
+                        API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data));
+                        API.get('/user/profile').then(r=>setProfile(r.data));
+                      }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+                    }}>📤 Submit Purchase Request</button>
+                  </div>
+                )}
+
+                {/* My purchase history */}
+                {myPlanPurchases.length>0 && (
+                  <div style={{marginTop:28}}>
+                    <h3 className="sgc-subheading" style={{marginBottom:12}}>📋 My Plan Purchase History</h3>
+                    <div className="sgc-table-wrap">
+                      <table className="sgc-table">
+                        <thead><tr><th className="sgc-th">Plan</th><th className="sgc-th">Price</th><th className="sgc-th">Method</th><th className="sgc-th">Status</th><th className="sgc-th">Date</th></tr></thead>
+                        <tbody>{myPlanPurchases.map((r,i)=>(
+                          <tr key={i} className="sgc-tr">
+                            <td className="sgc-td" style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{r.plan_name}</td>
+                            <td className="sgc-td" style={{color:'var(--green)',fontWeight:600}}>Rs. {r.plan_price}</td>
+                            <td className="sgc-td">{r.payment_method}</td>
+                            <td className="sgc-td"><span className="sgc-badge" style={{background:r.status==='approved'?'#064e3b':r.status==='rejected'?'#450a0a':'#451a03',color:r.status==='approved'?'#4ade80':r.status==='rejected'?'#fca5a5':'#fbbf24'}}>{r.status}</span></td>
+                            <td className="sgc-td">{new Date(r.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

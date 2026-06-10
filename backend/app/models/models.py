@@ -169,11 +169,18 @@ class ReferralSetting(Base):
     percent      = Column(Float, default=0.0)
 
 
+class SiteSettings(Base):
+    __tablename__ = "site_settings"
+    id    = Column(Integer, primary_key=True, index=True)
+    key   = Column(String(50), unique=True)
+    value = Column(String(500), nullable=True)
+
+
 class AdBudgetRate(Base):
     __tablename__ = "ad_budget_rates"
     id              = Column(Integer, primary_key=True, index=True)
     rate_pkr        = Column(Float, default=1.0)
-    welcome_message = Column(String(200), nullable=True)
+    welcome_message = Column(String(1000), nullable=True)
     updated_at      = Column(DateTime, default=func.now(), onupdate=func.now())
 
 
@@ -184,12 +191,30 @@ class UserAdRequest(Base):
     title           = Column(String(100))
     url             = Column(String(255))
     members_needed  = Column(Integer)
-    members_reached = Column(Integer, default=0)   # kitne log dekh chuke
+    members_reached = Column(Integer, default=0)
     rate_pkr        = Column(Float)
     total_cost      = Column(Float)
     payment_method  = Column(String(20), default="wallet")
     screenshot_path = Column(String(255), nullable=True)
-    status          = Column(String(20), default="pending")  # pending, approved, rejected
+    status          = Column(String(20), default="pending")
     admin_note      = Column(String(255), nullable=True)
     created_at      = Column(DateTime, default=func.now())
     user = relationship("User", backref="ad_requests")
+
+
+class PlanPurchaseRequest(Base):
+    __tablename__ = "plan_purchase_requests"
+    id              = Column(Integer, primary_key=True, index=True)
+    user_id         = Column(Integer, ForeignKey("users.id"))
+    plan_id         = Column(Integer, ForeignKey("membership_plans.id"))
+    plan_name       = Column(String(50))
+    plan_price      = Column(Float)
+    payment_method  = Column(String(20), default="wallet")  # wallet or easypaisa
+    screenshot_path = Column(String(255), nullable=True)
+    sender_name     = Column(String(100), nullable=True)
+    sender_phone    = Column(String(20), nullable=True)
+    status          = Column(String(20), default="pending")  # pending, approved, rejected
+    admin_note      = Column(String(255), nullable=True)
+    created_at      = Column(DateTime, default=func.now())
+    user = relationship("User", backref="plan_purchases")
+    plan = relationship("MembershipPlan")

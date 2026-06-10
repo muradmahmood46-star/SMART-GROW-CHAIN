@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest
 from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
@@ -519,6 +519,26 @@ def delete_referral_level(setting_id: int, db: Session = Depends(get_db), admin=
     return {"message": "Deleted"}
 
 
+# ── SITE SETTINGS ─────────────────────────────────────────────────────
+class SettingUpdate(BaseModel):
+    value: str
+
+@router.get("/settings")
+def get_settings(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    rows = db.query(SiteSettings).all()
+    return {r.key: r.value for r in rows}
+
+@router.put("/settings/{key}")
+def update_setting(key: str, data: SettingUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    s = db.query(SiteSettings).filter(SiteSettings.key == key).first()
+    if s:
+        s.value = data.value
+    else:
+        db.add(SiteSettings(key=key, value=data.value))
+    db.commit()
+    return {"message": "Updated", "key": key, "value": data.value}
+
+
 # ── AD BUDGET RATE ──────────────────────────────────────────────────
 class BudgetRateUpdate(BaseModel):
     rate_pkr: float
@@ -666,3 +686,62 @@ def get_all_referrals(search: Optional[str] = None, db: Session = Depends(get_db
             "referrals": [{"username": r.username, "membership": r.membership, "joined": r.created_at} for r in refs]
         })
     return result
+
+
+# ── PLAN PURCHASE REQUESTS ──────────────────────────────────────────
+@router.get("/plan-purchases")
+def get_plan_purchases(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    reqs = db.query(PlanPurchaseRequest).order_by(PlanPurchaseRequest.created_at.desc()).all()
+    result = []
+    for r in reqs:
+        user = db.query(User).filter(User.id == r.user_id).first()
+        result.append({
+            "id": r.id,
+            "username": user.username if user else "?",
+            "plan_name": r.plan_name,
+            "plan_price": r.plan_price,
+            "payment_method": r.payment_method,
+            "sender_name": r.sender_name,
+            "sender_phone": r.sender_phone,
+            "screenshot_url": f"{os.getenv('BACKEND_URL', 'https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{r.screenshot_path}" if r.screenshot_path else None,
+            "status": r.status,
+            "admin_note": r.admin_note,
+            "created_at": r.created_at
+        })
+    return result
+
+class PlanPurchaseAction(BaseModel):
+    admin_note: Optional[str] = ""
+
+@router.put("/plan-purchases/{req_id}/approve")
+def approve_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    req = db.query(PlanPurchaseRequest).filter(PlanPurchaseRequest.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="Already processed")
+    user = db.query(User).filter(User.id == req.user_id).first()
+    if user:
+        user.membership = req.plan_name
+        # wallet payment was already deducted on submit; easypaisa — no deduction needed
+    req.status = "approved"
+    req.admin_note = data.admin_note
+    db.commit()
+    return {"message": "Plan activated for user"}
+
+@router.put("/plan-purchases/{req_id}/reject")
+def reject_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    req = db.query(PlanPurchaseRequest).filter(PlanPurchaseRequest.id == req_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Not found")
+    if req.status != "pending":
+        raise HTTPException(status_code=400, detail="Already processed")
+    # Refund wallet payment
+    if req.payment_method == "wallet":
+        user = db.query(User).filter(User.id == req.user_id).first()
+        if user:
+            user.balance += req.plan_price
+    req.status = "rejected"
+    req.admin_note = data.admin_note
+    db.commit()
+    return {"message": "Plan purchase rejected and balance refunded"}

@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import func, Date, cast, or_
-import os
+import os, shutil, uuid
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount
 from app.schemas.schemas import WithdrawalCreate, UserOut
 from app.utils import decode_token, hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
@@ -249,6 +249,12 @@ def get_tickets(current_user: User = Depends(get_current_user), db: Session = De
     tickets = db.query(SupportTicket).filter(SupportTicket.user_id == current_user.id).order_by(SupportTicket.created_at.desc()).all()
     return [{"id": t.id, "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at} for t in tickets]
 
+# ── PUBLIC SETTINGS ──────────────────────────────────────────────────────────
+@router.get("/settings")
+def get_public_settings(db: Session = Depends(get_db)):
+    rows = db.query(SiteSettings).all()
+    return {r.key: r.value for r in rows}
+
 # ── MEMBERSHIP PLANS ──────────────────────────────────────────────────────────
 @router.get("/plans")
 def get_plans(db: Session = Depends(get_db)):
@@ -286,3 +292,66 @@ def disable_2fa(current_user: User = Depends(get_current_user), db: Session = De
     current_user.two_fa_enabled = False
     db.commit()
     return {"message": "2FA disabled"}
+
+
+# ── PLAN PURCHASE ─────────────────────────────────────────────────────────────
+UPLOAD_DIR = "uploads/screenshots"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.post("/plan/purchase")
+async def purchase_plan(
+    plan_id: int = Form(...),
+    payment_method: str = Form(...),   # wallet or easypaisa
+    sender_name: str = Form(""),
+    sender_phone: str = Form(""),
+    screenshot: UploadFile = File(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    plan = db.query(MembershipPlan).filter(MembershipPlan.id == plan_id, MembershipPlan.is_active == True).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    if plan.price <= 0:
+        raise HTTPException(status_code=400, detail="This plan is free")
+    if current_user.membership == plan.name:
+        raise HTTPException(status_code=400, detail="You already have this plan")
+
+    screenshot_path = None
+    if payment_method == "wallet":
+        if current_user.balance < plan.price:
+            raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {plan.price}, Available: Rs. {round(current_user.balance, 2)}")
+        current_user.balance -= plan.price
+    else:
+        if not screenshot:
+            raise HTTPException(status_code=400, detail="Screenshot required for Easypaisa payment")
+        ext = os.path.splitext(screenshot.filename)[-1].lower()
+        if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+            raise HTTPException(status_code=400, detail="Only JPG/PNG images allowed")
+        filename = f"{uuid.uuid4().hex}{ext}"
+        with open(os.path.join(UPLOAD_DIR, filename), "wb") as f:
+            shutil.copyfileobj(screenshot.file, f)
+        screenshot_path = filename
+
+    req = PlanPurchaseRequest(
+        user_id=current_user.id,
+        plan_id=plan.id,
+        plan_name=plan.name,
+        plan_price=plan.price,
+        payment_method=payment_method,
+        screenshot_path=screenshot_path,
+        sender_name=sender_name or None,
+        sender_phone=sender_phone or None,
+        status="pending" if payment_method == "easypaisa" else "pending"
+    )
+    db.add(req)
+    db.commit()
+    return {"message": "Plan purchase request submitted. Admin will activate your plan shortly."}
+
+@router.get("/plan/my-purchases")
+def my_plan_purchases(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    reqs = db.query(PlanPurchaseRequest).filter(PlanPurchaseRequest.user_id == current_user.id).order_by(PlanPurchaseRequest.created_at.desc()).all()
+    return [{
+        "id": r.id, "plan_name": r.plan_name, "plan_price": r.plan_price,
+        "payment_method": r.payment_method, "status": r.status,
+        "admin_note": r.admin_note, "created_at": r.created_at
+    } for r in reqs]

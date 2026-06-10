@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 Base.metadata.create_all(bind=engine)
 
-# Add new columns to deposits if they don't exist (safe migration)
+# Safe migrations
 with engine.connect() as conn:
     for col, definition in [
         ("sender_name", "VARCHAR(100) NULL"),
@@ -23,6 +23,7 @@ with engine.connect() as conn:
         print("Added column: method_type")
     except Exception:
         pass
+    # plan_purchase_requests table is created via Base.metadata.create_all above
 
 db = SessionLocal()
 

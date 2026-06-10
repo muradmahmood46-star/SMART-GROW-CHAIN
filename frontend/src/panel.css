@@ -41,6 +41,7 @@ body {
 @keyframes toastIn { from { opacity:0; transform:translateY(-16px) scale(.95); } to { opacity:1; transform:translateY(0) scale(1); } }
 @keyframes breathe { 0%,100%{transform:scale(1);} 50%{transform:scale(1.03);} }
 @keyframes shimmer { 0%{background-position:-200% 0;} 100%{background-position:200% 0;} }
+@keyframes marquee { 0%{transform:translateX(0);} 100%{transform:translateX(-33.33%);} }
 
 /* ── Utility ── */
 .fade-up  { animation: fadeUp  .35s ease both; }
