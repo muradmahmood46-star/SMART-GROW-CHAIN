@@ -89,20 +89,9 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
         temp_token = create_access_token({"sub": str(user.id), "is_admin": user.is_admin, "2fa_pending": True})
         return {"requires_2fa": True, "temp_token": temp_token}
 
-    # Generate OTP and send email
-    otp = "".join(random.choices(string.digits, k=6))
-    temp_token = create_access_token({"sub": str(user.id), "is_admin": user.is_admin, "otp_pending": True})
-    otp_store[user.username] = {
-        "otp": otp,
-        "expires": datetime.utcnow() + timedelta(minutes=10),
-        "temp_token": temp_token
-    }
-    send_otp_email(user.email, otp, user.username)
-    # Mask email for display
-    em = user.email
-    parts = em.split("@")
-    masked = parts[0][:2] + "***" + "@" + parts[1] if len(parts) == 2 else "***"
-    return {"requires_otp": True, "temp_token": temp_token, "masked_email": masked}
+    # Direct login — OTP disabled (email not configured)
+    token = create_access_token({"sub": str(user.id), "is_admin": user.is_admin})
+    return {"access_token": token, "token_type": "bearer", "is_admin": user.is_admin, "username": user.username}
 
 @router.post("/verify-otp")
 def verify_otp(data: OTPVerify, db: Session = Depends(get_db)):
