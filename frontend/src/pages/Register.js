@@ -12,7 +12,31 @@ export default function Register() {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const navigate = useNavigate();
+
+  // countdown timer for resend
+  React.useEffect(() => {
+    if (resendTimer <= 0) return;
+    const t = setTimeout(() => setResendTimer(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendTimer]);
+
+  const handleResend = async () => {
+    setLoading(true); setError('');
+    try {
+      const res = await API.post('/auth/register', form);
+      if (res.data.requires_otp) {
+        setRegToken(res.data.reg_token);
+        setOtp('');
+        setResendTimer(60);
+        setMsg('New OTP sent!');
+        setTimeout(() => setMsg(''), 3000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to resend');
+    } finally { setLoading(false); }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,6 +46,7 @@ export default function Register() {
       if (res.data.requires_otp) {
         setRegToken(res.data.reg_token);
         setMaskedEmail(res.data.masked_email);
+        setResendTimer(60);
         setStep('otp');
       } else {
         setMsg('Registered successfully! Redirecting...');
@@ -78,9 +103,9 @@ export default function Register() {
         {step === 'otp' && (
           <form onSubmit={handleOTP}>
             <div style={{background:'#1e3a6e',border:'1px solid #38bdf8',borderRadius:10,padding:'12px 16px',marginBottom:20,textAlign:'center'}}>
-              <p style={{color:'#94a3b8',fontSize:13,margin:'0 0 4px'}}>📧 OTP sent to</p>
+              <p style={{color:'#94a3b8',fontSize:13,margin:'0 0 4px'}}>OTP sent to</p>
               <p style={{color:'#38bdf8',fontWeight:700,fontSize:14,margin:0}}>{maskedEmail}</p>
-              <p style={{color:'#64748b',fontSize:11,margin:'6px 0 0'}}>Check your inbox. Valid for 10 minutes.</p>
+              <p style={{color:'#64748b',fontSize:11,margin:'6px 0 0'}}>Check inbox & spam folder. Valid for 10 minutes.</p>
             </div>
             <label style={s.label}>Verification Code</label>
             <input style={{...s.input, letterSpacing:10, textAlign:'center', fontSize:24, fontWeight:700}}
@@ -89,9 +114,13 @@ export default function Register() {
             <button style={{...s.btn, opacity: loading ? 0.7 : 1}} type="submit" disabled={loading}>
               {loading ? 'Verifying...' : 'Verify & Create Account'}
             </button>
-            <button type="button" onClick={() => { setStep('register'); setOtp(''); setError(''); }}
-              style={{...s.btn, marginTop:8, background:'transparent', color:'#64748b', border:'1px solid #334155'}}>
-              ← Back
+            <button type="button" disabled={resendTimer>0 || loading} onClick={handleResend}
+              style={{...s.btn, marginTop:8, background:'transparent', color: resendTimer>0 ? '#475569' : '#38bdf8', border:'1px solid #334155', fontSize:13}}>
+              {resendTimer>0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
+            </button>
+            <button type="button" onClick={() => { setStep('register'); setOtp(''); setError(''); setResendTimer(0); }}
+              style={{...s.btn, marginTop:8, background:'transparent', color:'#64748b', border:'1px solid #334155', fontSize:13}}>
+              Back
             </button>
           </form>
         )}
