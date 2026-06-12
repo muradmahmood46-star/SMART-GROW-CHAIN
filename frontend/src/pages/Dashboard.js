@@ -48,6 +48,8 @@ export default function Dashboard() {
   const [showAdWelcome, setShowAdWelcome] = useState(false);
   const [campaignViewers, setCampaignViewers] = useState({});
   const [siteSettings, setSiteSettings] = useState({});
+  const [referralMsg, setReferralMsg] = useState('');
+  const [dashboardMsg, setDashboardMsg] = useState('');
   const [adForm, setAdForm]           = useState({ title:'', url:'', members_needed:'' });
   const [adPayMethod, setAdPayMethod] = useState('wallet');
   const [adScreenshot, setAdScreenshot] = useState(null);
@@ -71,6 +73,7 @@ export default function Dashboard() {
   const [ticket, setTicket]           = useState({ subject:'', message:'' });
   const [faCode, setFaCode]           = useState('');
   const [showAllTx, setShowAllTx] = useState(false);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [msg, setMsg]                 = useState({ text:'', type:'' });
   const navigate = useNavigate();
 
@@ -91,7 +94,7 @@ export default function Dashboard() {
     API.get('/user/plans').then(r=>setPlans(r.data));
     API.get('/user/ad-request/rate').then(r=>{ setAdRate(r.data.rate_pkr); setAdWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
-    API.get('/user/settings').then(r=>setSiteSettings(r.data)).catch(()=>{});
+    API.get('/user/settings').then(r=>{ setSiteSettings(r.data); setReferralMsg(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); }).catch(()=>{});
     API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
     API.get('/user/kyc/status').then(r=>{ setKycData(r.data); setFreePlanExpired(r.data.free_plan_expired); setFreePlanDaysLeft(r.data.free_plan_days_left); }).catch(()=>{});
     API.get('/user/notifications').then(r=>setNotifications(r.data)).catch(()=>{});
@@ -204,7 +207,7 @@ export default function Dashboard() {
 
   return (
     <div className="panel-wrap">
-      <div className={`sgc-overlay ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
+      <div className={`sgc-overlay ${sidebarOpen?'open':''}`} onClick={()=>{setSidebarOpen(false);setShowNotifDropdown(false);}}/>
 
       {/* ── SIDEBAR ── */}
       <aside className={`sgc-sidebar ${sidebarOpen?'open':''}`}>
@@ -265,8 +268,36 @@ export default function Dashboard() {
         <div className="sgc-topbar">
           <button className="hamburger" onClick={()=>setSidebarOpen(true)}>☰</button>
           <span style={{color:'#fff',fontWeight:800,fontSize:15}}>🌱 Smart Grow Chain</span>
-          <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#0d9488,#0891b2)',width:36,height:36,fontSize:15,flexShrink:0}}>
-            {profile.username[0].toUpperCase()}
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{position:'relative'}}>
+              <button onClick={()=>setShowNotifDropdown(v=>!v)}
+                style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:18,position:'relative'}}>
+                🔔
+                {notifications.filter(n=>!n.is_read).length>0 && (
+                  <span style={{position:'absolute',top:-4,right:-4,background:'#ef4444',color:'#fff',borderRadius:'50%',width:16,height:16,fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {notifications.filter(n=>!n.is_read).length}
+                  </span>
+                )}
+              </button>
+              {showNotifDropdown && (
+                <div style={{position:'absolute',right:0,top:44,width:280,background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',zIndex:999,overflow:'hidden'}}>
+                  <div style={{padding:'10px 14px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{color:'var(--text)',fontWeight:700,fontSize:13}}>Notifications</span>
+                    <button onClick={()=>{setShowNotifDropdown(false);setTab('notifications');}} style={{background:'none',border:'none',color:'var(--accent)',fontSize:12,cursor:'pointer',fontFamily:'var(--font)'}}>See all</button>
+                  </div>
+                  {notifications.length===0 && <p style={{color:'var(--dim)',fontSize:13,textAlign:'center',padding:16,margin:0}}>No notifications</p>}
+                  {notifications.slice(0,3).map((n,i)=>(
+                    <div key={i} style={{padding:'10px 14px',borderBottom:i<2?'1px solid var(--border)':'none',background:n.is_read?'transparent':'#0d1e38'}}>
+                      <p style={{color:n.is_read?'var(--muted)':'var(--text)',fontWeight:600,fontSize:13,margin:'0 0 2px'}}>{n.title}</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:0}}>{n.message?.substring(0,55)}{n.message?.length>55?'...':''}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#0d9488,#0891b2)',width:36,height:36,fontSize:15,flexShrink:0}}>
+              {profile.username[0].toUpperCase()}
+            </div>
           </div>
         </div>
 
@@ -340,7 +371,9 @@ export default function Dashboard() {
             {/* ── DASHBOARD ── */}
             {tab==='dashboard' && (
               <div>
-                <h2 className="sgc-heading">🏠 Dashboard</h2>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                  <h2 className="sgc-heading" style={{margin:0}}>Dashboard</h2>
+                </div>
                 <div className="sgc-stats">
                   {[
                     ['Total Balance',`Rs. ${profile.balance.toFixed(2)}`,'#0d9488'],
@@ -423,6 +456,17 @@ export default function Dashboard() {
                       <span style={{color:'#ea580c',fontWeight:800,fontSize:14,letterSpacing:.3}}>MESSAGE FROM ADMIN</span>
                     </div>
                     <p style={{color:'#7c2d12',fontSize:14,lineHeight:1.8,margin:0,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{adWelcomeMsg}</p>
+                  </div>
+                )}
+
+                {/* Dashboard Bottom Custom Message */}
+                {dashboardMsg&&(
+                  <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:16,padding:'16px 20px',marginTop:16}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                      <span style={{fontSize:20}}>📋</span>
+                      <span style={{color:'var(--accent)',fontWeight:800,fontSize:14,letterSpacing:.3}}>IMPORTANT NOTICE</span>
+                    </div>
+                    <p style={{color:'var(--muted)',fontSize:14,lineHeight:1.8,margin:0,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{dashboardMsg}</p>
                   </div>
                 )}
               </div>
@@ -722,8 +766,8 @@ export default function Dashboard() {
                 <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{profile.membership}</span></p>
 
                 {/* Current Plan Info Card */}
-                <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px',marginBottom:24,maxWidth:480}}>
-                  <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>ACTIVE PLAN</p>
+                <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px',marginBottom:16,maxWidth:480}}>
+                  <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>CURRENT PLAN</p>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
                     <div>
                       <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0,textTransform:'capitalize'}}>🏆 {profile.membership}</p>
@@ -740,6 +784,12 @@ export default function Dashboard() {
                       {profile.membership==='free'?'FREE':'ACTIVE'}
                     </span>
                   </div>
+                </div>
+
+                {/* Upsell message */}
+                <div style={{background:'linear-gradient(135deg,#451a03,#92400e20)',border:'1px solid #92400e',borderRadius:10,padding:'10px 16px',marginBottom:24,maxWidth:480,display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:20}}>🚀</span>
+                  <p style={{color:'#fbbf24',fontSize:13,fontWeight:600,margin:0}}>Buy a bigger plan and earn more profit!</p>
                 </div>
 
                 {/* Plan cards */}
@@ -773,7 +823,10 @@ export default function Dashboard() {
                             </button>
                           )}
                           {!isCurrent && p.price===0 && (
-                            <div style={{padding:'8px',background:'var(--bg)',borderRadius:10,textAlign:'center',color:'var(--dim)',fontSize:12}}>Free Plan</div>
+                            <button onClick={()=>{ setSelectedPlan(p); setPlanPayMethod('wallet'); }}
+                              style={{width:'100%',padding:'10px',background:'var(--border)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
+                              Activate Free Plan
+                            </button>
                           )}
                         </div>
                       );
@@ -791,19 +844,30 @@ export default function Dashboard() {
                       <p style={{color:'var(--yellow)',fontSize:20,fontWeight:800,margin:0,textTransform:'capitalize'}}>{selectedPlan.name} — Rs. {selectedPlan.price}</p>
                     </div>
 
-                    {/* Method selector */}
-                    <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>SELECT PAYMENT METHOD</p>
-                    <div style={{display:'flex',gap:10,marginBottom:20}}>
-                      {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
-                        <div key={val} onClick={()=>setPlanPayMethod(val)}
-                          style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${planPayMethod===val?'var(--accent)':'var(--border)'}`,background:planPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:planPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
-                          {label}
+                    {/* Method selector — only for paid plans */}
+                    {selectedPlan.price > 0 && (
+                      <>
+                        <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>SELECT PAYMENT METHOD</p>
+                        <div style={{display:'flex',gap:10,marginBottom:20}}>
+                          {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
+                            <div key={val} onClick={()=>setPlanPayMethod(val)}
+                              style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${planPayMethod===val?'var(--accent)':'var(--border)'}`,background:planPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:planPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
+                              {label}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    )}
+
+                    {/* Free plan — just confirm */}
+                    {selectedPlan.price === 0 && (
+                      <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
+                        <p style={{color:'#4ade80',fontSize:13,fontWeight:600,margin:0}}>✓ This is a free plan. Click below to activate it.</p>
+                      </div>
+                    )}
 
                     {/* Wallet */}
-                    {planPayMethod==='wallet' && (
+                    {selectedPlan.price > 0 && planPayMethod==='wallet' && (
                       <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'16px 18px',marginBottom:16}}>
                         <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 8px',fontWeight:600}}>WALLET BALANCE</p>
                         <p style={{color:profile.balance>=selectedPlan.price?'var(--green)':'var(--red)',fontSize:22,fontWeight:800,margin:'0 0 4px'}}>Rs. {profile.balance.toFixed(2)}</p>
@@ -815,7 +879,7 @@ export default function Dashboard() {
                     )}
 
                     {/* Easypaisa */}
-                    {planPayMethod==='easypaisa' && (
+                    {selectedPlan.price > 0 && planPayMethod==='easypaisa' && (
                       <>
                         {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
                           <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
@@ -856,25 +920,25 @@ export default function Dashboard() {
 
                     <button className="sgc-btn-primary" onClick={async()=>{
                       try{
-                        if(planPayMethod==='wallet' && profile.balance < selectedPlan.price){
+                        if(selectedPlan.price > 0 && planPayMethod==='wallet' && profile.balance < selectedPlan.price){
                           notify('Insufficient balance','error'); return;
                         }
-                        if(planPayMethod==='easypaisa' && !planScreenshot){
+                        if(selectedPlan.price > 0 && planPayMethod==='easypaisa' && !planScreenshot){
                           notify('Please upload payment screenshot','error'); return;
                         }
                         const fd=new FormData();
                         fd.append('plan_id', selectedPlan.id);
-                        fd.append('payment_method', planPayMethod);
+                        fd.append('payment_method', selectedPlan.price===0 ? 'wallet' : planPayMethod);
                         fd.append('sender_name', planSenderName);
                         fd.append('sender_phone', planSenderPhone);
-                        if(planPayMethod==='easypaisa' && planScreenshot) fd.append('screenshot', planScreenshot);
+                        if(selectedPlan.price > 0 && planPayMethod==='easypaisa' && planScreenshot) fd.append('screenshot', planScreenshot);
                         await API.post('/user/plan/purchase', fd, {headers:{'Content-Type':'multipart/form-data'}});
-                        notify('Plan purchase request submitted! Admin will activate shortly. ✅');
+                        notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
                         setSelectedPlan(null);
                         API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data));
                         API.get('/user/profile').then(r=>setProfile(r.data));
                       }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-                    }}>📤 Submit Purchase Request</button>
+                    }}>{selectedPlan.price===0 ? '✔ Activate Free Plan' : '📤 Submit Purchase Request'}</button>
                   </div>
                 )}
 
@@ -923,7 +987,14 @@ export default function Dashboard() {
                     <button className="sgc-btn-primary" style={{width:'auto',padding:'0 18px',whiteSpace:'nowrap'}}
                       onClick={()=>{ navigator.clipboard.writeText(referrals.referral_link); notify('Link copied! 📋'); }}>Copy</button>
                   </div>
-                  <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Earn 10% commission from every ad click your referrals make</p>
+                  {referralMsg ? (
+                    <div style={{marginTop:12,background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                      <span style={{fontSize:16,flexShrink:0}}>💬</span>
+                      <p style={{color:'var(--muted)',fontSize:13,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{referralMsg}</p>
+                    </div>
+                  ) : (
+                    <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Earn 10% commission from every ad click your referrals make</p>
+                  )}
                 </div>
                 {referrals.referrals.length>0&&(
                   <div className="sgc-table-wrap">

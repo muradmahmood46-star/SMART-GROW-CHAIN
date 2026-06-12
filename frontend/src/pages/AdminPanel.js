@@ -66,6 +66,10 @@ export default function AdminPanel() {
   const [welcomeMsg, setWelcomeMsg] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [whatsappInput, setWhatsappInput] = useState('');
+  const [referralMsg, setReferralMsg] = useState('');
+  const [referralMsgInput, setReferralMsgInput] = useState('');
+  const [dashboardMsg, setDashboardMsg] = useState('');
+  const [dashboardMsgInput, setDashboardMsgInput] = useState('');
   const [msg, setMsg]                 = useState({ text:'', type:'' });
   const [balanceModal, setBalanceModal] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -94,7 +98,7 @@ export default function AdminPanel() {
     API.get('/admin/kyc').then(r=>setKycRequests(r.data)).catch(()=>{});
     API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
-    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); }).catch(()=>{});
+    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); }).catch(()=>{});
   };
 
   useEffect(()=>{ loadAll(); },[]);
@@ -1126,8 +1130,9 @@ export default function AdminPanel() {
             {/* ── ADMIN MESSAGES ── */}
             {tab==='messages' && (
               <div>
-                <h2 className="sgc-heading">📣 Admin Messages</h2>
+                <h2 className="sgc-heading">📣 Notifications & Messages</h2>
 
+                {/* WhatsApp */}
                 <div className="sgc-form" style={{maxWidth:480,marginBottom:24}}>
                   <h4 style={{color:'#25d366',fontSize:13,fontWeight:700,marginBottom:12}}>📱 WhatsApp Group Link</h4>
                   <input className="sgc-input" placeholder="https://chat.whatsapp.com/xxxxx" value={whatsappInput} onChange={e=>setWhatsappInput(e.target.value)}/>
@@ -1138,11 +1143,44 @@ export default function AdminPanel() {
                   {whatsappLink&&<p style={{color:'#25d366',fontSize:12,marginTop:8}}>Current: {whatsappLink}</p>}
                 </div>
 
-                <div className="sgc-form" style={{maxWidth:480}}>
+                {/* Bell Notification — quick link */}
+                <div className="sgc-form" style={{maxWidth:480,marginBottom:24,background:'#0d1e38',border:'1px solid #1e4080'}}>
+                  <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:8}}>🔔 Bell (In-App) Notifications</h4>
+                  <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 12px'}}>In-app notifications sidhe user ke bell icon mein jaati hain.</p>
+                  <button className="sgc-btn-primary" style={{width:'auto',padding:'10px 24px'}} onClick={()=>setTab('notify')}>→ Send Notification</button>
+                </div>
+
+                {/* Email Notification — quick link */}
+                <div className="sgc-form" style={{maxWidth:480,marginBottom:24,background:'#071a0d',border:'1px solid #166534'}}>
+                  <h4 style={{color:'var(--green)',fontSize:13,fontWeight:700,marginBottom:8}}>📧 Email Notifications</h4>
+                  <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 12px'}}>"Send Notification" tab mein Email checkbox enable karke email bhi bhej sakte hain.</p>
+                  <button className="sgc-btn-primary" style={{width:'auto',padding:'10px 24px',background:'var(--green)',color:'var(--bg)'}} onClick={()=>setTab('notify')}>→ Send Email Notification</button>
+                </div>
+
+                {/* Send Funds Message */}
+                <div className="sgc-form" style={{maxWidth:480,marginBottom:24}}>
                   <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:4}}>💬 Send Funds Section Message</h4>
-                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Shown below the transfer form on user dashboard</p>
-                  <textarea className="sgc-input" rows={4} placeholder="e.g. Minimum transfer Rs. 50..." value={transferMsgInput} onChange={e=>setTransferMsgInput(e.target.value)} style={{resize:'vertical',minHeight:80}}/>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Send Funds form ke neeche show hoga</p>
+                  <textarea className="sgc-input" rows={3} placeholder="e.g. Minimum transfer Rs. 50..." value={transferMsgInput} onChange={e=>setTransferMsgInput(e.target.value)} style={{resize:'vertical',minHeight:70}}/>
                   <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/transfer_message',{value:transferMsgInput}); setTransferMsg(transferMsgInput); notify('Saved ✅'); }}>Save</button>
+                </div>
+
+                {/* Referral Message */}
+                <div className="sgc-form" style={{maxWidth:480,marginBottom:24}}>
+                  <h4 style={{color:'var(--purple)',fontSize:13,fontWeight:700,marginBottom:4}}>👥 Referral Section Custom Message</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Referral link ke sath user ko jo message show hoga</p>
+                  <textarea className="sgc-input" rows={3} placeholder="e.g. Apne dosto ko refer karein aur har click par commission kamayein!" value={referralMsgInput} onChange={e=>setReferralMsgInput(e.target.value)} style={{resize:'vertical',minHeight:70}}/>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/referral_message',{value:referralMsgInput}); setReferralMsg(referralMsgInput); notify('Saved ✅'); }}>Save</button>
+                  {referralMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {referralMsg.substring(0,80)}{referralMsg.length>80?'...':''}</p>}
+                </div>
+
+                {/* Dashboard Bottom Message */}
+                <div className="sgc-form" style={{maxWidth:480}}>
+                  <h4 style={{color:'var(--yellow)',fontSize:13,fontWeight:700,marginBottom:4}}>📋 User Dashboard Bottom Message</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>User dashboard ke end mein show hoga</p>
+                  <textarea className="sgc-input" rows={4} placeholder="e.g. Roz ads dekhen aur zyada kamayen! Referral se extra income bhi haasil karein." value={dashboardMsgInput} onChange={e=>setDashboardMsgInput(e.target.value)} style={{resize:'vertical',minHeight:90}}/>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/dashboard_message',{value:dashboardMsgInput}); setDashboardMsg(dashboardMsgInput); notify('Saved ✅'); }}>Save</button>
+                  {dashboardMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {dashboardMsg.substring(0,80)}{dashboardMsg.length>80?'...':''}</p>}
                 </div>
               </div>
             )}
