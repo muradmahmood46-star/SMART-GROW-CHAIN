@@ -42,16 +42,9 @@ export default function Register() {
     e.preventDefault();
     setLoading(true); setError(''); setMsg('');
     try {
-      const res = await API.post('/auth/register', form);
-      if (res.data.requires_otp) {
-        setRegToken(res.data.reg_token);
-        setMaskedEmail(res.data.masked_email);
-        setResendTimer(60);
-        setStep('otp');
-      } else {
-        setMsg('Registered successfully! Redirecting...');
-        setTimeout(() => navigate('/login'), 1500);
-      }
+      await API.post('/auth/register', form);
+      setMsg('Registered successfully! Redirecting...');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed');
     } finally { setLoading(false); }
