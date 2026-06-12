@@ -286,7 +286,7 @@ export default function Dashboard() {
           )}
           {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
             <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:20}}>⏰</span>
+              <span style={{fontSize:20}}></span>
               <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
               <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
             </div>
@@ -305,7 +305,7 @@ export default function Dashboard() {
           )}
           {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
             <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:20}}>⏰</span>
+              <span style={{fontSize:20}}></span>
               <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
               <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
             </div>
@@ -475,7 +475,7 @@ export default function Dashboard() {
                       <div key={i} style={{background:'var(--card)',border:`1.5px solid ${isPending?'#92400e':isConfirmed?'#166534':'#7f1d1d'}`,borderRadius:12,padding:'14px 18px'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:isPending?10:0}}>
                           <div style={{display:'flex',alignItems:'center',gap:10}}>
-                            <span style={{fontSize:22}}>{isPending?'⏳':isConfirmed?'✅':'❌'}</span>
+                            <span style={{fontSize:22}}>{isPending?'⏳':isConfirmed?'✅':''}</span>
                             <div>
                               <p style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>Rs. {d.amount_pkr}</p>
                               <p style={{color:'var(--dim)',fontSize:11,margin:0}}>{new Date(d.created_at).toLocaleString()}</p>
@@ -516,7 +516,7 @@ export default function Dashboard() {
                     <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 20px'}}>Please complete your KYC verification before withdrawing funds.</p>
                     <button onClick={()=>setTab('kyc')} style={{background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>🪪 Complete KYC Now</button>
                     {kycData?.kyc_status==='pending' && <p style={{color:'#fbbf24',fontSize:12,marginTop:12}}>⏳ KYC is under review. Please wait for admin approval.</p>}
-                    {kycData?.kyc_status==='rejected' && <p style={{color:'#fca5a5',fontSize:12,marginTop:12}}>❌ KYC was rejected. Please resubmit with correct documents.</p>}
+                    {kycData?.kyc_status==='rejected' && <p style={{color:'#fca5a5',fontSize:12,marginTop:12}}>KYC was rejected. Please resubmit with correct documents.</p>}
                   </div>
                 ) : (
                   <>
@@ -729,7 +729,7 @@ export default function Dashboard() {
                       <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0,textTransform:'capitalize'}}>🏆 {profile.membership}</p>
                       {profile.plan_expires_at && profile.membership!=='free' && (
                         <p style={{color:new Date(profile.plan_expires_at)<new Date()?'var(--red)':'var(--green)',fontSize:13,margin:'6px 0 0',fontWeight:600}}>
-                          {new Date(profile.plan_expires_at)<new Date()?⁠'❌ Expired on':'⏰ Expires on'}: <b>{new Date(profile.plan_expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</b>
+                          {new Date(profile.plan_expires_at)<new Date()?'Expired on':'Expires on'}: <b>{new Date(profile.plan_expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</b>
                         </p>
                       )}
                       {profile.membership==='free' && (
@@ -1151,7 +1151,7 @@ export default function Dashboard() {
                                 <p style={{color:'var(--dim)',fontSize:11,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>🔗 {r.url}</p>
                               </div>
                               <span style={{background:isApproved?'#064e3b':isCompleted?'#1e3a6e':isRejected?'#450a0a':'#451a03',color:accentCol,padding:'4px 14px',borderRadius:20,fontSize:12,fontWeight:800,flexShrink:0,whiteSpace:'nowrap'}}>
-                                {isApproved?'✅ ACTIVE':isCompleted?'🏁 DONE':isRejected?'❌ REJECTED':'⏳ PENDING'}
+                                {isApproved?'✅ ACTIVE':isCompleted?'🏁 DONE':isRejected?'REJECTED':'⏳ PENDING'}
                               </span>
                             </div>
 
@@ -1301,7 +1301,7 @@ export default function Dashboard() {
                 {/* Status badge */}
                 <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:24,padding:'14px 18px',background:'var(--card)',borderRadius:12,border:'1px solid var(--border)',maxWidth:480}}>
                   <span style={{fontSize:32}}>
-                    {kycData?.kyc_status==='approved'?'✅':kycData?.kyc_status==='pending'?'⏳':kycData?.kyc_status==='rejected'?'❌':'🚪'}
+                    {kycData?.kyc_status==='approved'?'✅':kycData?.kyc_status==='pending'?'⏳':kycData?.kyc_status==='rejected'?'':'🚪'}
                   </span>
                   <div>
                     <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>KYC Status</p>
