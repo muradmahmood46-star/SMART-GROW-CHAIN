@@ -60,6 +60,7 @@ export default function AdminPanel() {
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMsg, setNotifMsg] = useState('');
   const [notifUserId, setNotifUserId] = useState('');
+  const [notifSendEmail, setNotifSendEmail] = useState(false);
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [welcomeMsg, setWelcomeMsg] = useState('');
@@ -1160,11 +1161,40 @@ export default function AdminPanel() {
                     <option value="">📢 All Users</option>
                     {users.map(u=><option key={u.id} value={u.id}>@{u.username}</option>)}
                   </select>
+
+                  {/* Notification Type */}
+                  <label className="sgc-label" style={{marginTop:4}}>Notification Type</label>
+                  <div style={{display:'flex',gap:10,marginBottom:16}}>
+                    <div style={{flex:1,padding:'12px',borderRadius:10,border:'2px solid var(--accent)',background:'#0d1e38',display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:18}}>🔔</span>
+                      <div>
+                        <p style={{color:'var(--accent)',fontWeight:700,fontSize:13,margin:0}}>App Notification</p>
+                        <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Always sent (in-app)</p>
+                      </div>
+                      <div style={{marginLeft:'auto',width:16,height:16,borderRadius:'50%',background:'var(--green)',border:'2px solid var(--green)',flexShrink:0}}/>
+                    </div>
+                    <div onClick={()=>setNotifSendEmail(v=>!v)}
+                      style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${notifSendEmail?'#25d366':'var(--border)'}`,background:notifSendEmail?'#071a0d':'var(--bg)',cursor:'pointer',display:'flex',alignItems:'center',gap:8,transition:'all .2s'}}>
+                      <span style={{fontSize:18}}>📧</span>
+                      <div>
+                        <p style={{color:notifSendEmail?'#25d366':'var(--muted)',fontWeight:700,fontSize:13,margin:0}}>Email Notification</p>
+                        <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Send via Gmail</p>
+                      </div>
+                      <div style={{marginLeft:'auto',width:16,height:16,borderRadius:'50%',background:notifSendEmail?'#25d366':'var(--border)',border:`2px solid ${notifSendEmail?'#25d366':'var(--border)'}`,flexShrink:0}}/>
+                    </div>
+                  </div>
+
                   <button className="sgc-btn-primary" onClick={async()=>{
                     if(!notifTitle||!notifMsg){ notify('Title and message required','error'); return; }
-                    await API.post('/admin/notifications/send',{title:notifTitle,message:notifMsg,user_id:notifUserId?parseInt(notifUserId):null});
+                    const payload = {
+                      title: notifTitle,
+                      message: notifMsg,
+                      user_id: notifUserId ? parseInt(notifUserId) : null,
+                      send_email: notifSendEmail
+                    };
+                    await API.post('/admin/notifications/send', payload);
                     notify('Notification sent ✅');
-                    setNotifTitle(''); setNotifMsg(''); setNotifUserId('');
+                    setNotifTitle(''); setNotifMsg(''); setNotifUserId(''); setNotifSendEmail(false);
                   }}>Send Notification</button>
                 </div>
               </div>

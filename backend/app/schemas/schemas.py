@@ -19,6 +19,7 @@ class UserOut(BaseModel):
     balance: float
     total_earned: float
     membership: str
+    plan_expires_at: Optional[datetime] = None
     referral_code: str
     two_fa_enabled: bool
     kyc_status: str

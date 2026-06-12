@@ -822,16 +822,41 @@ def set_free_plan_days(data: FreePlanDays, db: Session = Depends(get_db), admin=
 class NotificationCreate(BaseModel):
     title: str
     message: str
-    user_id: Optional[int] = None  # None = broadcast all
+    user_id: Optional[int] = None
+    send_email: Optional[bool] = False
 
 @router.post("/notifications/send")
 def send_notification(data: NotificationCreate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    import smtplib
+    from email.mime.text import MIMEText
+
+    def _send_email(to_email: str, username: str):
+        gmail_user = os.getenv("GMAIL_USER", "")
+        gmail_pass = os.getenv("GMAIL_PASS", "")
+        if not gmail_user or not gmail_pass:
+            return
+        msg = MIMEText(f"Hello {username},\n\n{data.message}\n\n— Smart Grow Chain Team", "plain")
+        msg["Subject"] = data.title
+        msg["From"] = gmail_user
+        msg["To"] = to_email
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(gmail_user, gmail_pass)
+                server.sendmail(gmail_user, to_email, msg.as_string())
+        except Exception:
+            pass
+
     if data.user_id:
+        user = db.query(User).filter(User.id == data.user_id).first()
         db.add(Notification(user_id=data.user_id, title=data.title, message=data.message))
+        if data.send_email and user:
+            _send_email(user.email, user.username)
     else:
         users = db.query(User).filter(User.is_admin == False, User.is_active == True).all()
         for u in users:
             db.add(Notification(user_id=u.id, title=data.title, message=data.message))
+            if data.send_email:
+                _send_email(u.email, u.username)
     db.commit()
     return {"message": "Notification sent"}
 

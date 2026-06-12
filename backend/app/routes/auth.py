@@ -11,24 +11,27 @@ from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-# In-memory OTP store: {username: {otp, expires, temp_token}}
+# In-memory OTP store
+# login OTP:        {username: {otp, expires, temp_token}}
+# registration OTP: {"reg_"+email: {otp, expires, data: dict}}
 otp_store = {}
 
-def send_otp_email(to_email: str, otp: str, username: str):
+def send_otp_email(to_email: str, otp: str, username: str, subject: str = None, body: str = None):
     gmail_user = os.getenv("GMAIL_USER", "")
     gmail_pass = os.getenv("GMAIL_PASS", "")
     if not gmail_user or not gmail_pass:
-        return  # silently skip if not configured
-    msg = MIMEText(f"""Hello {username},
+        return
+    text = body or f"""Hello {username},
 
-Your Smart Grow Chain login verification code is:
+Your Smart Grow Chain verification code is:
 
   {otp}
 
 This code expires in 10 minutes. Do not share it with anyone.
 
-— Smart Grow Chain Team""", "plain")
-    msg["Subject"] = f"Your Login OTP: {otp}"
+— Smart Grow Chain Team"""
+    msg = MIMEText(text, "plain")
+    msg["Subject"] = subject or f"Your Verification Code: {otp}"
     msg["From"] = gmail_user
     msg["To"] = to_email
     try:
@@ -36,7 +39,12 @@ This code expires in 10 minutes. Do not share it with anyone.
             server.login(gmail_user, gmail_pass)
             server.sendmail(gmail_user, to_email, msg.as_string())
     except Exception:
-        pass  # don't crash if email fails
+        pass
+
+def _mask_email(email: str) -> str:
+    parts = email.split("@")
+    name = parts[0]
+    return name[:2] + "***@" + parts[1]
 
 class Verify2FALogin(BaseModel):
     temp_token: str
@@ -46,6 +54,10 @@ class OTPVerify(BaseModel):
     temp_token: str
     otp: str
 
+class RegOTPVerify(BaseModel):
+    reg_token: str
+    otp: str
+
 @router.post("/register")
 def register(data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == data.username).first():
@@ -53,23 +65,80 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already exists")
 
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_PASS", "")
+    email_configured = bool(gmail_user and gmail_pass)
+
+    if email_configured:
+        # Send OTP and hold registration pending
+        otp = "".join(random.choices(string.digits, k=6))
+        reg_token = "".join(random.choices(string.ascii_letters + string.digits, k=32))
+        otp_store[f"reg_{reg_token}"] = {
+            "otp": otp,
+            "expires": datetime.utcnow() + timedelta(minutes=10),
+            "data": data.dict()
+        }
+        send_otp_email(
+            data.email, otp, data.username,
+            subject=f"Your Registration OTP: {otp}",
+            body=f"""Hello {data.username},
+
+Your Smart Grow Chain registration verification code is:
+
+  {otp}
+
+Enter this code to complete your registration. Expires in 10 minutes.
+
+— Smart Grow Chain Team"""
+        )
+        return {
+            "requires_otp": True,
+            "reg_token": reg_token,
+            "masked_email": _mask_email(data.email),
+            "message": "OTP sent to your email"
+        }
+    else:
+        # No email configured — register directly
+        return _create_user(data, db)
+
+def _create_user(data, db: Session):
     referred_by = None
-    if data.referral_code:
-        referrer = db.query(User).filter(User.referral_code == data.referral_code).first()
+    if data.get("referral_code") if isinstance(data, dict) else data.referral_code:
+        code = data["referral_code"] if isinstance(data, dict) else data.referral_code
+        referrer = db.query(User).filter(User.referral_code == code).first()
         if referrer:
             referred_by = referrer.id
-
+    d = data if isinstance(data, dict) else data.dict()
     user = User(
-        username=data.username,
-        email=data.email,
-        password=hash_password(data.password),
+        username=d["username"],
+        email=d["email"],
+        password=hash_password(d["password"]),
         referral_code=generate_referral_code(),
         referred_by=referred_by
     )
     db.add(user)
     db.commit()
-    db.refresh(user)
     return {"message": "Registration successful"}
+
+@router.post("/register/verify-otp")
+def verify_registration_otp(data: RegOTPVerify, db: Session = Depends(get_db)):
+    key = f"reg_{data.reg_token}"
+    entry = otp_store.get(key)
+    if not entry:
+        raise HTTPException(status_code=400, detail="Invalid or expired session. Please register again.")
+    if datetime.utcnow() > entry["expires"]:
+        otp_store.pop(key, None)
+        raise HTTPException(status_code=400, detail="OTP expired. Please register again.")
+    if entry["otp"] != data.otp.strip():
+        raise HTTPException(status_code=400, detail="Invalid OTP code")
+    otp_store.pop(key, None)
+    reg_data = entry["data"]
+    # Final duplicate check
+    if db.query(User).filter(User.username == reg_data["username"]).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    if db.query(User).filter(User.email == reg_data["email"]).first():
+        raise HTTPException(status_code=400, detail="Email already exists")
+    return _create_user(reg_data, db)
 
 @router.post("/login")
 def login(data: UserLogin, db: Session = Depends(get_db)):
@@ -89,7 +158,16 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
         temp_token = create_access_token({"sub": str(user.id), "is_admin": user.is_admin, "2fa_pending": True})
         return {"requires_2fa": True, "temp_token": temp_token}
 
-    # Direct login — OTP disabled (email not configured)
+    # Email OTP login (if configured)
+    gmail_user = os.getenv("GMAIL_USER", "")
+    gmail_pass = os.getenv("GMAIL_PASS", "")
+    if gmail_user and gmail_pass:
+        otp = "".join(random.choices(string.digits, k=6))
+        temp_token = create_access_token({"sub": str(user.id), "is_admin": user.is_admin, "otp_pending": True})
+        otp_store[user.username] = {"otp": otp, "expires": datetime.utcnow() + timedelta(minutes=10), "temp_token": temp_token}
+        send_otp_email(user.email, otp, user.username)
+        return {"requires_otp": True, "temp_token": temp_token, "masked_email": _mask_email(user.email)}
+
     token = create_access_token({"sub": str(user.id), "is_admin": user.is_admin})
     return {"access_token": token, "token_type": "bearer", "is_admin": user.is_admin, "username": user.username}
 
