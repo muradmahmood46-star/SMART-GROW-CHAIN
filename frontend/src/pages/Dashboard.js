@@ -19,6 +19,7 @@ const TABS = [
   { key:'support',      icon:'🎫', label:'Support Ticket'  },
   { key:'kyc',          icon:'🪪', label:'KYC Verification'},
   { key:'2fa',          icon:'🔐', label:'2FA Security'    },
+  { key:'notifications',icon:'🔔', label:'Notifications'   },
 ];
 
 export default function Dashboard() {
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const [adRate, setAdRate]           = useState(1);
   const [kycData, setKycData]         = useState(null);
   const [kycForm, setKycForm]         = useState({ first_name:'', last_name:'', phone:'', cnic:'' });
+  const [notifications, setNotifications] = useState([]);
   const [kycFront, setKycFront]       = useState(null);
   const [kycSelfie, setKycSelfie]     = useState(null);
   const [freePlanExpired, setFreePlanExpired] = useState(false);
@@ -92,6 +94,7 @@ export default function Dashboard() {
     API.get('/user/settings').then(r=>setSiteSettings(r.data)).catch(()=>{});
     API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
     API.get('/user/kyc/status').then(r=>{ setKycData(r.data); setFreePlanExpired(r.data.free_plan_expired); setFreePlanDaysLeft(r.data.free_plan_days_left); }).catch(()=>{});
+    API.get('/user/notifications').then(r=>setNotifications(r.data)).catch(()=>{});
   },[]);
 
   useEffect(()=>{ loadData(); },[loadData]);
@@ -249,6 +252,7 @@ export default function Dashboard() {
               {key==='support' && tickets.filter(t=>t.status==='replied').length>0 && <span className="nav-badge">{tickets.filter(t=>t.status==='replied').length}</span>}
               {key==='kyc' && kycData?.kyc_status==='none' && <span className="nav-badge" style={{background:'var(--red)'}}>!</span>}
               {key==='kyc' && kycData?.kyc_status==='rejected' && <span className="nav-badge" style={{background:'var(--red)'}}>!</span>}
+              {key==='notifications' && notifications.filter(n=>!n.is_read).length>0 && <span className="nav-badge">{notifications.filter(n=>!n.is_read).length}</span>}
             </button>
           ))}
         </nav>
@@ -582,6 +586,12 @@ export default function Dashboard() {
                   <input className="sgc-input" placeholder="Add a note" value={transfer.note} onChange={e=>setTransfer({...transfer,note:e.target.value})}/>
                   <button className="sgc-btn-primary" type="submit">🔄 Send Funds</button>
                 </form>
+                {siteSettings.transfer_message && (
+                  <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:24,display:'flex',gap:8,alignItems:'flex-start'}}>
+                    <span style={{fontSize:16,flexShrink:0}}>💬</span>
+                    <p style={{color:'#94a3b8',fontSize:13,margin:0,lineHeight:1.6}}>{siteSettings.transfer_message}</p>
+                  </div>
+                )}
                 <h3 className="sgc-subheading">Transfer History</h3>
                 <div className="sgc-table-wrap">
                   <table className="sgc-table">
@@ -710,6 +720,27 @@ export default function Dashboard() {
               <div>
                 <h2 className="sgc-heading">🏆 Membership Plans</h2>
                 <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{profile.membership}</span></p>
+
+                {/* Current Plan Info Card */}
+                <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px',marginBottom:24,maxWidth:480}}>
+                  <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>ACTIVE PLAN</p>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+                    <div>
+                      <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0,textTransform:'capitalize'}}>🏆 {profile.membership}</p>
+                      {profile.plan_expires_at && profile.membership!=='free' && (
+                        <p style={{color:new Date(profile.plan_expires_at)<new Date()?'var(--red)':'var(--green)',fontSize:13,margin:'6px 0 0',fontWeight:600}}>
+                          {new Date(profile.plan_expires_at)<new Date()?⁠'❌ Expired on':'⏰ Expires on'}: <b>{new Date(profile.plan_expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</b>
+                        </p>
+                      )}
+                      {profile.membership==='free' && (
+                        <p style={{color:'var(--dim)',fontSize:12,margin:'6px 0 0'}}>Free plan — {freePlanDaysLeft!==null?`${freePlanDaysLeft} days left`:'upgrade to earn more'}</p>
+                      )}
+                    </div>
+                    <span style={{background:profile.membership==='free'?'#334155':'#064e3b',color:profile.membership==='free'?'var(--muted)':'#4ade80',padding:'4px 16px',borderRadius:20,fontSize:12,fontWeight:700,textTransform:'uppercase'}}>
+                      {profile.membership==='free'?'FREE':'ACTIVE'}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Plan cards */}
                 {!selectedPlan && (
@@ -1382,6 +1413,39 @@ export default function Dashboard() {
                       <button onClick={disable2FA} style={{width:'100%',padding:13,background:'transparent',color:'var(--red)',border:'1px solid #7f1d1d',borderRadius:10,cursor:'pointer',fontWeight:700,fontSize:14,fontFamily:'var(--font)'}}>Disable 2FA</button>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ── NOTIFICATIONS ── */}
+            {tab==='notifications' && (
+              <div>
+                <div className="sgc-page-header">
+                  <h2 className="sgc-heading">🔔 Notifications</h2>
+                  {notifications.filter(n=>!n.is_read).length>0 && (
+                    <button onClick={async()=>{ await API.post('/user/notifications/read-all'); setNotifications(p=>p.map(x=>({...x,is_read:true}))); }}
+                      style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:600,padding:'6px 14px',cursor:'pointer',fontFamily:'var(--font)'}}>
+                      ✓ Mark all read
+                    </button>
+                  )}
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {notifications.map((n,i)=>(
+                    <div key={i} onClick={async()=>{ if(!n.is_read){ await API.post(`/user/notifications/${n.id}/read`); setNotifications(p=>p.map(x=>x.id===n.id?{...x,is_read:true}:x)); } }}
+                      style={{background:n.is_read?'var(--card)':'#0d1e38',border:`1px solid ${n.is_read?'var(--border)':'#1e4080'}`,borderRadius:12,padding:'14px 18px',cursor:'pointer'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
+                        <div style={{flex:1}}>
+                          <p style={{color:n.is_read?'var(--muted)':'var(--text)',fontWeight:700,fontSize:14,margin:'0 0 4px'}}>
+                            {!n.is_read&&<span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:'var(--accent)',marginRight:8,verticalAlign:'middle'}}/>}
+                            {n.title}
+                          </p>
+                          <p style={{color:'var(--dim)',fontSize:13,margin:0,lineHeight:1.6}}>{n.message}</p>
+                        </div>
+                        <span style={{color:'var(--dim)',fontSize:11,whiteSpace:'nowrap',flexShrink:0}}>{new Date(n.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {notifications.length===0&&<div className="sgc-empty">🔔 No notifications yet</div>}
                 </div>
               </div>
             )}

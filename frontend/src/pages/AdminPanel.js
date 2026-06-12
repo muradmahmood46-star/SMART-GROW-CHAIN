@@ -21,6 +21,8 @@ const TABS = [
   { key:'plan-purchases', icon:'🏆', label:'Plan Purchases'   },
   { key:'easypaisa',   icon:'📱', label:'Easypaisa'       },
   { key:'emails',      icon:'📧', label:'Admin Emails'    },
+  { key:'messages',    icon:'📣', label:'Admin Messages'  },
+  { key:'notify',      icon:'🔔', label:'Send Notification'},
 ];
 
 export default function AdminPanel() {
@@ -53,6 +55,11 @@ export default function AdminPanel() {
   const [planPurchases, setPlanPurchases] = useState([]);
   const [kycRequests, setKycRequests]   = useState([]);
   const [freePlanDays, setFreePlanDays] = useState(7);
+  const [transferMsg, setTransferMsg] = useState('');
+  const [transferMsgInput, setTransferMsgInput] = useState('');
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMsg, setNotifMsg] = useState('');
+  const [notifUserId, setNotifUserId] = useState('');
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [welcomeMsg, setWelcomeMsg] = useState('');
@@ -86,7 +93,7 @@ export default function AdminPanel() {
     API.get('/admin/kyc').then(r=>setKycRequests(r.data)).catch(()=>{});
     API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
-    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); }).catch(()=>{});
+    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); }).catch(()=>{});
   };
 
   useEffect(()=>{ loadAll(); },[]);
@@ -911,25 +918,6 @@ export default function AdminPanel() {
                   <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
                 </div>
 
-                {/* WhatsApp Link Setting */}
-                <div className="sgc-form" style={{maxWidth:420,marginBottom:24}}>
-                  <h4 style={{color:'#25d366',fontSize:13,fontWeight:700,marginBottom:12}}>📱 WhatsApp Group Link</h4>
-                  <input className="sgc-input" placeholder="https://chat.whatsapp.com/xxxxx" value={whatsappInput} onChange={e=>setWhatsappInput(e.target.value)}/>
-                  <div style={{display:'flex',gap:10}}>
-                    <button style={{flex:1,padding:'10px',background:'#25d366',border:'none',borderRadius:10,color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}} onClick={async()=>{
-                      await API.put('/admin/settings/whatsapp_link',{value:whatsappInput});
-                      setWhatsappLink(whatsappInput);
-                      notify('WhatsApp link saved ✅');
-                    }}>Save</button>
-                    {whatsappLink && <button style={{flex:1,padding:'10px',background:'#450a0a',border:'none',borderRadius:10,color:'#fca5a5',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}} onClick={async()=>{
-                      await API.put('/admin/settings/whatsapp_link',{value:''});
-                      setWhatsappLink(''); setWhatsappInput('');
-                      notify('WhatsApp link removed');
-                    }}>Remove</button>}
-                  </div>
-                  {whatsappLink && <p style={{color:'#25d366',fontSize:12,marginTop:8}}>Current: {whatsappLink}</p>}
-                </div>
-
                 {/* Free Plan Days Setting */}
                 <div className="sgc-form" style={{maxWidth:420,marginBottom:24}}>
                   <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:12}}>⏰ Free Plan Duration (Days)</h4>
@@ -1130,6 +1118,54 @@ export default function AdminPanel() {
                     );
                   })}
                   {planPurchases.length===0&&<div className="sgc-empty">No plan purchase requests yet</div>}
+                </div>
+              </div>
+            )}
+
+            {/* ── ADMIN MESSAGES ── */}
+            {tab==='messages' && (
+              <div>
+                <h2 className="sgc-heading">📣 Admin Messages</h2>
+
+                <div className="sgc-form" style={{maxWidth:480,marginBottom:24}}>
+                  <h4 style={{color:'#25d366',fontSize:13,fontWeight:700,marginBottom:12}}>📱 WhatsApp Group Link</h4>
+                  <input className="sgc-input" placeholder="https://chat.whatsapp.com/xxxxx" value={whatsappInput} onChange={e=>setWhatsappInput(e.target.value)}/>
+                  <div style={{display:'flex',gap:10}}>
+                    <button style={{flex:1,padding:'10px',background:'#25d366',border:'none',borderRadius:10,color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}} onClick={async()=>{ await API.put('/admin/settings/whatsapp_link',{value:whatsappInput}); setWhatsappLink(whatsappInput); notify('Saved ✅'); }}>Save</button>
+                    {whatsappLink&&<button style={{flex:1,padding:'10px',background:'#450a0a',border:'none',borderRadius:10,color:'#fca5a5',fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}} onClick={async()=>{ await API.put('/admin/settings/whatsapp_link',{value:''}); setWhatsappLink(''); setWhatsappInput(''); notify('Removed'); }}>Remove</button>}
+                  </div>
+                  {whatsappLink&&<p style={{color:'#25d366',fontSize:12,marginTop:8}}>Current: {whatsappLink}</p>}
+                </div>
+
+                <div className="sgc-form" style={{maxWidth:480}}>
+                  <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:4}}>💬 Send Funds Section Message</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Shown below the transfer form on user dashboard</p>
+                  <textarea className="sgc-input" rows={4} placeholder="e.g. Minimum transfer Rs. 50..." value={transferMsgInput} onChange={e=>setTransferMsgInput(e.target.value)} style={{resize:'vertical',minHeight:80}}/>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/transfer_message',{value:transferMsgInput}); setTransferMsg(transferMsgInput); notify('Saved ✅'); }}>Save</button>
+                </div>
+              </div>
+            )}
+
+            {/* ── SEND NOTIFICATION ── */}
+            {tab==='notify' && (
+              <div>
+                <h2 className="sgc-heading">🔔 Send Notification</h2>
+                <div className="sgc-form" style={{maxWidth:480}}>
+                  <label className="sgc-label">Title</label>
+                  <input className="sgc-input" placeholder="e.g. New Update!" value={notifTitle} onChange={e=>setNotifTitle(e.target.value)}/>
+                  <label className="sgc-label">Message</label>
+                  <textarea className="sgc-input" rows={4} placeholder="Write announcement..." value={notifMsg} onChange={e=>setNotifMsg(e.target.value)} style={{resize:'vertical',minHeight:100}}/>
+                  <label className="sgc-label">Send To <span style={{color:'var(--dim)',fontSize:11}}>(empty = broadcast all)</span></label>
+                  <select className="sgc-input" value={notifUserId} onChange={e=>setNotifUserId(e.target.value)}>
+                    <option value="">📢 All Users</option>
+                    {users.map(u=><option key={u.id} value={u.id}>@{u.username}</option>)}
+                  </select>
+                  <button className="sgc-btn-primary" onClick={async()=>{
+                    if(!notifTitle||!notifMsg){ notify('Title and message required','error'); return; }
+                    await API.post('/admin/notifications/send',{title:notifTitle,message:notifMsg,user_id:notifUserId?parseInt(notifUserId):null});
+                    notify('Notification sent ✅');
+                    setNotifTitle(''); setNotifMsg(''); setNotifUserId('');
+                  }}>Send Notification</button>
                 </div>
               </div>
             )}

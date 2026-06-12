@@ -14,6 +14,7 @@ class User(Base):
     referral_code = Column(String(20), unique=True)
     referred_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     membership = Column(String(20), default="free")
+    plan_expires_at = Column(DateTime, nullable=True)  # paid plan expiry
     free_plan_expires_at = Column(DateTime, nullable=True)  # free plan expiry
     kyc_status = Column(String(20), default="none")  # none, pending, approved, rejected
     is_active = Column(Boolean, default=True)
@@ -221,6 +222,17 @@ class PlanPurchaseRequest(Base):
     created_at      = Column(DateTime, default=func.now())
     user = relationship("User", backref="plan_purchases")
     plan = relationship("MembershipPlan")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=True)  # None = broadcast to all
+    title      = Column(String(100))
+    message    = Column(Text)
+    is_read    = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=func.now())
+    user = relationship("User", backref="notifications")
 
 
 class KYCRequest(Base):

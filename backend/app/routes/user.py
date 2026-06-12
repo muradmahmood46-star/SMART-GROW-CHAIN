@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, Date, cast, or_
 import os, shutil, uuid
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount, KYCRequest
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount, KYCRequest, Notification
 from app.schemas.schemas import WithdrawalCreate, UserOut
 from app.utils import decode_token, hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
@@ -428,3 +428,23 @@ async def submit_kyc(
     current_user.kyc_status = "pending"
     db.commit()
     return {"message": "KYC submitted successfully. Admin will verify shortly."}
+
+# ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+@router.get("/notifications")
+def get_notifications(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    notifs = db.query(Notification).filter(Notification.user_id == current_user.id).order_by(Notification.created_at.desc()).limit(50).all()
+    return [{"id": n.id, "title": n.title, "message": n.message, "is_read": n.is_read, "created_at": n.created_at} for n in notifs]
+
+@router.post("/notifications/{notif_id}/read")
+def mark_read(notif_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    n = db.query(Notification).filter(Notification.id == notif_id, Notification.user_id == current_user.id).first()
+    if n:
+        n.is_read = True
+        db.commit()
+    return {"message": "Marked as read"}
+
+@router.post("/notifications/read-all")
+def mark_all_read(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db.query(Notification).filter(Notification.user_id == current_user.id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return {"message": "All marked as read"}

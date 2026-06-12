@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest, Notification
 from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
@@ -726,7 +726,12 @@ def approve_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = D
     user = db.query(User).filter(User.id == req.user_id).first()
     if user:
         user.membership = req.plan_name
-        # wallet payment was already deducted on submit; easypaisa — no deduction needed
+        from datetime import datetime
+        plan = db.query(MembershipPlan).filter(MembershipPlan.name == req.plan_name).first()
+        days = plan.period_days if plan else 30
+        user.plan_expires_at = datetime.utcnow() + __import__('datetime').timedelta(days=days)
+        # notify user
+        db.add(Notification(user_id=user.id, title="Plan Activated ✅", message=f"Your {req.plan_name} plan has been activated successfully."))
     req.status = "approved"
     req.admin_note = data.admin_note
     db.commit()
@@ -811,3 +816,26 @@ def set_free_plan_days(data: FreePlanDays, db: Session = Depends(get_db), admin=
     else: db.add(SiteSettings(key="free_plan_days", value=str(data.days)))
     db.commit()
     return {"message": "Updated", "days": data.days}
+
+
+# ── NOTIFICATIONS ─────────────────────────────────────────────────────────
+class NotificationCreate(BaseModel):
+    title: str
+    message: str
+    user_id: Optional[int] = None  # None = broadcast all
+
+@router.post("/notifications/send")
+def send_notification(data: NotificationCreate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    if data.user_id:
+        db.add(Notification(user_id=data.user_id, title=data.title, message=data.message))
+    else:
+        users = db.query(User).filter(User.is_admin == False, User.is_active == True).all()
+        for u in users:
+            db.add(Notification(user_id=u.id, title=data.title, message=data.message))
+    db.commit()
+    return {"message": "Notification sent"}
+
+@router.get("/notifications")
+def get_notifications(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    notifs = db.query(Notification).filter(Notification.user_id == None).order_by(Notification.created_at.desc()).limit(50).all()
+    return notifs
