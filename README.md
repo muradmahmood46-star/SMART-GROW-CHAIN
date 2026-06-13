@@ -1,3 +1,13 @@
+---
+title: Smart Grow Chain API
+emoji: 🌱
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # PTC Pro - Setup Guide
 
 ## Prerequisites
