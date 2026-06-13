@@ -64,6 +64,7 @@ export default function AdminPanel() {
   const [notifSendEmail, setNotifSendEmail] = useState(false);
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [minCampaignUsers, setMinCampaignUsers] = useState(50);
+  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [welcomeMsg, setWelcomeMsg] = useState('');
   const [registrationBonus, setRegistrationBonus] = useState(0);
@@ -111,6 +112,7 @@ export default function AdminPanel() {
     API.get('/admin/kyc').then(r=>setKycRequests(r.data)).catch(()=>{});
     API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
+    API.get('/admin/settings').then(r=>{ if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
     API.get('/admin/settings').then(r=>{ if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
     API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setWithdrawalMsgInput(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); setAdvertiserMsgInput(r.data.advertiser_message||''); const rb=parseFloat(r.data.registration_bonus||0); setRegistrationBonus(rb); setRegBonusInput(rb); }).catch(()=>{});
   };
@@ -978,6 +980,16 @@ export default function AdminPanel() {
                     notify('Settings updated ✅');
                   }}>Save</button>
                   <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
+                </div>
+
+                {/* Min Campaign Users Setting */}
+                <div className="sgc-form" style={{maxWidth:420,marginBottom:24}}>
+                  <h4 style={{color:'var(--purple)',fontSize:13,fontWeight:700,marginBottom:12}}>👥 Minimum Users Per Campaign</h4>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="10000" value={minCampaignUsers} onChange={e=>setMinCampaignUsers(parseInt(e.target.value))}/>
+                    <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ await API.put('/admin/settings/min_campaign_users',{value:String(minCampaignUsers)}); notify('Min users updated ✅'); }}>Save</button>
+                  </div>
+                  <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Advertisers must target at least <b style={{color:'var(--purple)'}}>{minCampaignUsers} users</b> per campaign.</p>
                 </div>
 
                 {/* Min Campaign Users Setting */}

@@ -60,6 +60,7 @@ export default function Dashboard() {
   const [adScreenshot, setAdScreenshot] = useState(null);
   const [myAdRequests, setMyAdRequests] = useState([]);
   const [minCampaignUsers, setMinCampaignUsers] = useState(50);
+  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
   const [planPayMethod, setPlanPayMethod] = useState('wallet');
   const [planScreenshot, setPlanScreenshot] = useState(null);
   const [planSenderName, setPlanSenderName] = useState('');
@@ -110,6 +111,18 @@ export default function Dashboard() {
   },[]);
 
   useEffect(()=>{ loadData(); },[loadData]);
+
+  // ── Show free plan activation reminder once per session ──
+  useEffect(()=>{
+    const shown = sessionStorage.getItem('freePlanNotifShown');
+    if(!shown){
+      sessionStorage.setItem('freePlanNotifShown','1');
+      setTimeout(()=>{
+        setMsg({text:'🌟 Please go to Membership Plan and activate your Free Plan!',type:'info'});
+        setTimeout(()=>setMsg({text:'',type:''}),12000);
+      },2000);
+    }
+  },[]);
 
   // ── Show free plan activation reminder once per session ──
   useEffect(()=>{
@@ -1421,6 +1434,7 @@ export default function Dashboard() {
                         fd.append('title', adForm.title);
                         fd.append('url', adForm.url);
                         if(parseInt(adForm.members_needed) < minCampaignUsers){ notify('Minimum '+minCampaignUsers+' users required per campaign','error'); return; }
+                        if(parseInt(adForm.members_needed) < minCampaignUsers){ notify('Minimum '+minCampaignUsers+' users required per campaign','error'); return; }
                         fd.append('members_needed', parseInt(adForm.members_needed));
                         fd.append('payment_method', adPayMethod);
                         if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
@@ -1610,7 +1624,10 @@ export default function Dashboard() {
                                           <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'var(--bg)',flexShrink:0}}>{v.username[0].toUpperCase()}</div>
                                           <span style={{color:'var(--text)',fontSize:13,fontWeight:600}}>@{v.username}</span>
                                         </div>
-                                        <span style={{color:'var(--dim)',fontSize:11}}>{new Date(v.viewed_at).toLocaleDateString()}</span>
+                                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                                          <span style={{background:'#1e3a6e',color:'var(--accent)',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:600,textTransform:'capitalize'}}>{v.membership||'free'}</span>
+                                          {v.plan_expires_at&&<span style={{color:new Date(v.plan_expires_at)<new Date()?'var(--red)':'var(--green)',fontSize:10}}>{new Date(v.plan_expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</span>}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
