@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [adPayMethod, setAdPayMethod] = useState('wallet');
   const [adScreenshot, setAdScreenshot] = useState(null);
   const [myAdRequests, setMyAdRequests] = useState([]);
+  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
   const [planPayMethod, setPlanPayMethod] = useState('wallet');
   const [planScreenshot, setPlanScreenshot] = useState(null);
   const [planSenderName, setPlanSenderName] = useState('');
@@ -102,13 +103,25 @@ export default function Dashboard() {
     API.get('/user/plans').then(r=>setPlans(r.data));
     API.get('/user/ad-request/rate').then(r=>{ setAdRate(r.data.rate_pkr); setAdWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
-    API.get('/user/settings').then(r=>{ setSiteSettings(r.data); setReferralMsg(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); }).catch(()=>{});
+    API.get('/user/settings').then(r=>{ setSiteSettings(r.data); setReferralMsg(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
     API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
     API.get('/user/kyc/status').then(r=>{ setKycData(r.data); setFreePlanExpired(r.data.free_plan_expired); setFreePlanDaysLeft(r.data.free_plan_days_left); }).catch(()=>{});
     API.get('/user/notifications').then(r=>setNotifications(r.data)).catch(()=>{});
   },[]);
 
   useEffect(()=>{ loadData(); },[loadData]);
+
+  // ── Show free plan activation reminder once per session ──
+  useEffect(()=>{
+    const shown = sessionStorage.getItem('freePlanNotifShown');
+    if(!shown){
+      sessionStorage.setItem('freePlanNotifShown','1');
+      setTimeout(()=>{
+        setMsg({text:'🌟 Please go to Membership Plan and activate your Free Plan!',type:'info'});
+        setTimeout(()=>setMsg({text:'',type:''}),12000);
+      },2000);
+    }
+  },[]);
 
   // ── Plan countdown ticker ──
   useEffect(()=>{
@@ -352,7 +365,7 @@ export default function Dashboard() {
         </div>
 
         <div className="panel-body">
-          {msg.text && <div className="sgc-toast" style={{background:msg.type==='error'?'var(--red)':'var(--green)',color:msg.type==='error'?'#fff':'var(--bg)'}}>{msg.text}</div>}
+          {msg.text && <div className="sgc-toast" style={{background:msg.type==='error'?'var(--red)':msg.type==='info'?'#1e3a6e':'var(--green)',color:msg.type==='error'?'#fff':msg.type==='info'?'var(--accent)':'var(--bg)',border:msg.type==='info'?'1px solid var(--accent)':'none'}}>{msg.text}</div>}
 
           {/* Free plan expiry warning */}
           {freePlanExpired && profile?.membership==='free' && (
@@ -1407,6 +1420,7 @@ export default function Dashboard() {
                         const fd = new FormData();
                         fd.append('title', adForm.title);
                         fd.append('url', adForm.url);
+                        if(parseInt(adForm.members_needed) < minCampaignUsers){ notify('Minimum '+minCampaignUsers+' users required per campaign','error'); return; }
                         fd.append('members_needed', parseInt(adForm.members_needed));
                         fd.append('payment_method', adPayMethod);
                         if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
@@ -1423,7 +1437,7 @@ export default function Dashboard() {
                       <label className="sgc-label">Ad Link (URL)</label>
                       <input className="sgc-input" placeholder="https://yourlink.com" value={adForm.url} onChange={e=>setAdForm({...adForm,url:e.target.value})} required/>
                       <label className="sgc-label">Members Needed</label>
-                      <input className="sgc-input" type="number" min="1" placeholder="e.g. 100" value={adForm.members_needed} onChange={e=>setAdForm({...adForm,members_needed:e.target.value})} required/>
+                      <input className="sgc-input" type="number" min="1" placeholder={`Min ${minCampaignUsers} users`} value={adForm.members_needed} onChange={e=>setAdForm({...adForm,members_needed:e.target.value})} required/>
                       {adForm.members_needed>0 && (
                         <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
                           <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px'}}>Total Cost</p>
@@ -1532,7 +1546,7 @@ export default function Dashboard() {
                                 <p style={{color:'var(--dim)',fontSize:11,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>🔗 {r.url}</p>
                               </div>
                               <span style={{background:isApproved?'#064e3b':isCompleted?'#1e3a6e':isRejected?'#450a0a':'#451a03',color:accentCol,padding:'4px 14px',borderRadius:20,fontSize:12,fontWeight:800,flexShrink:0,whiteSpace:'nowrap'}}>
-                                {isApproved?'✅ ACTIVE':isCompleted?'🏁 DONE':isRejected?'REJECTED':'⏳ PENDING'}
+                                {isApproved?'✅ ACTIVE':isCompleted?'🏁 DONE':isRejected?'❌ REJECTED':'⏳ Processing'}
                               </span>
                             </div>
 
