@@ -1433,18 +1433,18 @@ export default function Dashboard() {
                       )}
                       <label className="sgc-label">Payment Method</label>
                       <div style={{display:'flex',gap:10,marginBottom:16}}>
-                        {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
+                        {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa'],['jazzcash','💳 JazzCash'],['bank','🏦 Bank Transfer']].map(([val,label])=>(
                           <div key={val} onClick={()=>setAdPayMethod(val)}
-                            style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${adPayMethod===val?'var(--accent)':'var(--border)'}`,background:adPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:adPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
+                            style={{flex:1,padding:'10px 6px',borderRadius:10,border:`2px solid ${adPayMethod===val?'var(--accent)':'var(--border)'}`,background:adPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:adPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:12,transition:'all .2s'}}>
                             {label}
                           </div>
                         ))}
                       </div>
-                      {adPayMethod==='easypaisa' && (
+                      {(adPayMethod==='easypaisa'||adPayMethod==='jazzcash') && (
                         <>
-                          {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
+                          {epAccounts.filter(a=>a.method_type===adPayMethod).slice(0,1).map(a=>(
                             <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                              <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>📱 SEND TO THIS EASYPAISA ACCOUNT</p>
+                              <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>{adPayMethod==='jazzcash'?'💳':'📱'} SEND TO THIS {adPayMethod.toUpperCase()} ACCOUNT</p>
                               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
                                 <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
                                 <div>
@@ -1461,6 +1461,40 @@ export default function Dashboard() {
                               </div>
                             </div>
                           ))}
+                          <label className="sgc-label">Payment Screenshot</label>
+                          <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
+                            <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setAdScreenshot(e.target.files[0])}/>
+                            {adScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {adScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
+                          </label>
+                        </>
+                      )}
+                      {adPayMethod==='bank' && (
+                        <>
+                          {epAccounts.filter(a=>a.method_type==='bank').slice(0,1).map(a=>(
+                            <div key={a.id} style={{background:'#0a1628',border:'1.5px solid #3b82f640',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
+                              <p style={{color:'#3b82f6',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>🏦 SEND TO THIS BANK ACCOUNT</p>
+                              <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',marginBottom:8}}>
+                                <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Bank Name</p>
+                                <p style={{color:'#3b82f6',fontWeight:700,fontSize:14,margin:0}}>{a.bank_name||a.account_title}</p>
+                              </div>
+                              <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',marginBottom:8}}>
+                                <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Title (Name)</p>
+                                <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
+                              </div>
+                              <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div>
+                                  <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Bank / IBAN Account Number</p>
+                                  <p style={{color:'#3b82f6',fontFamily:'monospace',fontSize:15,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
+                                </div>
+                                <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'#3b82f622',border:'1px solid #3b82f6',color:'#3b82f6',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
+                              </div>
+                            </div>
+                          ))}
+                          {epAccounts.filter(a=>a.method_type==='bank').length===0&&(
+                            <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
+                              <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No Bank account available. Use wallet or contact support.</p>
+                            </div>
+                          )}
                           <label className="sgc-label">Payment Screenshot</label>
                           <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
                             <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setAdScreenshot(e.target.files[0])}/>

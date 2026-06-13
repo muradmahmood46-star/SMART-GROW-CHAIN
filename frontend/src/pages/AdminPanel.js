@@ -19,7 +19,7 @@ const TABS = [
   { key:'ad-requests', icon:'💰', label:'Ad Rate Setting'  },
   { key:'kyc',         icon:'🪪', label:'KYC Requests'    },
   { key:'plan-purchases', icon:'🏆', label:'Plan Purchases'   },
-  { key:'easypaisa',   icon:'📱', label:'Easypaisa'       },
+  { key:'easypaisa',   icon:'📱', label:'Payment Options'  },
   { key:'emails',      icon:'📧', label:'Admin Emails'    },
   { key:'messages',    icon:'📣', label:'Admin Messages'  },
   { key:'notify',      icon:'🔔', label:'Send Notification'},
@@ -40,7 +40,7 @@ export default function AdminPanel() {
   const [tab, setTab]                 = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newAd, setNewAd]             = useState({ title:'', url:'', description:'', earning_amount:1, timer_seconds:10, daily_limit:100 });
-  const [newEP, setNewEP] = useState({ account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'' });
+  const [newEP, setNewEP] = useState({ account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'', bank_name:'' });
   const [editEP, setEditEP]           = useState(null);
   const [newEmail, setNewEmail]       = useState('');
   const [newPlan, setNewPlan]         = useState({ name:'', price:0, period_days:30, daily_ads:10, earning_per_click:0.001, referral_commission:0.05, referral_levels:'N/A', sort_order:0, min_withdrawal:0, max_withdrawal:0 });
@@ -144,7 +144,7 @@ export default function AdminPanel() {
     e.preventDefault();
     if(editEP){ await API.put(`/admin/easypaisa/${editEP.id}`,newEP); notify('Account updated'); setEditEP(null); }
     else{ await API.post('/admin/easypaisa',newEP); notify('Account added ✅'); }
-    loadAll(); setNewEP({account_title:'',account_number:'',method_type:'easypaisa',deposit_message:''});
+    loadAll(); setNewEP({account_title:'',account_number:'',method_type:'easypaisa',deposit_message:'',bank_name:''});
   };
 
   const addEmail = async(e)=>{
@@ -766,13 +766,21 @@ export default function AdminPanel() {
                   </div>
                   <label className="sgc-label">Account Title (Name)</label>
                   <input className="sgc-input" placeholder="e.g. Farzana Bibi" value={newEP.account_title} onChange={e=>setNewEP({...newEP,account_title:e.target.value})} required/>
-                  <label className="sgc-label">{newEP.method_type==='easypaisa'?'Easypaisa':newEP.method_type==='bank'?'Bank / IBAN':'JazzCash'} {newEP.method_type==='bank'?'Account Number':'Number'}</label>
+                  {newEP.method_type==='bank' && (
+                    <>
+                      <label className="sgc-label">Bank Name</label>
+                      <input className="sgc-input" placeholder="e.g. MEEZAN, UBL, HBL" value={newEP.bank_name||''} onChange={e=>setNewEP({...newEP,bank_name:e.target.value})} required/>
+                    </>
+                  )}
+                  <label className="sgc-label">Account Title (Name)</label>
+                  <input className="sgc-input" placeholder="e.g. Farzana Bibi" value={newEP.account_title} onChange={e=>setNewEP({...newEP,account_title:e.target.value})} required/>
+                  <label className="sgc-label">{newEP.method_type==='bank'?'Bank / IBAN Account Number':newEP.method_type==='easypaisa'?'Easypaisa Number':'JazzCash Number'}</label>
                   <input className="sgc-input" placeholder={newEP.method_type==='bank'?'e.g. PK36HABB0000123456789012':'03XX-XXXXXXX'} value={newEP.account_number} onChange={e=>setNewEP({...newEP,account_number:e.target.value})} required/>
                   <label className="sgc-label">Deposit Instructions <span style={{color:'var(--dim)',fontSize:11}}>(shown to user in deposit section)</span></label>
                   <textarea className="sgc-input" rows={3} placeholder="e.g. Send payment and submit the screenshot below. Make sure sender name matches." value={newEP.deposit_message} onChange={e=>setNewEP({...newEP,deposit_message:e.target.value})} style={{resize:'vertical',minHeight:80}}/>
                   <div style={{display:'flex',gap:10}}>
                     <button className="sgc-btn-yellow" type="submit" style={{flex:1}}>{editEP?'Update Account':'Add Account'}</button>
-                    {editEP&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setEditEP(null); setNewEP({account_title:'',account_number:'',method_type:'easypaisa'}); }}>Cancel</button>}
+                    {editEP&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setEditEP(null); setNewEP({account_title:'',account_number:'',method_type:'easypaisa',bank_name:''}); }}>Cancel</button>}
                   </div>
                 </form>
                 <div className="sgc-table-wrap">
@@ -791,7 +799,7 @@ export default function AdminPanel() {
                           <td className="sgc-td" style={{fontFamily:'monospace',color:col,fontWeight:700,fontSize:15}}>{a.account_number}</td>
                           <td className="sgc-td"><span className="sgc-badge" style={{background:a.is_active?'#064e3b':'#334155'}}>{a.is_active?'Active':'Inactive'}</span></td>
                           <td className="sgc-td" style={{display:'flex',gap:6}}>
-                            <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{ setEditEP(a); setNewEP({account_title:a.account_title,account_number:a.account_number,method_type:a.method_type||'easypaisa',deposit_message:a.deposit_message||''}); window.scrollTo(0,0); }}>Edit</button>
+                            <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{ setEditEP(a); setNewEP({account_title:a.account_title,account_number:a.account_number,method_type:a.method_type||'easypaisa',deposit_message:a.deposit_message||'',bank_name:a.bank_name||''}); window.scrollTo(0,0); }}>Edit</button>
                             <button className="sgc-btn-sm" style={{background:'var(--border)',color:'var(--muted)'}} onClick={()=>toggleEP(a.id)}>{a.is_active?'Disable':'Enable'}</button>
                             <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deleteEP(a.id)}>Delete</button>
                           </td>
