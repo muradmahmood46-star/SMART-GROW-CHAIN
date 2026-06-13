@@ -67,6 +67,7 @@ class Withdrawal(Base):
     wallet_address = Column(String(255))
     status = Column(String(20), default="pending")
     admin_note = Column(String(255), nullable=True)
+    payout_screenshot_path = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=func.now())
 
     user = relationship("User", back_populates="withdrawals")
@@ -98,6 +99,9 @@ class MembershipPlan(Base):
     referral_commission = Column(Float, default=0.0)
     # Dynamic per-level commissions stored as JSON string: {"1": 10.0, "2": 5.0, "3": 2.0}
     level_commissions = Column(String(500), default="{}")
+    # Dynamic per-level details stored as JSON string: {"1": "Share link to others"}
+    level_details = Column(String(1000), default="{}")
+    required_referrals_per_level = Column(Integer, default=3)
     min_withdrawal = Column(Float, default=0.0)
     max_withdrawal = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
@@ -112,6 +116,7 @@ class EasypaisaAccount(Base):
     phone_number = Column(String(20), nullable=True)
     method_type = Column(String(20), default="easypaisa")  # easypaisa or jazzcash
     deposit_message = Column(String(500), nullable=True)
+    bank_name = Column(String(100), nullable=True)
     is_active = Column(Boolean, default=True)
     in_use_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     in_use_since = Column(DateTime, nullable=True)
@@ -175,6 +180,7 @@ class ReferralSetting(Base):
     is_active    = Column(Boolean, default=True)
     level        = Column(Integer)      # 1,2,3,4...
     percent      = Column(Float, default=0.0)
+    details      = Column(String(200), nullable=True)
 
 
 class SiteSettings(Base):
@@ -244,6 +250,7 @@ class KYCRequest(Base):
     id           = Column(Integer, primary_key=True, index=True)
     user_id      = Column(Integer, ForeignKey("users.id"), unique=True)
     full_name    = Column(String(100))
+    phone        = Column(String(20), nullable=True)
     cnic         = Column(String(20))
     front_photo  = Column(String(255), nullable=True)
     selfie_photo = Column(String(255), nullable=True)

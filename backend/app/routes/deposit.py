@@ -31,8 +31,10 @@ def get_accounts(db: Session = Depends(get_db)):
         "id": a.id,
         "account_title": a.account_title,
         "account_number": a.account_number,
+        "phone_number": a.phone_number or a.account_number,
         "method_type": a.method_type or "easypaisa",
         "deposit_message": a.deposit_message or "",
+        "bank_name": a.bank_name or "",
     } for a in accounts]
 
 # ── Submit deposit with screenshot ───────────────────────────────

@@ -175,7 +175,15 @@ def request_withdrawal(data: WithdrawalCreate, current_user: User = Depends(get_
 @router.get("/withdrawals")
 def get_withdrawals(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     ws = db.query(Withdrawal).filter(Withdrawal.user_id == current_user.id).order_by(Withdrawal.created_at.desc()).all()
-    return [{"id": w.id, "amount": w.amount, "method": w.method, "wallet_address": w.wallet_address, "status": w.status, "created_at": w.created_at} for w in ws]
+    return [{
+        "id": w.id,
+        "amount": w.amount,
+        "method": w.method,
+        "wallet_address": w.wallet_address,
+        "status": w.status,
+        "payout_screenshot_url": f"{os.getenv('BACKEND_URL', 'https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{w.payout_screenshot_path}" if w.payout_screenshot_path else None,
+        "created_at": w.created_at
+    } for w in ws]
 
 # ── EARNINGS ──────────────────────────────────────────────────────────────────
 @router.get("/earnings")
@@ -236,12 +244,21 @@ def get_referrals(current_user: User = Depends(get_current_user), db: Session = 
             "plan_expires_at": r.plan_expires_at or r.free_plan_expires_at
         })
     active_count = sum(1 for r in ref_list if r["plan_active"] and r["is_active"])
+    plan = db.query(MembershipPlan).filter(MembershipPlan.name == current_user.membership).first()
+    required_refs = plan.required_referrals_per_level if plan and plan.required_referrals_per_level else 3
+    required_refs = max(int(required_refs), 1)
+    current_level = (len(refs) // required_refs) + 1
+    refs_to_next = required_refs - (len(refs) % required_refs)
     return {
         "referral_code": current_user.referral_code,
-        "referral_link": f"{os.getenv('FRONTEND_URL', 'https://ptc-pro-fullstack.vercel.app')}/register?ref={current_user.referral_code}",
+        "referral_link": f"{os.getenv('FRONTEND_URL', 'https://smart-grow-chain.vercel.app')}/register?ref={current_user.referral_code}",
         "total_referrals": len(refs),
         "active_referrals": active_count,
         "total_commission": round(total_commission, 2),
+        "current_level": current_level,
+        "required_referrals_per_level": required_refs,
+        "referrals_to_next_level": refs_to_next,
+        "next_level_message": f"Send link to {refs_to_next} users to gain next level",
         "referral_message": referral_msg_row.value if referral_msg_row and referral_msg_row.value else "",
         "referrals": ref_list
     }
@@ -374,6 +391,8 @@ def get_plans(db: Session = Depends(get_db)):
             "referral_levels": p.referral_levels,
             "referral_commission": p.referral_commission,
             "level_commissions": p.level_commissions,
+            "level_details": p.level_details,
+            "required_referrals_per_level": p.required_referrals_per_level or 3,
             "min_withdrawal": p.min_withdrawal or 0,
             "max_withdrawal": p.max_withdrawal or 0,
             "is_active": p.is_active, "sort_order": p.sort_order
@@ -520,7 +539,7 @@ def kyc_status(current_user: User = Depends(get_current_user), db: Session = Dep
             days_left = free_days
     return {
         "kyc_status": current_user.kyc_status,
-        "kyc": {"full_name": kyc.full_name, "cnic": kyc.cnic, "status": kyc.status, "admin_note": kyc.admin_note, "created_at": kyc.created_at} if kyc else None,
+        "kyc": {"full_name": kyc.full_name, "phone": kyc.phone or kyc.cnic, "cnic": kyc.cnic, "status": kyc.status, "admin_note": kyc.admin_note, "created_at": kyc.created_at} if kyc else None,
         "free_plan_expired": expired,
         "free_plan_days_left": days_left,
     }
@@ -528,13 +547,16 @@ def kyc_status(current_user: User = Depends(get_current_user), db: Session = Dep
 @router.post("/kyc/submit")
 async def submit_kyc(
     full_name: str = Form(""),
+    phone: str = Form(""),
     cnic: str = Form(""),
     front_photo: UploadFile = File(None),
     selfie_photo: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if not full_name or not cnic:
+    phone_value = (phone or cnic or "").strip()
+    cnic_value = (cnic or "").strip()
+    if not full_name or not phone_value:
         raise HTTPException(status_code=400, detail="Full name and phone number are required")
     if not front_photo or not front_photo.filename:
         raise HTTPException(status_code=400, detail="CNIC front photo is required")
@@ -556,13 +578,14 @@ async def submit_kyc(
 
     if existing:
         existing.full_name = full_name or existing.full_name
-        existing.cnic = cnic or existing.cnic
+        existing.phone = phone_value or existing.phone
+        existing.cnic = cnic_value or phone_value or existing.cnic
         if fp: existing.front_photo = fp
         if sp: existing.selfie_photo = sp
         existing.status = "pending"
         existing.admin_note = None
     else:
-        db.add(KYCRequest(user_id=current_user.id, full_name=full_name, cnic=cnic, front_photo=fp, selfie_photo=sp))
+        db.add(KYCRequest(user_id=current_user.id, full_name=full_name, phone=phone_value, cnic=cnic_value or phone_value, front_photo=fp, selfie_photo=sp))
 
     current_user.kyc_status = "pending"
     db.commit()

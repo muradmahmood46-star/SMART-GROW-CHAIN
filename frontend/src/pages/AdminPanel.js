@@ -43,7 +43,7 @@ export default function AdminPanel() {
   const [newEP, setNewEP] = useState({ account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'', bank_name:'' });
   const [editEP, setEditEP]           = useState(null);
   const [newEmail, setNewEmail]       = useState('');
-  const [newPlan, setNewPlan]         = useState({ name:'', price:0, period_days:30, daily_ads:10, earning_per_click:0.001, referral_commission:0.05, referral_levels:'N/A', sort_order:0, min_withdrawal:0, max_withdrawal:0 });
+  const [newPlan, setNewPlan]         = useState({ name:'', price:0, period_days:30, daily_ads:10, earning_per_click:0.001, referral_commission:0.05, referral_levels:'N/A', sort_order:0, min_withdrawal:0, max_withdrawal:0, required_referrals_per_level:3 });
   const [editPlan, setEditPlan]       = useState(null);
   const [referrals, setReferrals]     = useState([]);
   const [refSearch, setRefSearch]     = useState('');
@@ -64,12 +64,11 @@ export default function AdminPanel() {
   const [notifSendEmail, setNotifSendEmail] = useState(false);
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [minCampaignUsers, setMinCampaignUsers] = useState(50);
-  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [welcomeMsg, setWelcomeMsg] = useState('');
   const [registrationBonus, setRegistrationBonus] = useState(0);
   const [regBonusInput, setRegBonusInput] = useState(0);
-  const [planLevels, setPlanLevels] = useState([{level:1,percent:10}]);
+  const [planLevels, setPlanLevels] = useState([{level:1,percent:10,details:'Share link to others'}]);
   const [withdrawalMsg, setWithdrawalMsg] = useState('');
   const [withdrawalMsgInput, setWithdrawalMsgInput] = useState('');
   const [advertiserMsg, setAdvertiserMsg] = useState('');
@@ -83,6 +82,7 @@ export default function AdminPanel() {
   const [msg, setMsg]                 = useState({ text:'', type:'' });
   const [balanceModal, setBalanceModal] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
+  const [payoutScreenshots, setPayoutScreenshots] = useState({});
   const [replyModal, setReplyModal]   = useState(null);
   const [replyText, setReplyText]     = useState('');
   // ── ADVERTISER MANAGEMENT STATE (new isolated module) ──
@@ -113,7 +113,6 @@ export default function AdminPanel() {
     API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/admin/settings').then(r=>{ if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
-    API.get('/admin/settings').then(r=>{ if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
     API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setWithdrawalMsgInput(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); setAdvertiserMsgInput(r.data.advertiser_message||''); const rb=parseFloat(r.data.registration_bonus||0); setRegistrationBonus(rb); setRegBonusInput(rb); }).catch(()=>{});
   };
 
@@ -124,7 +123,15 @@ export default function AdminPanel() {
   const deleteAd       = async(id)=>{ if(!window.confirm('Delete ad?')) return; await API.delete(`/admin/ads/${id}`); loadAll(); notify('Ad deleted'); };
   const approveW       = async(id)=>{ await API.put(`/admin/withdrawals/${id}/approve`); loadAll(); notify('Payout approved ✅'); };
   const rejectW        = async(id)=>{ await API.put(`/admin/withdrawals/${id}/reject`); loadAll(); notify('Payout rejected'); };
-  const markSentW      = async(id)=>{ await API.put(`/admin/withdrawals/${id}/sent`); loadAll(); notify('Marked as Sent ✈️'); };
+  const markSentW      = async(id)=>{
+    const file = payoutScreenshots[id];
+    if(!file){ notify('Please upload transaction screenshot first','error'); return; }
+    const fd = new FormData();
+    fd.append('screenshot', file);
+    await API.put(`/admin/withdrawals/${id}/sent`, fd, {headers:{'Content-Type':'multipart/form-data'}});
+    setPayoutScreenshots(prev=>({...prev,[id]:null}));
+    loadAll(); notify('Marked as Sent ✈️');
+  };
   const confirmDeposit = async(id)=>{ await API.put(`/admin/deposits/${id}/confirm`); loadAll(); notify('Fund confirmed & credited ✅'); };
   const rejectDeposit  = async(id)=>{ await API.put(`/admin/deposits/${id}/reject`); loadAll(); notify('Fund rejected'); };
   const closeTicket    = async(id)=>{ await API.put(`/admin/tickets/${id}/close`); loadAll(); notify('Ticket closed'); };
@@ -167,11 +174,15 @@ export default function AdminPanel() {
     try{
       // Build level_commissions JSON from planLevels
       const lvlMap = {};
-      planLevels.forEach(l=>{ lvlMap[String(l.level)] = parseFloat(l.percent)||0; });
-      const data={...newPlan,price:parseFloat(newPlan.price),period_days:parseInt(newPlan.period_days),daily_ads:parseInt(newPlan.daily_ads),earning_per_click:parseFloat(newPlan.earning_per_click),referral_commission:parseFloat(newPlan.referral_commission),sort_order:parseInt(newPlan.sort_order),min_withdrawal:parseFloat(newPlan.min_withdrawal)||0,max_withdrawal:parseFloat(newPlan.max_withdrawal)||0,level_commissions:JSON.stringify(lvlMap),referral_levels:`Up to ${planLevels.length} level`};
+      const detailMap = {};
+      planLevels.forEach(l=>{
+        lvlMap[String(l.level)] = parseFloat(l.percent)||0;
+        detailMap[String(l.level)] = (l.details||'').trim().split(/\s+/).filter(Boolean).slice(0,20).join(' ');
+      });
+      const data={...newPlan,price:parseFloat(newPlan.price),period_days:parseInt(newPlan.period_days),daily_ads:parseInt(newPlan.daily_ads),earning_per_click:parseFloat(newPlan.earning_per_click),referral_commission:parseFloat(newPlan.referral_commission),sort_order:parseInt(newPlan.sort_order),min_withdrawal:parseFloat(newPlan.min_withdrawal)||0,max_withdrawal:parseFloat(newPlan.max_withdrawal)||0,required_referrals_per_level:parseInt(newPlan.required_referrals_per_level)||3,level_commissions:JSON.stringify(lvlMap),level_details:JSON.stringify(detailMap),referral_levels:`Up to ${planLevels.length} level`};
       if(editPlan){ await API.put(`/admin/plans/${editPlan.id}`,data); notify('Plan updated'); setEditPlan(null); }
       else{ await API.post('/admin/plans',data); notify('Plan created ✅'); }
-      loadAll(); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0,min_withdrawal:0,max_withdrawal:0}); setPlanLevels([{level:1,percent:10}]);
+      loadAll(); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0,min_withdrawal:0,max_withdrawal:0,required_referrals_per_level:3}); setPlanLevels([{level:1,percent:10,details:'Share link to others'}]);
     } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
   };
 
@@ -182,8 +193,8 @@ export default function AdminPanel() {
   const searchReferrals = async()=>{ const r=await API.get(`/admin/referrals?search=${refSearch}`); setReferrals(r.data); };
 
   const toggleBonusType = async(type, val)=>{ await API.put(`/admin/referral-settings/toggle/${type}`,{is_active:val}); API.get('/admin/referral-settings').then(r=>setRefSettings(r.data)); notify(val?'Enabled':'Disabled'); };
-  const updateRefLevel  = async(id, pct)=>{ await API.put(`/admin/referral-settings/${id}`,{percent:parseFloat(pct)}); API.get('/admin/referral-settings').then(r=>setRefSettings(r.data)); notify('Updated'); };
-  const addRefLevel     = async(type)=>{ await API.post(`/admin/referral-settings/${type}/add-level`,{percent:0}); API.get('/admin/referral-settings').then(r=>setRefSettings(r.data)); notify('Level added'); };
+  const updateRefLevel  = async(id, patch)=>{ await API.put(`/admin/referral-settings/${id}`,patch); API.get('/admin/referral-settings').then(r=>setRefSettings(r.data)); notify('Updated'); };
+  const addRefLevel     = async(type)=>{ await API.post(`/admin/referral-settings/${type}/add-level`,{percent:0,details:'Share link to others'}); API.get('/admin/referral-settings').then(r=>setRefSettings(r.data)); notify('Level added'); };
   const deleteRefLevel  = async(id)=>{ await API.delete(`/admin/referral-settings/${id}`); API.get('/admin/referral-settings').then(r=>setRefSettings(r.data)); notify('Deleted'); };
 
   const saveEditEmail   = async()=>{ try{ await API.put(`/admin/emails/${editEmail.id}`,{email:editEmailVal}); loadAll(); notify('Email updated'); setEditEmail(null); } catch(err){ notify(err.response?.data?.detail||'Error','error'); } };
@@ -205,9 +216,9 @@ export default function AdminPanel() {
           <div className="sgc-modal">
             <h3 style={{color:'var(--text)',marginBottom:6,fontSize:16,fontWeight:700}}>Adjust Balance</h3>
             <p style={{color:'var(--dim)',fontSize:13,marginBottom:16}}>User: <b style={{color:'var(--accent)'}}>{balanceModal.username}</b><br/>Current: <b style={{color:'var(--green)'}}>Rs. {balanceModal.balance.toFixed(2)}</b></p>
-            <input className="sgc-input" type="number" step="0.01" placeholder="Amount (use - to deduct)" value={balanceAmount} onChange={e=>setBalanceAmount(e.target.value)}/>
+            <input className="sgc-input" type="number" step="0.01" min="0" placeholder="Amount to deduct" value={balanceAmount} onChange={e=>setBalanceAmount(e.target.value)}/>
             <div style={{display:'flex',gap:10}}>
-              <button className="sgc-btn-yellow" style={{flex:1,padding:11}} onClick={adjustBalance}>Apply</button>
+              <button className="sgc-btn-yellow" style={{flex:1,padding:11}} onClick={adjustBalance}>Deduct</button>
               <button className="sgc-btn-sm" style={{flex:1,background:'var(--border)',color:'var(--text)',padding:11,borderRadius:10}} onClick={()=>setBalanceModal(null)}>Cancel</button>
             </div>
           </div>
@@ -493,6 +504,19 @@ export default function AdminPanel() {
                               </div>
                             </div>
                             {/* Actions */}
+                            {isApproved&&(
+                              <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:9,padding:'12px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:8}}>
+                                <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setPayoutScreenshots(prev=>({...prev,[w.id]:e.target.files[0]}))}/>
+                                <span style={{color:payoutScreenshots[w.id]?'var(--green)':'var(--dim)',fontSize:12,fontWeight:700}}>
+                                  {payoutScreenshots[w.id]?`Selected: ${payoutScreenshots[w.id].name}`:'Upload sent transaction screenshot'}
+                                </span>
+                              </label>
+                            )}
+                            {w.payout_screenshot_url&&(
+                              <a href={w.payout_screenshot_url} target="_blank" rel="noreferrer" style={{display:'inline-block',marginBottom:8,color:'var(--accent)',fontSize:12,fontWeight:700,textDecoration:'none'}}>
+                                View sent screenshot
+                              </a>
+                            )}
                             {isPending&&(
                               <div style={{display:'flex',gap:8}}>
                                 <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={()=>approveW(w.id)}>✓ Approve</button>
@@ -680,17 +704,21 @@ export default function AdminPanel() {
                     <div><label className="sgc-label">Sort Order</label><input className="sgc-input" type="number" min="0" value={newPlan.sort_order} onChange={e=>setNewPlan({...newPlan,sort_order:e.target.value})}/></div>
                     <div><label className="sgc-label">Min Withdrawal (Rs.)</label><input className="sgc-input" type="number" min="0" step="1" placeholder="e.g. 500" value={newPlan.min_withdrawal} onChange={e=>setNewPlan({...newPlan,min_withdrawal:e.target.value})}/></div>
                     <div><label className="sgc-label">Max Withdrawal (Rs.)</label><input className="sgc-input" type="number" min="0" step="1" placeholder="0 = no limit" value={newPlan.max_withdrawal} onChange={e=>setNewPlan({...newPlan,max_withdrawal:e.target.value})}/></div>
+                    <div><label className="sgc-label">Users for Next Level</label><input className="sgc-input" type="number" min="1" step="1" placeholder="e.g. 3" value={newPlan.required_referrals_per_level} onChange={e=>setNewPlan({...newPlan,required_referrals_per_level:e.target.value})}/></div>
                   </div>
 
                   {/* Referral Level Commissions */}
                   <div style={{marginTop:16,marginBottom:4}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                       <label className="sgc-label" style={{margin:0}}>💰 Referral Level Commissions (%)</label>
-                      <button type="button" className="sgc-btn-sm" style={{background:'#1e3a6e',color:'var(--accent)',padding:'5px 14px'}} onClick={()=>setPlanLevels(prev=>[...prev,{level:prev.length+1,percent:0}])}>+ Add Level</button>
+                      <button type="button" className="sgc-btn-sm" style={{background:'#1e3a6e',color:'var(--accent)',padding:'5px 14px'}} onClick={()=>setPlanLevels(prev=>[...prev,{level:prev.length+1,percent:0,details:'Share link to others'}])}>+ Add Level</button>
                     </div>
                     {planLevels.map((lvl,i)=>(
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,flexWrap:'wrap'}}>
                         <span style={{color:'var(--yellow)',fontWeight:700,fontSize:13,minWidth:60}}>Level {lvl.level}</span>
+                        <input type="text" maxLength={160} placeholder="Level details e.g. Share link to others" value={lvl.details||''}
+                          onChange={e=>setPlanLevels(prev=>prev.map((l,j)=>j===i?{...l,details:e.target.value.split(/\s+/).filter(Boolean).slice(0,20).join(' ')}:l))}
+                          style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'7px 12px',flex:'1 1 220px',fontFamily:'var(--font)',fontSize:13}}/>
                         <input type="number" min="0" max="100" step="0.1" placeholder="e.g. 10" value={lvl.percent}
                           onChange={e=>setPlanLevels(prev=>prev.map((l,j)=>j===i?{...l,percent:e.target.value}:l))}
                           style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'7px 12px',width:90,fontFamily:'var(--font)',fontSize:13}}/>
@@ -703,12 +731,12 @@ export default function AdminPanel() {
 
                   <div style={{display:'flex',gap:10,marginTop:12}}>
                     <button className="sgc-btn-yellow" type="submit" style={{flex:1}}>{editPlan?'Update Plan':'Create Plan'}</button>
-                    {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setEditPlan(null); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0,min_withdrawal:0,max_withdrawal:0}); setPlanLevels([{level:1,percent:10}]); }}>Cancel</button>}
+                    {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setEditPlan(null); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0,min_withdrawal:0,max_withdrawal:0,required_referrals_per_level:3}); setPlanLevels([{level:1,percent:10,details:'Share link to others'}]); }}>Cancel</button>}
                   </div>
                 </form>
                 <div className="sgc-table-wrap">
                   <table className="sgc-table">
-                    <thead><tr><th className="sgc-th">Name</th><th className="sgc-th">Price</th><th className="sgc-th">Days</th><th className="sgc-th">Daily Ads</th><th className="sgc-th">Earn/Click</th><th className="sgc-th">Levels</th><th className="sgc-th">Min W/D</th><th className="sgc-th">Max W/D</th><th className="sgc-th">Status</th><th className="sgc-th">Actions</th></tr></thead>
+                    <thead><tr><th className="sgc-th">Name</th><th className="sgc-th">Price</th><th className="sgc-th">Days</th><th className="sgc-th">Daily Ads</th><th className="sgc-th">Earn/Click</th><th className="sgc-th">Levels</th><th className="sgc-th">Next Level</th><th className="sgc-th">Min W/D</th><th className="sgc-th">Max W/D</th><th className="sgc-th">Status</th><th className="sgc-th">Actions</th></tr></thead>
                     <tbody>{plans.map(p=>{
                       let lvlMap = {};
                       try{ lvlMap = JSON.parse(p.level_commissions||'{}'); }catch{}
@@ -721,18 +749,20 @@ export default function AdminPanel() {
                           <td className="sgc-td">{p.daily_ads}</td>
                           <td className="sgc-td">Rs. {p.earning_per_click}</td>
                           <td className="sgc-td" style={{fontSize:11,color:'var(--accent)'}}>{lvlText}</td>
+                          <td className="sgc-td" style={{color:'var(--purple)',fontSize:12}}>{p.required_referrals_per_level||3} users</td>
                           <td className="sgc-td" style={{color:'var(--yellow)',fontSize:12}}>Rs. {p.min_withdrawal||0}</td>
                           <td className="sgc-td" style={{color:'var(--red)',fontSize:12}}>{p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}</td>
                           <td className="sgc-td"><span className="sgc-badge" style={{background:p.is_active?'#064e3b':'#334155'}}>{p.is_active?'Active':'Off'}</span></td>
                           <td className="sgc-td" style={{display:'flex',gap:6}}>
                             <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{
                               setEditPlan(p);
-                              setNewPlan({name:p.name,price:p.price,period_days:p.period_days,daily_ads:p.daily_ads,earning_per_click:p.earning_per_click,referral_commission:p.referral_commission,referral_levels:p.referral_levels||'N/A',sort_order:p.sort_order||0,min_withdrawal:p.min_withdrawal||0,max_withdrawal:p.max_withdrawal||0});
+                              setNewPlan({name:p.name,price:p.price,period_days:p.period_days,daily_ads:p.daily_ads,earning_per_click:p.earning_per_click,referral_commission:p.referral_commission,referral_levels:p.referral_levels||'N/A',sort_order:p.sort_order||0,min_withdrawal:p.min_withdrawal||0,max_withdrawal:p.max_withdrawal||0,required_referrals_per_level:p.required_referrals_per_level||3});
                               try{
                                 const lm=JSON.parse(p.level_commissions||'{}');
-                                const lvls=Object.entries(lm).map(([k,v])=>({level:parseInt(k),percent:v}));
-                                setPlanLevels(lvls.length>0?lvls:[{level:1,percent:(p.referral_commission*100)||10}]);
-                              }catch{ setPlanLevels([{level:1,percent:(p.referral_commission*100)||10}]); }
+                                let dm={}; try{ dm=JSON.parse(p.level_details||'{}'); }catch{}
+                                const lvls=Object.entries(lm).map(([k,v])=>({level:parseInt(k),percent:v,details:dm[k]||''}));
+                                setPlanLevels(lvls.length>0?lvls:[{level:1,percent:(p.referral_commission*100)||10,details:'Share link to others'}]);
+                              }catch{ setPlanLevels([{level:1,percent:(p.referral_commission*100)||10,details:'Share link to others'}]); }
                               window.scrollTo(0,0);
                             }}>Edit</button>
                             <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deletePlan(p.id)}>Delete</button>
@@ -740,7 +770,7 @@ export default function AdminPanel() {
                         </tr>
                       );
                     })}
-                    {plans.length===0&&<tr><td colSpan={8} className="sgc-td" style={{textAlign:'center',padding:32}}>No plans yet</td></tr>}
+                    {plans.length===0&&<tr><td colSpan={11} className="sgc-td" style={{textAlign:'center',padding:32}}>No plans yet</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -933,15 +963,22 @@ export default function AdminPanel() {
                       </div>
                       <div className="sgc-table-wrap">
                         <table className="sgc-table">
-                          <thead><tr><th className="sgc-th">Level</th><th className="sgc-th">Bonus %</th><th className="sgc-th">Actions</th></tr></thead>
+                          <thead><tr><th className="sgc-th">Level</th><th className="sgc-th">Level Details</th><th className="sgc-th">Bonus %</th><th className="sgc-th">Actions</th></tr></thead>
                           <tbody>
                             {s.levels.map((lvl,li)=>(
                               <tr key={lvl.id} className="sgc-tr">
                                 <td className="sgc-td" style={{color:'var(--yellow)',fontWeight:700}}>LEVEL# {lvl.level}</td>
                                 <td className="sgc-td">
+                                  <input type="text" maxLength={160}
+                                    defaultValue={lvl.details||''}
+                                    placeholder="e.g. Share link to others"
+                                    onBlur={e=>updateRefLevel(lvl.id, {details:e.target.value})}
+                                    style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',padding:'4px 10px',width:220,fontFamily:'var(--font)',fontSize:13}}/>
+                                </td>
+                                <td className="sgc-td">
                                   <input type="number" min="0" max="100" step="0.1"
                                     defaultValue={lvl.percent}
-                                    onBlur={e=>updateRefLevel(lvl.id, e.target.value)}
+                                    onBlur={e=>updateRefLevel(lvl.id, {percent:parseFloat(e.target.value)||0})}
                                     style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',padding:'4px 10px',width:80,fontFamily:'var(--font)',fontSize:13}}/>
                                   <span style={{color:'var(--dim)',marginLeft:6}}>%</span>
                                 </td>
@@ -980,16 +1017,6 @@ export default function AdminPanel() {
                     notify('Settings updated ✅');
                   }}>Save</button>
                   <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
-                </div>
-
-                {/* Min Campaign Users Setting */}
-                <div className="sgc-form" style={{maxWidth:420,marginBottom:24}}>
-                  <h4 style={{color:'var(--purple)',fontSize:13,fontWeight:700,marginBottom:12}}>👥 Minimum Users Per Campaign</h4>
-                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                    <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="10000" value={minCampaignUsers} onChange={e=>setMinCampaignUsers(parseInt(e.target.value))}/>
-                    <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ await API.put('/admin/settings/min_campaign_users',{value:String(minCampaignUsers)}); notify('Min users updated ✅'); }}>Save</button>
-                  </div>
-                  <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Advertisers must target at least <b style={{color:'var(--purple)'}}>{minCampaignUsers} users</b> per campaign.</p>
                 </div>
 
                 {/* Min Campaign Users Setting */}

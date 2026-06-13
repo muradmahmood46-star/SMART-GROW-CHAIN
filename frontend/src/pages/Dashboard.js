@@ -60,7 +60,6 @@ export default function Dashboard() {
   const [adScreenshot, setAdScreenshot] = useState(null);
   const [myAdRequests, setMyAdRequests] = useState([]);
   const [minCampaignUsers, setMinCampaignUsers] = useState(50);
-  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
   const [planPayMethod, setPlanPayMethod] = useState('wallet');
   const [planScreenshot, setPlanScreenshot] = useState(null);
   const [planSenderName, setPlanSenderName] = useState('');
@@ -113,28 +112,6 @@ export default function Dashboard() {
   useEffect(()=>{ loadData(); },[loadData]);
 
   // ── Show free plan activation reminder once per session ──
-  useEffect(()=>{
-    const shown = sessionStorage.getItem('freePlanNotifShown');
-    if(!shown){
-      sessionStorage.setItem('freePlanNotifShown','1');
-      setTimeout(()=>{
-        setMsg({text:'🌟 Please go to Membership Plan and activate your Free Plan!',type:'info'});
-        setTimeout(()=>setMsg({text:'',type:''}),12000);
-      },2000);
-    }
-  },[]);
-
-  // ── Show free plan activation reminder once per session ──
-  useEffect(()=>{
-    const shown = sessionStorage.getItem('freePlanNotifShown');
-    if(!shown){
-      sessionStorage.setItem('freePlanNotifShown','1');
-      setTimeout(()=>{
-        setMsg({text:'🌟 Please go to Membership Plan and activate your Free Plan!',type:'info'});
-        setTimeout(()=>setMsg({text:'',type:''}),12000);
-      },2000);
-    }
-  },[]);
 
   // ── Plan countdown ticker ──
   useEffect(()=>{
@@ -193,10 +170,12 @@ export default function Dashboard() {
     if(selectedMethod==='bank'){
       if(!deposit.bank_name||!deposit.bank_account_holder||!deposit.bank_account_number){ notify('Please fill all bank fields','error'); return; }
       if(!screenshot){ notify('Please upload payment screenshot','error'); return; }
+      const bankAccount = epAccounts.find(a=>a.method_type==='bank');
+      if(!bankAccount){ notify('No bank account available','error'); return; }
       try{
         const fd = new FormData();
         fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
-        fd.append('easypaisa_account_id', epAccounts[0]?.id||0);
+        fd.append('easypaisa_account_id', bankAccount.id);
         fd.append('sender_name', deposit.bank_account_holder);
         fd.append('transaction_id', `BANK|${deposit.bank_name}|${deposit.bank_account_number}`);
         fd.append('screenshot_note', deposit.screenshot_note||'');
@@ -784,33 +763,41 @@ export default function Dashboard() {
                 {/* ── Our Accounts ── */}
                 <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>OUR ACCOUNTS</p>
                 {epAccounts.length>0 ? (
-                  <div style={{display:'flex',flexWrap:'wrap',gap:12,marginBottom:28}}>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,marginBottom:28}}>
                     {epAccounts.map(a=>{
                       const isEP=(a.method_type||'easypaisa')==='easypaisa';
-                      const col=isEP?'#3cb559':'#e8001e';
-                      const bg=isEP?'#071a0d':'#1a0004';
+                      const isBank=a.method_type==='bank';
+                      const col=isEP?'#22c55e':isBank?'#3b82f6':'#ef4444';
+                      const bg=isEP?'linear-gradient(135deg,#dcfce7,#86efac)':isBank?'linear-gradient(135deg,#dbeafe,#60a5fa)':'linear-gradient(135deg,#fee2e2,#f87171)';
+                      const methodLabel=isEP?'EASYPAISA':isBank?'BANK TRANSFER':'JAZZCASH';
                       return (
-                        <div key={a.id} style={{background:bg,border:`1.5px solid ${col}40`,borderRadius:14,padding:'16px 20px',minWidth:240,flex:1}}>
+                        <div key={a.id} style={{background:bg,border:`2px solid ${col}`,borderRadius:16,padding:'20px 22px',minHeight:210,boxShadow:`0 10px 24px ${col}26`,color:'#0f172a'}}>
                           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-                            <div style={{width:40,height:40,borderRadius:10,background:col,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>
-                              {isEP?'📱':'💳'}
+                            <div style={{width:46,height:46,borderRadius:12,background:'#0f172a',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,flexShrink:0}}>
+                              {isEP?'EP':isBank?'BK':'JC'}
                             </div>
                             <div>
-                              <p style={{color:col,fontSize:11,fontWeight:700,margin:0,letterSpacing:.5}}>{isEP?'EASYPAISA':'JAZZCASH'}</p>
-                              <p style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>{a.account_title}</p>
+                              <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:'0 0 3px',letterSpacing:.6}}>{methodLabel}</p>
+                              <p style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)',fontWeight:900,fontSize:18,margin:0}}>{a.account_title}</p>
                             </div>
                           </div>
-                          <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <div style={{background:'rgba(15,23,42,.9)',borderRadius:12,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
                             <div>
-                              <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Number</p>
-                              <p style={{color:col,fontFamily:'monospace',fontSize:16,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
+                              <p style={{color:'#cbd5e1',fontSize:10,margin:'0 0 3px',fontWeight:700}}>Account Number</p>
+                              <p style={{color:'#facc15',fontFamily:'monospace',fontSize:17,fontWeight:900,letterSpacing:1,margin:0,wordBreak:'break-all'}}>{a.account_number}</p>
                             </div>
-                            <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:col+'22',border:`1px solid ${col}`,color:col,borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
+                            <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#facc15',border:'none',color:'#111827',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,fontWeight:900,fontFamily:'var(--font)'}}>Copy</button>
                           </div>
+                          {isBank&&(
+                            <div style={{marginTop:10,color:'#0f172a',fontSize:13,lineHeight:1.7,fontWeight:700}}>
+                              <div>Bank: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.bank_name||'Bank Transfer'}</b></div>
+                              <div>Account title: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.account_title}</b></div>
+                            </div>
+                          )}
                           {a.deposit_message && (
-                            <div style={{marginTop:10,background:'#0d1e38',border:'1px solid #1e4080',borderRadius:8,padding:'10px 14px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                            <div style={{marginTop:12,background:'rgba(255,255,255,.72)',border:'1px solid rgba(15,23,42,.15)',borderRadius:10,padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
                               <span style={{fontSize:15,flexShrink:0}}>💬</span>
-                              <p style={{color:'#94a3b8',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{a.deposit_message}</p>
+                              <p style={{color:'#0f172a',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap',fontWeight:700}}>{a.deposit_message}</p>
                             </div>
                           )}
                         </div>
@@ -827,23 +814,24 @@ export default function Dashboard() {
                 {epAccounts.length>0&&(
                   <>
                     <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>PAYMENT METHOD</p>
-                    <div style={{display:'flex',gap:10,marginBottom:20,maxWidth:520}}>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:14,marginBottom:22,maxWidth:760}}>
                       {['easypaisa','jazzcash'].map(m=>{
                         const isEP=m==='easypaisa'; const col=isEP?'#3cb559':'#e8001e';
                         const hasAccs=epAccounts.some(a=>(a.method_type||'easypaisa')===m);
-                        if(!hasAccs) return null;
                         return (
-                          <div key={m} onClick={()=>setSelectedMethod(m)}
-                            style={{flex:1,padding:'12px 10px',borderRadius:12,border:`2px solid ${selectedMethod===m?col:'var(--border)'}`,background:selectedMethod===m?(isEP?'#0a2010':'#200008'):'var(--bg)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
-                            <span style={{fontSize:18}}>{isEP?'📱':'💳'}</span>
-                            <span style={{color:selectedMethod===m?col:'var(--muted)',fontWeight:700,fontSize:13}}>{isEP?'Easypaisa':'JazzCash'}</span>
+                          <div key={m} onClick={()=>hasAccs&&setSelectedMethod(m)}
+                            style={{minHeight:92,padding:'18px 14px',borderRadius:16,border:`2px solid ${selectedMethod===m?col:'var(--border)'}`,background:selectedMethod===m?(isEP?'#dcfce7':'#fee2e2'):'var(--card)',cursor:hasAccs?'pointer':'not-allowed',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s',boxShadow:selectedMethod===m?`0 8px 22px ${col}33`:'none',opacity:hasAccs?1:.55}}>
+                            <span style={{fontSize:18,fontWeight:900,color:selectedMethod===m?'#0f172a':'var(--muted)'}}>{isEP?'EP':'JC'}</span>
+                            <span style={{color:selectedMethod===m?'#0f172a':'var(--muted)',fontWeight:900,fontSize:15}}>{isEP?'Easypaisa':'JazzCash'}</span>
+                            {!hasAccs&&<span style={{color:'var(--dim)',fontSize:10,fontWeight:700}}>Not available</span>}
                           </div>
                         );
                       })}
-                      <div onClick={()=>setSelectedMethod('bank')}
-                        style={{flex:1,padding:'12px 10px',borderRadius:12,border:`2px solid ${selectedMethod==='bank'?'#3b82f6':'var(--border)'}`,background:selectedMethod==='bank'?'#0a1628':'var(--bg)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
-                        <span style={{fontSize:18}}>🏦</span>
-                        <span style={{color:selectedMethod==='bank'?'#3b82f6':'var(--muted)',fontWeight:700,fontSize:13}}>Bank Transfer</span>
+                      <div onClick={()=>epAccounts.some(a=>a.method_type==='bank')&&setSelectedMethod('bank')}
+                        style={{minHeight:92,padding:'18px 14px',borderRadius:16,border:`2px solid ${selectedMethod==='bank'?'#3b82f6':'var(--border)'}`,background:selectedMethod==='bank'?'#dbeafe':'var(--card)',cursor:epAccounts.some(a=>a.method_type==='bank')?'pointer':'not-allowed',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s',boxShadow:selectedMethod==='bank'?'0 8px 22px #3b82f633':'none',opacity:epAccounts.some(a=>a.method_type==='bank')?1:.55}}>
+                        <span style={{fontSize:18,fontWeight:900,color:selectedMethod==='bank'?'#0f172a':'var(--muted)'}}>BK</span>
+                        <span style={{color:selectedMethod==='bank'?'#0f172a':'var(--muted)',fontWeight:900,fontSize:15}}>Bank Transfer</span>
+                        {!epAccounts.some(a=>a.method_type==='bank')&&<span style={{color:'var(--dim)',fontSize:10,fontWeight:700}}>Not available</span>}
                       </div>
                     </div>
 
@@ -987,10 +975,13 @@ export default function Dashboard() {
                       const colors=['var(--dim)','var(--accent)','var(--yellow)','var(--purple)'];
                       const col=colors[i]||'var(--accent)';
                       let lvlMap={};
+                      let detailMap={};
                       try{ lvlMap=JSON.parse(p.level_commissions||'{}'); }catch{}
+                      try{ detailMap=JSON.parse(p.level_details||'{}'); }catch{}
                       const refDisplay = Object.keys(lvlMap).length>0
                         ? Object.entries(lvlMap).map(([k,v])=>`L${k}:${v}%`).join(', ')
                         : `${(p.referral_commission*100).toFixed(0)}%`;
+                      const levelDetails = Object.entries(detailMap).filter(([,v])=>v).map(([k,v])=>`L${k}: ${v}`).join(' | ');
                       return (
                         <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isCurrent?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
                           {isCurrent&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{String.fromCharCode(10003)} Current Plan</div>}
@@ -1004,6 +995,7 @@ export default function Dashboard() {
                               ['🔗',`${p.referral_levels||'N/A'} referral levels`],
                               ['⬇️',`Min Withdraw: Rs. ${p.min_withdrawal||0}`],
                               ['⬆️',`Max Withdraw: ${p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}`],
+                              ['i',levelDetails || `Send link to ${p.required_referrals_per_level||3} users for next level`],
                             ].map(([icon,text])=>(
                               <div key={text} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--muted)'}}>
                                 <span>{icon}</span><span>{text}</span>
@@ -1178,7 +1170,7 @@ export default function Dashboard() {
                     ['Total Referrals', referrals.total_referrals, 'var(--accent)'],
                     ['Active Referrals', referrals.active_referrals||0, 'var(--green)'],
                     ['Commission Earned', `Rs. ${referrals.total_commission.toFixed(2)}`, 'var(--yellow)'],
-                    ['Commission Rate', '10%', 'var(--purple)'],
+                    ['Current Level', `Level ${referrals.current_level||1}`, 'var(--purple)'],
                   ].map(([l,v,col],i)=>(
                     <div key={i} className="sgc-stat-card">
                       <div className="sgc-stat-label">{l}</div>
@@ -1203,6 +1195,14 @@ export default function Dashboard() {
                   ) : (
                     <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Earn commission from every ad click your referrals make</p>
                   )}
+                  <div style={{marginTop:10,background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'10px 14px'}}>
+                    <p style={{color:'var(--accent)',fontSize:13,margin:0,fontWeight:700}}>
+                      {referrals.next_level_message || `Send link to ${referrals.referrals_to_next_level||referrals.required_referrals_per_level||3} users to gain next level`}
+                    </p>
+                    <p style={{color:'var(--dim)',fontSize:11,margin:'4px 0 0'}}>
+                      Current Level {referrals.current_level||1} - {referrals.total_referrals||0}/{referrals.required_referrals_per_level||3} referrals toward next level
+                    </p>
+                  </div>
                 </div>
 
                 {/* Level Cards */}
@@ -1434,7 +1434,6 @@ export default function Dashboard() {
                         fd.append('title', adForm.title);
                         fd.append('url', adForm.url);
                         if(parseInt(adForm.members_needed) < minCampaignUsers){ notify('Minimum '+minCampaignUsers+' users required per campaign','error'); return; }
-                        if(parseInt(adForm.members_needed) < minCampaignUsers){ notify('Minimum '+minCampaignUsers+' users required per campaign','error'); return; }
                         fd.append('members_needed', parseInt(adForm.members_needed));
                         fd.append('payment_method', adPayMethod);
                         if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
@@ -1535,7 +1534,7 @@ export default function Dashboard() {
                   </div>
 
                   {/* ── RIGHT: My Campaigns ── */}
-                  <div style={{flex:'1 1 300px',minWidth:0}}>
+                  <div style={{flex:'1 1 380px',minWidth:0}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                       <h3 style={{color:'var(--text)',fontWeight:800,fontSize:16,margin:0}}>📁 My Campaigns</h3>
                       <span style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--dim)',padding:'3px 12px',borderRadius:20,fontSize:12}}>{myAdRequests.length} total</span>
@@ -1549,8 +1548,8 @@ export default function Dashboard() {
                         const isRejected=r.status==='rejected';
                         const isPending=r.status==='pending';
                         const accentCol = isApproved?'#4ade80':isCompleted?'#38bdf8':isRejected?'#f87171':'#fbbf24';
-                        const borderCol = isApproved?'#166534':isCompleted?'#1e4080':isRejected?'#7f1d1d':'#92400e';
-                        const bgCol    = isApproved?'#052e16':isCompleted?'#0c1e3e':isRejected?'#1c0a0a':'#1c1000';
+                        const borderCol = isApproved?'#22c55e50':isCompleted?'#1e4080':isRejected?'#7f1d1d':'#92400e';
+                        const bgCol    = isApproved?'#0d3d20':isCompleted?'#0c1e3e':isRejected?'#1c0a0a':'#1c1000';
                         return (
                           <div key={i} style={{background:bgCol,border:`1.5px solid ${borderCol}`,borderRadius:16,overflow:'hidden',animation:'fadeUp .3s ease both'}}>
                             {/* Header */}
@@ -1585,8 +1584,8 @@ export default function Dashboard() {
                                 <span style={{color:'var(--dim)',fontSize:11,fontWeight:600}}>CAMPAIGN PROGRESS</span>
                                 <span style={{color:accentCol,fontSize:11,fontWeight:800}}>{reached} of {r.members_needed} reached</span>
                               </div>
-                              <div style={{height:10,background:'#0b1120',borderRadius:6,overflow:'hidden',border:'1px solid var(--border)'}}>
-                                <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,${accentCol},${isCompleted?'#818cf8':isApproved?'#86efac':'#fde68a'})`,borderRadius:6,transition:'width .6s ease',boxShadow:`0 0 8px ${accentCol}66`}}/>
+                              <div style={{height:16,background:'#0b1120',borderRadius:8,overflow:'hidden',border:'1px solid var(--border)'}}>
+                                <div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,${accentCol},${isCompleted?'#818cf8':isApproved?'#86efac':'#fde68a'})`,borderRadius:8,transition:'width .6s ease',boxShadow:`0 0 12px ${accentCol}99`}}/>
                               </div>
                             </div>
 
@@ -1643,7 +1642,7 @@ export default function Dashboard() {
                                     API.get('/user/ad-request/my-requests').then(res=>setMyAdRequests(res.data));
                                     API.get('/user/profile').then(res=>setProfile(res.data));
                                   }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-                                }} style={{width:'100%',padding:'12px',background:'linear-gradient(135deg,#7c3aed,#6d28d9)',border:'none',borderRadius:10,color:'#fff',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
+                                }} style={{width:'100%',padding:'13px',background:'linear-gradient(135deg,#7c3aed,#6d28d9)',border:'none',borderRadius:10,color:'#fff',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s',boxShadow:'0 2px 12px rgba(124,58,237,.35)'}}>
                                   <span style={{fontSize:18}}>🔄</span> Reactivate Campaign
                                 </button>
                               )}
@@ -1741,12 +1740,14 @@ export default function Dashboard() {
                     if(!kycForm.first_name.trim()){ notify('First name is required','error'); return; }
                     if(!kycForm.last_name.trim()){ notify('Last name is required','error'); return; }
                     if(!kycForm.phone.trim()){ notify('Phone number is required','error'); return; }
+                    if(!kycForm.cnic.trim()){ notify('CNIC number is required','error'); return; }
                     if(!kycFront){ notify('CNIC front photo is required','error'); return; }
                     if(!kycSelfie){ notify('Selfie with CNIC is required','error'); return; }
                     try{
                       const fd=new FormData();
                       fd.append('full_name', `${kycForm.first_name.trim()} ${kycForm.last_name.trim()}`);
-                      fd.append('cnic', kycForm.phone.trim());
+                      fd.append('phone', kycForm.phone.trim());
+                      fd.append('cnic', kycForm.cnic.trim());
                       fd.append('front_photo', kycFront);
                       fd.append('selfie_photo', kycSelfie);
                       await API.post('/user/kyc/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
@@ -1768,6 +1769,8 @@ export default function Dashboard() {
                     <input className="sgc-input" placeholder="e.g. Ali" value={kycForm.last_name} onChange={e=>setKycForm({...kycForm,last_name:e.target.value})} required/>
                     <label className="sgc-label">Phone Number <span style={{color:'var(--red)'}}>*</span></label>
                     <input className="sgc-input" type="tel" placeholder="03XX-XXXXXXX" value={kycForm.phone} onChange={e=>setKycForm({...kycForm,phone:e.target.value})} required/>
+                    <label className="sgc-label">CNIC Number <span style={{color:'var(--red)'}}>*</span></label>
+                    <input className="sgc-input" placeholder="XXXXX-XXXXXXX-X" value={kycForm.cnic} onChange={e=>setKycForm({...kycForm,cnic:e.target.value})} required/>
                     <label className="sgc-label">CNIC Front Photo <span style={{color:'var(--red)'}}>*</span></label>
                     <label style={{display:'block',border:`2px dashed ${kycFront?'var(--green)':'var(--border)'}`,borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
                       <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setKycFront(e.target.files[0])}/>

@@ -59,6 +59,7 @@ class EasypaisaAccountCreate(BaseModel):
     phone_number: Optional[str] = None
     method_type: Optional[str] = "easypaisa"
     deposit_message: Optional[str] = None
+    bank_name: Optional[str] = None
 
 class PlanCreate(BaseModel):
     name: str
@@ -69,6 +70,8 @@ class PlanCreate(BaseModel):
     referral_levels: Optional[str] = "N/A"
     referral_commission: float
     level_commissions: Optional[str] = "{}"
+    level_details: Optional[str] = "{}"
+    required_referrals_per_level: Optional[int] = 3
     min_withdrawal: Optional[float] = 0.0
     max_withdrawal: Optional[float] = 0.0
     sort_order: Optional[int] = 0
@@ -82,6 +85,8 @@ class PlanUpdate(BaseModel):
     referral_levels: Optional[str] = None
     referral_commission: Optional[float] = None
     level_commissions: Optional[str] = None
+    level_details: Optional[str] = None
+    required_referrals_per_level: Optional[int] = None
     min_withdrawal: Optional[float] = None
     max_withdrawal: Optional[float] = None
     is_active: Optional[bool] = None

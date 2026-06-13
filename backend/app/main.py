@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS free_plan_expires_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_expires_at TIMESTAMP",
         "ALTER TABLE easypaisa_accounts ADD COLUMN IF NOT EXISTS deposit_message VARCHAR(500)",
+        "ALTER TABLE easypaisa_accounts ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100)",
         "CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), title VARCHAR(100), message TEXT, is_read BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW())",
         "INSERT INTO site_settings (key, value) VALUES ('referral_message', '') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('dashboard_message', '') ON CONFLICT (key) DO NOTHING",
@@ -27,6 +28,11 @@ async def lifespan(app: FastAPI):
         "INSERT INTO site_settings (key, value) VALUES ('transfer_message', '') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('registration_bonus', '0') ON CONFLICT (key) DO NOTHING",
         "ALTER TABLE membership_plans ADD COLUMN IF NOT EXISTS level_commissions VARCHAR(500) DEFAULT '{}'",
+        "ALTER TABLE membership_plans ADD COLUMN IF NOT EXISTS level_details VARCHAR(1000) DEFAULT '{}'",
+        "ALTER TABLE membership_plans ADD COLUMN IF NOT EXISTS required_referrals_per_level INTEGER DEFAULT 3",
+        "ALTER TABLE referral_settings ADD COLUMN IF NOT EXISTS details VARCHAR(200)",
+        "ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS payout_screenshot_path VARCHAR(255)",
+        "ALTER TABLE kyc_requests ADD COLUMN IF NOT EXISTS phone VARCHAR(20)",
     ]
     try:
         with engine.connect() as conn:
@@ -41,7 +47,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="PTC Pro API", 
+    title="Smart Grow Chain API",
     lifespan=lifespan, 
     docs_url="/docs", 
     openapi_url="/openapi.json"
@@ -67,4 +73,4 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def root():
-    return {"message": "PTC Pro API Running"}
+    return {"message": "Smart Grow Chain API Running"}

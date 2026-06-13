@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 import os
 from sqlalchemy import func, Date, cast
@@ -10,6 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 from datetime import date, timedelta
 from pydantic import BaseModel
 from typing import Optional, List
+import shutil, uuid
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -97,11 +98,10 @@ def adjust_balance(user_id: int, data: BalanceAdjust, db: Session = Depends(get_
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    user.balance += data.amount
-    if data.amount > 0:
-        user.total_earned += data.amount
+    amount = abs(data.amount)
+    user.balance -= amount
     db.commit()
-    return {"message": f"Balance adjusted by ${data.amount}", "new_balance": user.balance}
+    return {"message": f"Balance deducted by Rs. {amount}", "new_balance": user.balance}
 
 @router.get("/ads")
 def get_all_ads(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
@@ -156,7 +156,9 @@ def get_withdrawals(db: Session = Depends(get_db), admin=Depends(get_admin_user)
             "user_membership": user.membership if user else "free",
             "amount": w.amount, "method": w.method,
             "wallet_address": w.wallet_address, "status": w.status,
-            "admin_note": w.admin_note, "created_at": w.created_at
+            "admin_note": w.admin_note,
+            "payout_screenshot_url": f"{os.getenv('BACKEND_URL', 'https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{w.payout_screenshot_path}" if w.payout_screenshot_path else None,
+            "created_at": w.created_at
         })
     return result
 
@@ -170,10 +172,18 @@ def approve_withdrawal(w_id: int, db: Session = Depends(get_db), admin=Depends(g
     return {"message": "Withdrawal approved"}
 
 @router.put("/withdrawals/{w_id}/sent")
-def mark_withdrawal_sent(w_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+async def mark_withdrawal_sent(w_id: int, screenshot: UploadFile = File(...), db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     w = db.query(Withdrawal).filter(Withdrawal.id == w_id).first()
     if not w:
         raise HTTPException(status_code=404, detail="Not found")
+    ext = os.path.splitext(screenshot.filename or "")[-1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+        raise HTTPException(status_code=400, detail="Only JPG/PNG images allowed")
+    os.makedirs("uploads/screenshots", exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    with open(os.path.join("uploads/screenshots", filename), "wb") as f:
+        shutil.copyfileobj(screenshot.file, f)
+    w.payout_screenshot_path = filename
     w.status = "sent"
     db.commit()
     return {"message": "Withdrawal marked as sent"}
@@ -210,6 +220,7 @@ def get_easypaisa(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
         "phone_number": a.phone_number or a.account_number,
         "method_type": a.method_type or "easypaisa",
         "deposit_message": a.deposit_message or "",
+        "bank_name": a.bank_name or "",
         "is_active": a.is_active,
         "in_use": a.in_use_by is not None,
         "created_at": a.created_at
@@ -225,7 +236,8 @@ def add_easypaisa(data: EasypaisaAccountCreate, db: Session = Depends(get_db), a
         account_number=data.account_number,
         phone_number=data.phone_number or data.account_number,
         method_type=data.method_type or "easypaisa",
-        deposit_message=data.deposit_message or None
+        deposit_message=data.deposit_message or None,
+        bank_name=data.bank_name or None
     )
     db.add(acc)
     db.commit()
@@ -242,6 +254,7 @@ def update_easypaisa(acc_id: int, data: EasypaisaAccountCreate, db: Session = De
     acc.phone_number = data.phone_number or data.account_number
     acc.method_type = data.method_type or "easypaisa"
     acc.deposit_message = data.deposit_message or None
+    acc.bank_name = data.bank_name or None
     db.commit()
     return acc
 
@@ -479,7 +492,7 @@ def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin
         # is_active for the whole type = any row active
         result[bt] = {
             "is_active": any(r.is_active for r in type_rows),
-            "levels": [{"id": r.id, "level": r.level, "percent": r.percent, "is_active": r.is_active} for r in type_rows]
+            "levels": [{"id": r.id, "level": r.level, "percent": r.percent, "details": r.details or "", "is_active": r.is_active} for r in type_rows]
         }
     return result
 
@@ -487,7 +500,12 @@ class RefSettingToggle(BaseModel):
     is_active: bool
 
 class RefSettingUpdate(BaseModel):
-    percent: float
+    percent: Optional[float] = None
+    details: Optional[str] = ""
+
+def limit_words(text: Optional[str], max_words: int = 20) -> str:
+    words = (text or "").strip().split()
+    return " ".join(words[:max_words])
 
 @router.put("/referral-settings/toggle/{bonus_type}")
 def toggle_bonus_type(bonus_type: str, data: RefSettingToggle, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
@@ -502,14 +520,23 @@ def update_referral_level(setting_id: int, data: RefSettingUpdate, db: Session =
     r = db.query(ReferralSetting).filter(ReferralSetting.id == setting_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Not found")
-    r.percent = data.percent
+    if data.percent is not None:
+        r.percent = data.percent
+    if data.details is not None:
+        r.details = limit_words(data.details)
     db.commit()
     return r
 
 @router.post("/referral-settings/{bonus_type}/add-level")
 def add_referral_level(bonus_type: str, data: RefSettingUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     max_lvl = db.query(func.max(ReferralSetting.level)).filter(ReferralSetting.bonus_type == bonus_type).scalar() or 0
-    r = ReferralSetting(bonus_type=bonus_type, level=max_lvl+1, percent=data.percent, is_active=True)
+    r = ReferralSetting(
+        bonus_type=bonus_type,
+        level=max_lvl+1,
+        percent=data.percent or 0,
+        details=limit_words(data.details),
+        is_active=True
+    )
     db.add(r); db.commit(); db.refresh(r)
     return r
 
@@ -766,7 +793,7 @@ def get_all_kyc(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
         result.append({
             "id": k.id, "user_id": k.user_id,
             "username": user.username if user else "?",
-            "full_name": k.full_name, "cnic": k.cnic,
+            "full_name": k.full_name, "phone": k.phone or k.cnic, "cnic": k.cnic,
             "front_photo_url": f"{os.getenv('BACKEND_URL','https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{k.front_photo}" if k.front_photo else None,
             "selfie_photo_url": f"{os.getenv('BACKEND_URL','https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{k.selfie_photo}" if k.selfie_photo else None,
             "status": k.status, "admin_note": k.admin_note, "created_at": k.created_at
