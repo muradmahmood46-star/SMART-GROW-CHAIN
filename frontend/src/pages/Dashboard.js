@@ -1353,6 +1353,7 @@ export default function Dashboard() {
                   <p style={{color:'var(--dim)',fontSize:14,lineHeight:1.7,margin:0}}>Referral Bonus feature is coming soon. Stay tuned!</p>
                 </div>
               </div>
+            )}
                         {/* ── AD VIEW LOG ── */}
             {tab==='ad-view-log' && (
               <div>
