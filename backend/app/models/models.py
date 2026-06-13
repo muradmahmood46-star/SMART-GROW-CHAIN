@@ -94,8 +94,12 @@ class MembershipPlan(Base):
     period_days = Column(Integer, default=30)
     daily_ads = Column(Integer)
     earning_per_click = Column(Float, default=0.001)
-    referral_levels = Column(String(50), default="N/A")  # e.g. "N/A", "Up to 2 level"
+    referral_levels = Column(String(50), default="N/A")
     referral_commission = Column(Float, default=0.0)
+    # Dynamic per-level commissions stored as JSON string: {"1": 10.0, "2": 5.0, "3": 2.0}
+    level_commissions = Column(String(500), default="{}")
+    min_withdrawal = Column(Float, default=0.0)
+    max_withdrawal = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
     sort_order = Column(Integer, default=0)
 

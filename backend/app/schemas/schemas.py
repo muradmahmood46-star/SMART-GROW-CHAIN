@@ -20,6 +20,7 @@ class UserOut(BaseModel):
     total_earned: float
     membership: str
     plan_expires_at: Optional[datetime] = None
+    free_plan_expires_at: Optional[datetime] = None
     referral_code: str
     two_fa_enabled: bool
     kyc_status: str
@@ -67,6 +68,9 @@ class PlanCreate(BaseModel):
     earning_per_click: float
     referral_levels: Optional[str] = "N/A"
     referral_commission: float
+    level_commissions: Optional[str] = "{}"
+    min_withdrawal: Optional[float] = 0.0
+    max_withdrawal: Optional[float] = 0.0
     sort_order: Optional[int] = 0
 
 class PlanUpdate(BaseModel):
@@ -77,6 +81,9 @@ class PlanUpdate(BaseModel):
     earning_per_click: Optional[float] = None
     referral_levels: Optional[str] = None
     referral_commission: Optional[float] = None
+    level_commissions: Optional[str] = None
+    min_withdrawal: Optional[float] = None
+    max_withdrawal: Optional[float] = None
     is_active: Optional[bool] = None
     sort_order: Optional[int] = None
 

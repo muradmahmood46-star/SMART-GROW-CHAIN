@@ -36,22 +36,29 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
     ads = db.query(Ad).filter(Ad.is_active == True).all()
     result = []
     for ad in ads:
-        # Permanent — agar kabhi bhi click kiya ho toh dubara nahi
         already_clicked = db.query(Earning).filter(
             Earning.user_id == current_user.id,
             Earning.ad_id == ad.id,
             Earning.type == "click"
         ).first()
         if already_clicked:
-            continue  # clicked ads list mein show hi mat karo
+            continue
+        # Check if sponsored (from UserAdRequest)
+        sponsored = db.query(UserAdRequest).filter(
+            UserAdRequest.url == ad.url,
+            UserAdRequest.status == "approved"
+        ).first()
         result.append({
             "id": ad.id, "title": ad.title, "url": ad.url,
             "description": ad.description,
             "earning_amount": ad.earning_amount,
             "timer_seconds": ad.timer_seconds,
             "total_clicks": ad.total_clicks,
-            "already_clicked": False
+            "already_clicked": False,
+            "is_sponsored": sponsored is not None
         })
+    # Sponsored first (sorted by earning desc), then admin ads (sorted by earning desc)
+    result.sort(key=lambda x: (0 if x["is_sponsored"] else 1, -x["earning_amount"]))
     return result
 
 @router.post("/click/start/{ad_id}")
@@ -112,14 +119,36 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
         if active_req.members_reached >= active_req.members_needed:
             active_req.status = "completed"
     if current_user.referred_by:
+        import json
         referrer = db.query(User).filter(User.id == current_user.referred_by).first()
         if referrer:
             plan = db.query(MembershipPlan).filter(MembershipPlan.name == referrer.membership).first()
-            rate = plan.referral_commission if plan else 0.10
-            commission = round(ad.earning_amount * rate, 6)
+            # Use level_commissions if set, else fallback to referral_commission
+            level_comm = {}
+            if plan and plan.level_commissions:
+                try: level_comm = json.loads(plan.level_commissions)
+                except: level_comm = {}
+            rate = float(level_comm.get("1", plan.referral_commission if plan else 0.10))
+            commission = round(ad.earning_amount * rate / 100 if level_comm else ad.earning_amount * rate, 6)
             referrer.balance += commission
             referrer.total_earned += commission
             db.add(Earning(user_id=referrer.id, ad_id=ad_id, amount=commission, type="referral"))
+            # Level 2, 3... upline chain
+            upline = db.query(User).filter(User.id == referrer.referred_by).first() if referrer.referred_by else None
+            for lvl in range(2, 6):
+                if not upline: break
+                upline_plan = db.query(MembershipPlan).filter(MembershipPlan.name == upline.membership).first()
+                ul_comm = {}
+                if upline_plan and upline_plan.level_commissions:
+                    try: ul_comm = json.loads(upline_plan.level_commissions)
+                    except: ul_comm = {}
+                ul_rate = float(ul_comm.get(str(lvl), 0))
+                if ul_rate > 0:
+                    ul_amount = round(ad.earning_amount * ul_rate / 100, 6)
+                    upline.balance += ul_amount
+                    upline.total_earned += ul_amount
+                    db.add(Earning(user_id=upline.id, ad_id=ad_id, amount=ul_amount, type="referral"))
+                upline = db.query(User).filter(User.id == upline.referred_by).first() if upline.referred_by else None
     db.commit()
     return {"message": "Earning credited", "amount": ad.earning_amount, "new_balance": current_user.balance}
 
@@ -128,8 +157,14 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
 def request_withdrawal(data: WithdrawalCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if current_user.kyc_status != "approved":
         raise HTTPException(status_code=400, detail="Please complete your KYC verification first before withdrawing.")
-    if data.amount < 500:
-        raise HTTPException(status_code=400, detail="Minimum withdrawal is Rs. 500")
+    # Get plan-based min/max withdrawal
+    plan = db.query(MembershipPlan).filter(MembershipPlan.name == current_user.membership).first()
+    min_w = plan.min_withdrawal if plan and plan.min_withdrawal else 500
+    max_w = plan.max_withdrawal if plan and plan.max_withdrawal else 0
+    if data.amount < min_w:
+        raise HTTPException(status_code=400, detail=f"Minimum withdrawal for your plan is Rs. {min_w}")
+    if max_w > 0 and data.amount > max_w:
+        raise HTTPException(status_code=400, detail=f"Maximum withdrawal for your plan is Rs. {max_w}")
     if current_user.balance < data.amount:
         raise HTTPException(status_code=400, detail="Insufficient balance")
     current_user.balance -= data.amount
@@ -176,17 +211,86 @@ def get_all_transactions(current_user: User = Depends(get_current_user), db: Ses
 # ── REFERRALS ─────────────────────────────────────────────────────────────────
 @router.get("/referrals")
 def get_referrals(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    refs = db.query(User).filter(User.referred_by == current_user.id).all()
+    refs = db.query(User).filter(User.referred_by == current_user.id).order_by(User.created_at.desc()).all()
     total_commission = db.query(func.sum(Earning.amount)).filter(
         Earning.user_id == current_user.id, Earning.type == "referral"
     ).scalar() or 0
+    referral_msg_row = db.query(SiteSettings).filter(SiteSettings.key == "referral_message").first()
+    now = datetime.utcnow()
+    ref_list = []
+    for r in refs:
+        # plan active check
+        plan_active = False
+        plan_name = r.membership or "free"
+        if r.membership and r.membership != "free":
+            plan_active = bool(r.plan_expires_at and r.plan_expires_at > now)
+        else:
+            plan_active = bool(r.free_plan_expires_at and r.free_plan_expires_at > now)
+        ref_list.append({
+            "username": r.username,
+            "joined": r.created_at,
+            "kyc_status": r.kyc_status,
+            "membership": plan_name,
+            "plan_active": plan_active,
+            "is_active": r.is_active,
+            "plan_expires_at": r.plan_expires_at or r.free_plan_expires_at
+        })
+    active_count = sum(1 for r in ref_list if r["plan_active"] and r["is_active"])
     return {
         "referral_code": current_user.referral_code,
         "referral_link": f"{os.getenv('FRONTEND_URL', 'https://ptc-pro-fullstack.vercel.app')}/register?ref={current_user.referral_code}",
         "total_referrals": len(refs),
+        "active_referrals": active_count,
         "total_commission": round(total_commission, 2),
-        "referrals": [{"username": r.username, "joined": r.created_at} for r in refs]
+        "referral_message": referral_msg_row.value if referral_msg_row and referral_msg_row.value else "",
+        "referrals": ref_list
     }
+
+@router.get("/referrals/level/{level}")
+def get_referrals_by_level(level: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+
+    def build_list(user_ids):
+        result = []
+        for uid in user_ids:
+            u = db.query(User).filter(User.id == uid).first()
+            if not u: continue
+            plan_active = False
+            if u.membership and u.membership != "free":
+                plan_active = bool(u.plan_expires_at and u.plan_expires_at > now)
+            else:
+                plan_active = bool(u.free_plan_expires_at and u.free_plan_expires_at > now)
+            expiry = u.plan_expires_at or u.free_plan_expires_at
+            result.append({
+                "username": u.username,
+                "kyc_status": u.kyc_status,
+                "membership": u.membership or "free",
+                "plan_active": plan_active,
+                "joined": u.created_at,
+                "plan_expires_at": expiry
+            })
+        return result
+
+    if level == 1:
+        ids = [r.id for r in db.query(User).filter(User.referred_by == current_user.id).all()]
+        return {"level": 1, "members": build_list(ids), "total": len(ids)}
+
+    # Build level chain
+    prev_ids = {current_user.id}
+    for _ in range(level - 1):
+        next_ids = set()
+        for uid in prev_ids:
+            children = db.query(User.id).filter(User.referred_by == uid).all()
+            next_ids.update(c[0] for c in children)
+        # Remove already-counted upline ids to avoid overlap
+        next_ids -= prev_ids
+        prev_ids = next_ids
+        if not prev_ids:
+            break
+
+    members = build_list(list(prev_ids))
+    return {"level": level, "members": members, "total": len(members)}
+
 
 @router.get("/referral-bonus")
 def get_referral_bonus(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -260,7 +364,21 @@ def get_public_settings(db: Session = Depends(get_db)):
 # ── MEMBERSHIP PLANS ──────────────────────────────────────────────────────────
 @router.get("/plans")
 def get_plans(db: Session = Depends(get_db)):
-    return db.query(MembershipPlan).all()
+    plans = db.query(MembershipPlan).all()
+    result = []
+    for p in plans:
+        result.append({
+            "id": p.id, "name": p.name, "price": p.price,
+            "period_days": p.period_days, "daily_ads": p.daily_ads,
+            "earning_per_click": p.earning_per_click,
+            "referral_levels": p.referral_levels,
+            "referral_commission": p.referral_commission,
+            "level_commissions": p.level_commissions,
+            "min_withdrawal": p.min_withdrawal or 0,
+            "max_withdrawal": p.max_withdrawal or 0,
+            "is_active": p.is_active, "sort_order": p.sort_order
+        })
+    return result
 
 # ── 2FA ───────────────────────────────────────────────────────────────────────
 @router.get("/2fa/setup")
@@ -313,13 +431,23 @@ async def purchase_plan(
     plan = db.query(MembershipPlan).filter(MembershipPlan.id == plan_id, MembershipPlan.is_active == True).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    if plan.price <= 0:
-        raise HTTPException(status_code=400, detail="This plan is free")
     if current_user.membership == plan.name:
         raise HTTPException(status_code=400, detail="You already have this plan")
 
     screenshot_path = None
-    if payment_method == "wallet":
+    if plan.price <= 0:
+        # Free plan — activate instantly
+        current_user.membership = plan.name
+        current_user.free_plan_expires_at = datetime.utcnow() + timedelta(days=plan.period_days or 7)
+        req = PlanPurchaseRequest(
+            user_id=current_user.id, plan_id=plan.id, plan_name=plan.name, plan_price=0,
+            payment_method="free", status="approved"
+        )
+        db.add(req)
+        db.add(Notification(user_id=current_user.id, title="Free Plan Activated ✅", message=f"Your {plan.name} plan has been activated."))
+        db.commit()
+        return {"message": "Free plan activated successfully."}
+    elif payment_method == "wallet":
         if current_user.balance < plan.price:
             raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {plan.price}, Available: Rs. {round(current_user.balance, 2)}")
         current_user.balance -= plan.price
@@ -352,11 +480,22 @@ async def purchase_plan(
 @router.get("/plan/my-purchases")
 def my_plan_purchases(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     reqs = db.query(PlanPurchaseRequest).filter(PlanPurchaseRequest.user_id == current_user.id).order_by(PlanPurchaseRequest.created_at.desc()).all()
-    return [{
-        "id": r.id, "plan_name": r.plan_name, "plan_price": r.plan_price,
-        "payment_method": r.payment_method, "status": r.status,
-        "admin_note": r.admin_note, "created_at": r.created_at
-    } for r in reqs]
+    result = []
+    for r in reqs:
+        user = db.query(User).filter(User.id == r.user_id).first()
+        expiry = None
+        if r.status == "approved" and user:
+            if user.free_plan_expires_at:
+                expiry = user.free_plan_expires_at
+            elif user.plan_expires_at:
+                expiry = user.plan_expires_at
+        result.append({
+            "id": r.id, "plan_name": r.plan_name, "plan_price": r.plan_price,
+            "payment_method": r.payment_method, "status": r.status,
+            "admin_note": r.admin_note, "created_at": r.created_at,
+            "expires_at": expiry
+        })
+    return result
 
 
 # ── KYC ───────────────────────────────────────────────────────────────────────

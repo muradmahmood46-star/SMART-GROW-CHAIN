@@ -23,6 +23,7 @@ const TABS = [
   { key:'emails',      icon:'📧', label:'Admin Emails'    },
   { key:'messages',    icon:'📣', label:'Admin Messages'  },
   { key:'notify',      icon:'🔔', label:'Send Notification'},
+  { key:'advertiser-mgmt', icon:'📊', label:'Advertiser Mgmt' },
 ];
 
 export default function AdminPanel() {
@@ -42,7 +43,7 @@ export default function AdminPanel() {
   const [newEP, setNewEP] = useState({ account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'' });
   const [editEP, setEditEP]           = useState(null);
   const [newEmail, setNewEmail]       = useState('');
-  const [newPlan, setNewPlan]         = useState({ name:'', price:0, period_days:30, daily_ads:10, earning_per_click:0.001, referral_commission:0.05, referral_levels:'N/A', sort_order:0 });
+  const [newPlan, setNewPlan]         = useState({ name:'', price:0, period_days:30, daily_ads:10, earning_per_click:0.001, referral_commission:0.05, referral_levels:'N/A', sort_order:0, min_withdrawal:0, max_withdrawal:0 });
   const [editPlan, setEditPlan]       = useState(null);
   const [referrals, setReferrals]     = useState([]);
   const [refSearch, setRefSearch]     = useState('');
@@ -64,6 +65,13 @@ export default function AdminPanel() {
   const [adBudgetRate, setAdBudgetRate] = useState(1);
   const [newBudgetRate, setNewBudgetRate] = useState(1);
   const [welcomeMsg, setWelcomeMsg] = useState('');
+  const [registrationBonus, setRegistrationBonus] = useState(0);
+  const [regBonusInput, setRegBonusInput] = useState(0);
+  const [planLevels, setPlanLevels] = useState([{level:1,percent:10}]);
+  const [withdrawalMsg, setWithdrawalMsg] = useState('');
+  const [withdrawalMsgInput, setWithdrawalMsgInput] = useState('');
+  const [advertiserMsg, setAdvertiserMsg] = useState('');
+  const [advertiserMsgInput, setAdvertiserMsgInput] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [whatsappInput, setWhatsappInput] = useState('');
   const [referralMsg, setReferralMsg] = useState('');
@@ -75,6 +83,10 @@ export default function AdminPanel() {
   const [balanceAmount, setBalanceAmount] = useState('');
   const [replyModal, setReplyModal]   = useState(null);
   const [replyText, setReplyText]     = useState('');
+  // ── ADVERTISER MANAGEMENT STATE (new isolated module) ──
+  const [advertiserList, setAdvertiserList] = useState([]);
+  const [advertiserDetail, setAdvertiserDetail] = useState(null);
+  const [advertiserLoading, setAdvertiserLoading] = useState(false);
   const navigate = useNavigate();
 
   const notify = (text, type='success') => { setMsg({text,type}); setTimeout(()=>setMsg({text:'',type:''}),3500); };
@@ -98,7 +110,7 @@ export default function AdminPanel() {
     API.get('/admin/kyc').then(r=>setKycRequests(r.data)).catch(()=>{});
     API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
-    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); }).catch(()=>{});
+    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setWithdrawalMsgInput(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); setAdvertiserMsgInput(r.data.advertiser_message||''); const rb=parseFloat(r.data.registration_bonus||0); setRegistrationBonus(rb); setRegBonusInput(rb); }).catch(()=>{});
   };
 
   useEffect(()=>{ loadAll(); },[]);
@@ -149,10 +161,13 @@ export default function AdminPanel() {
   const savePlan = async(e)=>{
     e.preventDefault();
     try{
-      const data={...newPlan,price:parseFloat(newPlan.price),period_days:parseInt(newPlan.period_days),daily_ads:parseInt(newPlan.daily_ads),earning_per_click:parseFloat(newPlan.earning_per_click),referral_commission:parseFloat(newPlan.referral_commission),sort_order:parseInt(newPlan.sort_order)};
+      // Build level_commissions JSON from planLevels
+      const lvlMap = {};
+      planLevels.forEach(l=>{ lvlMap[String(l.level)] = parseFloat(l.percent)||0; });
+      const data={...newPlan,price:parseFloat(newPlan.price),period_days:parseInt(newPlan.period_days),daily_ads:parseInt(newPlan.daily_ads),earning_per_click:parseFloat(newPlan.earning_per_click),referral_commission:parseFloat(newPlan.referral_commission),sort_order:parseInt(newPlan.sort_order),min_withdrawal:parseFloat(newPlan.min_withdrawal)||0,max_withdrawal:parseFloat(newPlan.max_withdrawal)||0,level_commissions:JSON.stringify(lvlMap),referral_levels:`Up to ${planLevels.length} level`};
       if(editPlan){ await API.put(`/admin/plans/${editPlan.id}`,data); notify('Plan updated'); setEditPlan(null); }
       else{ await API.post('/admin/plans',data); notify('Plan created ✅'); }
-      loadAll(); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0});
+      loadAll(); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0,min_withdrawal:0,max_withdrawal:0}); setPlanLevels([{level:1,percent:10}]);
     } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
   };
 
@@ -231,7 +246,7 @@ export default function AdminPanel() {
           {TABS.map(({key,icon,label})=>(
             <button key={key} className={`nav-btn ${tab===key?'active':''}`}
               style={tab===key?{}:{}}
-              onClick={()=>{ setTab(key); setSidebarOpen(false); }}>
+              onClick={()=>{ setTab(key); setSidebarOpen(false); if(key==='advertiser-mgmt'&&advertiserList.length===0){ setAdvertiserLoading(true); API.get('/admin/advertiser-management').then(r=>{ setAdvertiserList(r.data); setAdvertiserLoading(false); }).catch(()=>setAdvertiserLoading(false)); } }}>
               <span className="nav-icon">{icon}</span>
               <span className="nav-label">{label}</span>
               {key==='withdrawals' && pendingW>0 && <span className="nav-badge">{pendingW}</span>}
@@ -466,7 +481,6 @@ export default function AdminPanel() {
                               <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600,letterSpacing:.5}}>PAYMENT METHOD</p>
                               <p style={{color:'var(--accent)',fontWeight:700,fontSize:14,margin:0,textTransform:'capitalize'}}>{w.method}</p>
                             </div>
-                            {/* Account number — big + copy */}
                             <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:9,padding:'10px 14px',marginBottom:14}}>
                               <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 4px',fontWeight:600,letterSpacing:.5}}>ACCOUNT NUMBER</p>
                               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
@@ -659,33 +673,69 @@ export default function AdminPanel() {
                     <div><label className="sgc-label">Period (days)</label><input className="sgc-input" type="number" min="1" value={newPlan.period_days} onChange={e=>setNewPlan({...newPlan,period_days:e.target.value})} required/></div>
                     <div><label className="sgc-label">Daily Ads</label><input className="sgc-input" type="number" min="1" value={newPlan.daily_ads} onChange={e=>setNewPlan({...newPlan,daily_ads:e.target.value})} required/></div>
                     <div><label className="sgc-label">Earn/Click (Rs.)</label><input className="sgc-input" type="number" min="0" step="0.0001" value={newPlan.earning_per_click} onChange={e=>setNewPlan({...newPlan,earning_per_click:e.target.value})} required/></div>
-                    <div><label className="sgc-label">Referral Commission</label><input className="sgc-input" type="number" min="0" step="0.01" max="1" placeholder="e.g. 0.10 for 10%" value={newPlan.referral_commission} onChange={e=>setNewPlan({...newPlan,referral_commission:e.target.value})} required/></div>
-                    <div><label className="sgc-label">Referral Levels</label><input className="sgc-input" placeholder="e.g. N/A or Up to 2 level" value={newPlan.referral_levels} onChange={e=>setNewPlan({...newPlan,referral_levels:e.target.value})}/></div>
                     <div><label className="sgc-label">Sort Order</label><input className="sgc-input" type="number" min="0" value={newPlan.sort_order} onChange={e=>setNewPlan({...newPlan,sort_order:e.target.value})}/></div>
+                    <div><label className="sgc-label">Min Withdrawal (Rs.)</label><input className="sgc-input" type="number" min="0" step="1" placeholder="e.g. 500" value={newPlan.min_withdrawal} onChange={e=>setNewPlan({...newPlan,min_withdrawal:e.target.value})}/></div>
+                    <div><label className="sgc-label">Max Withdrawal (Rs.)</label><input className="sgc-input" type="number" min="0" step="1" placeholder="0 = no limit" value={newPlan.max_withdrawal} onChange={e=>setNewPlan({...newPlan,max_withdrawal:e.target.value})}/></div>
                   </div>
-                  <div style={{display:'flex',gap:10,marginTop:4}}>
+
+                  {/* Referral Level Commissions */}
+                  <div style={{marginTop:16,marginBottom:4}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                      <label className="sgc-label" style={{margin:0}}>💰 Referral Level Commissions (%)</label>
+                      <button type="button" className="sgc-btn-sm" style={{background:'#1e3a6e',color:'var(--accent)',padding:'5px 14px'}} onClick={()=>setPlanLevels(prev=>[...prev,{level:prev.length+1,percent:0}])}>+ Add Level</button>
+                    </div>
+                    {planLevels.map((lvl,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                        <span style={{color:'var(--yellow)',fontWeight:700,fontSize:13,minWidth:60}}>Level {lvl.level}</span>
+                        <input type="number" min="0" max="100" step="0.1" placeholder="e.g. 10" value={lvl.percent}
+                          onChange={e=>setPlanLevels(prev=>prev.map((l,j)=>j===i?{...l,percent:e.target.value}:l))}
+                          style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'7px 12px',width:90,fontFamily:'var(--font)',fontSize:13}}/>
+                        <span style={{color:'var(--dim)',fontSize:13}}>%</span>
+                        {planLevels.length>1&&<button type="button" className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5',padding:'4px 10px'}} onClick={()=>setPlanLevels(prev=>prev.filter((_,j)=>j!==i).map((l,j)=>({...l,level:j+1})))}>✕</button>}
+                      </div>
+                    ))}
+                    <p style={{color:'var(--dim)',fontSize:11,marginTop:4}}>Level 1 = direct referral, Level 2 = referral ka referral, etc.</p>
+                  </div>
+
+                  <div style={{display:'flex',gap:10,marginTop:12}}>
                     <button className="sgc-btn-yellow" type="submit" style={{flex:1}}>{editPlan?'Update Plan':'Create Plan'}</button>
-                    {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setEditPlan(null); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0}); }}>Cancel</button>}
+                    {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setEditPlan(null); setNewPlan({name:'',price:0,period_days:30,daily_ads:10,earning_per_click:0.001,referral_commission:0.05,referral_levels:'N/A',sort_order:0,min_withdrawal:0,max_withdrawal:0}); setPlanLevels([{level:1,percent:10}]); }}>Cancel</button>}
                   </div>
                 </form>
                 <div className="sgc-table-wrap">
                   <table className="sgc-table">
-                    <thead><tr><th className="sgc-th">Name</th><th className="sgc-th">Price</th><th className="sgc-th">Days</th><th className="sgc-th">Daily Ads</th><th className="sgc-th">Earn/Click</th><th className="sgc-th">Commission</th><th className="sgc-th">Status</th><th className="sgc-th">Actions</th></tr></thead>
-                    <tbody>{plans.map(p=>(
-                      <tr key={p.id} className="sgc-tr">
-                        <td className="sgc-td" style={{color:'var(--text)',fontWeight:700,textTransform:'capitalize'}}>{p.name}</td>
-                        <td className="sgc-td" style={{color:'var(--green)',fontWeight:600}}>Rs. {p.price}</td>
-                        <td className="sgc-td">{p.period_days}d</td>
-                        <td className="sgc-td">{p.daily_ads}</td>
-                        <td className="sgc-td">Rs. {p.earning_per_click}</td>
-                        <td className="sgc-td">{(p.referral_commission*100).toFixed(0)}%</td>
-                        <td className="sgc-td"><span className="sgc-badge" style={{background:p.is_active?'#064e3b':'#334155'}}>{p.is_active?'Active':'Off'}</span></td>
-                        <td className="sgc-td" style={{display:'flex',gap:6}}>
-                          <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{ setEditPlan(p); setNewPlan({name:p.name,price:p.price,period_days:p.period_days,daily_ads:p.daily_ads,earning_per_click:p.earning_per_click,referral_commission:p.referral_commission,referral_levels:p.referral_levels||'N/A',sort_order:p.sort_order||0}); window.scrollTo(0,0); }}>Edit</button>
-                          <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deletePlan(p.id)}>Delete</button>
-                        </td>
-                      </tr>
-                    ))}
+                    <thead><tr><th className="sgc-th">Name</th><th className="sgc-th">Price</th><th className="sgc-th">Days</th><th className="sgc-th">Daily Ads</th><th className="sgc-th">Earn/Click</th><th className="sgc-th">Levels</th><th className="sgc-th">Min W/D</th><th className="sgc-th">Max W/D</th><th className="sgc-th">Status</th><th className="sgc-th">Actions</th></tr></thead>
+                    <tbody>{plans.map(p=>{
+                      let lvlMap = {};
+                      try{ lvlMap = JSON.parse(p.level_commissions||'{}'); }catch{}
+                      const lvlText = Object.keys(lvlMap).length>0 ? Object.entries(lvlMap).map(([k,v])=>`L${k}:${v}%`).join(', ') : `${(p.referral_commission*100).toFixed(0)}%`;
+                      return (
+                        <tr key={p.id} className="sgc-tr">
+                          <td className="sgc-td" style={{color:'var(--text)',fontWeight:700,textTransform:'capitalize'}}>{p.name}</td>
+                          <td className="sgc-td" style={{color:'var(--green)',fontWeight:600}}>Rs. {p.price}</td>
+                          <td className="sgc-td">{p.period_days}d</td>
+                          <td className="sgc-td">{p.daily_ads}</td>
+                          <td className="sgc-td">Rs. {p.earning_per_click}</td>
+                          <td className="sgc-td" style={{fontSize:11,color:'var(--accent)'}}>{lvlText}</td>
+                          <td className="sgc-td" style={{color:'var(--yellow)',fontSize:12}}>Rs. {p.min_withdrawal||0}</td>
+                          <td className="sgc-td" style={{color:'var(--red)',fontSize:12}}>{p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}</td>
+                          <td className="sgc-td"><span className="sgc-badge" style={{background:p.is_active?'#064e3b':'#334155'}}>{p.is_active?'Active':'Off'}</span></td>
+                          <td className="sgc-td" style={{display:'flex',gap:6}}>
+                            <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{
+                              setEditPlan(p);
+                              setNewPlan({name:p.name,price:p.price,period_days:p.period_days,daily_ads:p.daily_ads,earning_per_click:p.earning_per_click,referral_commission:p.referral_commission,referral_levels:p.referral_levels||'N/A',sort_order:p.sort_order||0,min_withdrawal:p.min_withdrawal||0,max_withdrawal:p.max_withdrawal||0});
+                              try{
+                                const lm=JSON.parse(p.level_commissions||'{}');
+                                const lvls=Object.entries(lm).map(([k,v])=>({level:parseInt(k),percent:v}));
+                                setPlanLevels(lvls.length>0?lvls:[{level:1,percent:(p.referral_commission*100)||10}]);
+                              }catch{ setPlanLevels([{level:1,percent:(p.referral_commission*100)||10}]); }
+                              window.scrollTo(0,0);
+                            }}>Edit</button>
+                            <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deletePlan(p.id)}>Delete</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {plans.length===0&&<tr><td colSpan={8} className="sgc-td" style={{textAlign:'center',padding:32}}>No plans yet</td></tr>}
                     </tbody>
                   </table>
@@ -701,21 +751,23 @@ export default function AdminPanel() {
                   <h4 style={{color:'var(--yellow)',marginBottom:16,fontSize:14,fontWeight:700}}>{editEP?'✏️ Edit Account':'➕ Add Account'}</h4>
                   <label className="sgc-label">Payment Method</label>
                   <div style={{display:'flex',gap:10,marginBottom:16}}>
-                    {['easypaisa','jazzcash'].map(m=>{
-                      const isEP=m==='easypaisa'; const col=isEP?'#3cb559':'#e8001e';
+                    {['easypaisa','jazzcash','bank'].map(m=>{
+                      const isEP=m==='easypaisa'; const isBank=m==='bank';
+                      const col=isEP?'#3cb559':isBank?'#3b82f6':'#e8001e';
+                      const bg=isEP?'#0a2010':isBank?'#0a1628':'#200008';
                       return (
                         <div key={m} onClick={()=>setNewEP({...newEP,method_type:m})}
-                          style={{flex:1,padding:'12px 8px',borderRadius:10,border:`2px solid ${newEP.method_type===m?col:'var(--border)'}`,background:newEP.method_type===m?(isEP?'#0a2010':'#200008'):'var(--bg)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
-                          <span style={{fontSize:18}}>{isEP?'📱':'💳'}</span>
-                          <span style={{color:newEP.method_type===m?col:'var(--muted)',fontWeight:700,fontSize:13}}>{isEP?'Easypaisa':'JazzCash'}</span>
+                          style={{flex:1,padding:'12px 8px',borderRadius:10,border:`2px solid ${newEP.method_type===m?col:'var(--border)'}`,background:newEP.method_type===m?bg:'var(--bg)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
+                          <span style={{fontSize:18}}>{isEP?'📱':isBank?'🏦':'💳'}</span>
+                          <span style={{color:newEP.method_type===m?col:'var(--muted)',fontWeight:700,fontSize:12}}>{isEP?'Easypaisa':isBank?'Bank Transfer':'JazzCash'}</span>
                         </div>
                       );
                     })}
                   </div>
                   <label className="sgc-label">Account Title (Name)</label>
                   <input className="sgc-input" placeholder="e.g. Farzana Bibi" value={newEP.account_title} onChange={e=>setNewEP({...newEP,account_title:e.target.value})} required/>
-                  <label className="sgc-label">{newEP.method_type==='easypaisa'?'Easypaisa':'JazzCash'} Number</label>
-                  <input className="sgc-input" placeholder="03XX-XXXXXXX" value={newEP.account_number} onChange={e=>setNewEP({...newEP,account_number:e.target.value})} required/>
+                  <label className="sgc-label">{newEP.method_type==='easypaisa'?'Easypaisa':newEP.method_type==='bank'?'Bank / IBAN':'JazzCash'} {newEP.method_type==='bank'?'Account Number':'Number'}</label>
+                  <input className="sgc-input" placeholder={newEP.method_type==='bank'?'e.g. PK36HABB0000123456789012':'03XX-XXXXXXX'} value={newEP.account_number} onChange={e=>setNewEP({...newEP,account_number:e.target.value})} required/>
                   <label className="sgc-label">Deposit Instructions <span style={{color:'var(--dim)',fontSize:11}}>(shown to user in deposit section)</span></label>
                   <textarea className="sgc-input" rows={3} placeholder="e.g. Send payment and submit the screenshot below. Make sure sender name matches." value={newEP.deposit_message} onChange={e=>setNewEP({...newEP,deposit_message:e.target.value})} style={{resize:'vertical',minHeight:80}}/>
                   <div style={{display:'flex',gap:10}}>
@@ -730,10 +782,11 @@ export default function AdminPanel() {
                     </tr></thead>
                     <tbody>{easypaisa.map(a=>{
                       const isEP=(a.method_type||'easypaisa')==='easypaisa';
-                      const col=isEP?'#3cb559':'#e8001e';
+                      const isBank=a.method_type==='bank';
+                      const col=isEP?'#3cb559':isBank?'#3b82f6':'#e8001e';
                       return (
                         <tr key={a.id} className="sgc-tr">
-                          <td className="sgc-td"><span style={{background:isEP?'#0a2010':'#200008',color:col,border:`1px solid ${col}`,padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700}}>{isEP?'📱 Easypaisa':'💳 JazzCash'}</span></td>
+                          <td className="sgc-td"><span style={{background:isEP?'#0a2010':isBank?'#0a1628':'#200008',color:col,border:`1px solid ${col}`,padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:700}}>{isEP?'📱 Easypaisa':isBank?'🏦 Bank Transfer':'💳 JazzCash'}</span></td>
                           <td className="sgc-td" style={{color:'var(--text)',fontWeight:600}}>{a.account_title}</td>
                           <td className="sgc-td" style={{fontFamily:'monospace',color:col,fontWeight:700,fontSize:15}}>{a.account_number}</td>
                           <td className="sgc-td"><span className="sgc-badge" style={{background:a.is_active?'#064e3b':'#334155'}}>{a.is_active?'Active':'Inactive'}</span></td>
@@ -911,10 +964,6 @@ export default function AdminPanel() {
                   <div style={{display:'flex',gap:10,marginBottom:12}}>
                     <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="0.1" step="0.1" value={newBudgetRate} onChange={e=>setNewBudgetRate(e.target.value)}/>
                   </div>
-                  <label className="sgc-label">Welcome Message <span style={{color:'var(--dim)',fontSize:11}}>(max 1000 words)</span></label>
-                  <textarea className="sgc-input" rows={6} placeholder="e.g. Reach thousands of real members instantly!" value={welcomeMsg} style={{resize:'vertical',minHeight:120}}
-                    onChange={e=>{ const words=e.target.value.trim().split(/\s+/).filter(Boolean); if(words.length<=1000) setWelcomeMsg(e.target.value); }}/>
-                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Words: {welcomeMsg.trim().split(/\s+/).filter(Boolean).length} / 1000</p>
                   <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{
                     await API.put('/admin/ad-budget-rate',{rate_pkr:parseFloat(newBudgetRate),welcome_message:welcomeMsg});
                     setAdBudgetRate(parseFloat(newBudgetRate));
@@ -1175,12 +1224,41 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Dashboard Bottom Message */}
-                <div className="sgc-form" style={{maxWidth:480}}>
+                <div className="sgc-form" style={{maxWidth:480,marginBottom:24}}>
                   <h4 style={{color:'var(--yellow)',fontSize:13,fontWeight:700,marginBottom:4}}>📋 User Dashboard Bottom Message</h4>
                   <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>User dashboard ke end mein show hoga</p>
-                  <textarea className="sgc-input" rows={4} placeholder="e.g. Roz ads dekhen aur zyada kamayen! Referral se extra income bhi haasil karein." value={dashboardMsgInput} onChange={e=>setDashboardMsgInput(e.target.value)} style={{resize:'vertical',minHeight:90}}/>
+                  <textarea className="sgc-input" rows={4} placeholder="e.g. Roz ads dekhen aur zyada kamayen!" value={dashboardMsgInput} onChange={e=>setDashboardMsgInput(e.target.value)} style={{resize:'vertical',minHeight:90}}/>
                   <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/dashboard_message',{value:dashboardMsgInput}); setDashboardMsg(dashboardMsgInput); notify('Saved ✅'); }}>Save</button>
                   {dashboardMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {dashboardMsg.substring(0,80)}{dashboardMsg.length>80?'...':''}</p>}
+                </div>
+
+                {/* Registration Bonus */}
+                <div className="sgc-form" style={{maxWidth:480}}>
+                  <h4 style={{color:'var(--green)',fontSize:13,fontWeight:700,marginBottom:4}}>🎁 Registration Bonus (Rs.)</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Naye user register hone par yeh bonus milega. User plan buy karne ke baad hi withdraw kar sakta hai.</p>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="0" step="0.01" placeholder="e.g. 50" value={regBonusInput} onChange={e=>setRegBonusInput(e.target.value)}/>
+                    <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ await API.put('/admin/settings/registration_bonus',{value:String(regBonusInput)}); setRegistrationBonus(parseFloat(regBonusInput)); notify('Saved ✅'); }}>Save</button>
+                  </div>
+                  <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Current: <b style={{color:'var(--green)'}}>Rs. {registrationBonus}</b> per new registration</p>
+                </div>
+
+                {/* Withdrawal Page Message */}
+                <div className="sgc-form" style={{maxWidth:480,marginTop:24}}>
+                  <h4 style={{color:'var(--red)',fontSize:13,fontWeight:700,marginBottom:4}}>💸 Withdrawal Page Custom Message</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Payout/Withdraw page par form ke neeche show hoga. Withdrawal timings, rules, ya koi notice likhein.</p>
+                  <textarea className="sgc-input" rows={4} placeholder="e.g. Withdrawal requests process hone mein 24-48 hours lag sakte hain..." value={withdrawalMsgInput} onChange={e=>setWithdrawalMsgInput(e.target.value)} style={{resize:'vertical',minHeight:90}}/>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/withdrawal_message',{value:withdrawalMsgInput}); setWithdrawalMsg(withdrawalMsgInput); notify('Saved ✅'); }}>Save</button>
+                  {withdrawalMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {withdrawalMsg.substring(0,80)}{withdrawalMsg.length>80?'...':''}</p>}
+                </div>
+
+                {/* Advertiser Message */}
+                <div className="sgc-form" style={{maxWidth:480,marginTop:24}}>
+                  <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:4}}>📢 Advertiser Custom Message</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>Yeh message sirf advertisers ko "Advertise" section mein dikhega. Rules, guidelines, approval policy likhein.</p>
+                  <textarea className="sgc-input" rows={8} placeholder="e.g. Apna ad submit karne se pehle in rules ko zaroor parhein..." value={advertiserMsgInput} onChange={e=>setAdvertiserMsgInput(e.target.value)} style={{resize:'vertical',minHeight:150}}/>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/advertiser_message',{value:advertiserMsgInput}); setAdvertiserMsg(advertiserMsgInput); notify('Saved ✅'); }}>Save</button>
+                  {advertiserMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {advertiserMsg.substring(0,80)}{advertiserMsg.length>80?'...':''}</p>}
                 </div>
               </div>
             )}
@@ -1235,6 +1313,171 @@ export default function AdminPanel() {
                     setNotifTitle(''); setNotifMsg(''); setNotifUserId(''); setNotifSendEmail(false);
                   }}>Send Notification</button>
                 </div>
+              </div>
+            )}
+
+            {/* ── ADVERTISER MANAGEMENT (new isolated module) ── */}
+            {tab==='advertiser-mgmt' && (
+              <div>
+                {advertiserDetail ? (
+                  <div>
+                    <button onClick={()=>setAdvertiserDetail(null)} style={{background:'none',border:'none',color:'var(--accent)',cursor:'pointer',fontSize:13,fontWeight:600,marginBottom:16,fontFamily:'var(--font)',padding:0}}>← Back to Advertiser List</button>
+                    <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'20px 22px',marginBottom:20}}>
+                      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16,flexWrap:'wrap'}}>
+                        <div style={{width:48,height:48,borderRadius:'50%',background:'linear-gradient(135deg,var(--yellow),#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:22,color:'var(--bg)',flexShrink:0}}>{advertiserDetail.username[0].toUpperCase()}</div>
+                        <div>
+                          <p style={{color:'var(--text)',fontWeight:800,fontSize:18,margin:0}}>@{advertiserDetail.username}</p>
+                          <p style={{color:'var(--dim)',fontSize:12,margin:'2px 0 0'}}>{advertiserDetail.email} &bull; <span style={{color:'var(--accent)',textTransform:'capitalize'}}>{advertiserDetail.membership}</span> &bull; Joined {new Date(advertiserDetail.joined).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:10}}>
+                        {[
+                          ['Total Ads',advertiserDetail.total_ads,'var(--accent)'],
+                          ['Total Clicks',advertiserDetail.total_clicks_received,'var(--green)'],
+                          ['Actual Viewers',advertiserDetail.total_actual_viewers,'#38bdf8'],
+                          ['Budget Spent',`Rs.${advertiserDetail.total_budget_spent}`,'var(--yellow)'],
+                          ['Active',advertiserDetail.active_ads,'#4ade80'],
+                          ['Completed',advertiserDetail.completed_ads,'var(--purple)'],
+                          ['Pending',advertiserDetail.pending_ads,'#fbbf24'],
+                        ].map(([l,v,c])=>(
+                          <div key={l} style={{background:'rgba(0,0,0,.25)',borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
+                            <p style={{color:'var(--dim)',fontSize:10,fontWeight:700,margin:'0 0 4px',letterSpacing:.5}}>{l.toUpperCase()}</p>
+                            <p style={{color:c,fontSize:18,fontWeight:800,margin:0}}>{v}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <h3 style={{color:'var(--text)',fontWeight:800,fontSize:15,marginBottom:14}}>📋 All Campaigns</h3>
+                    <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                      {advertiserDetail.ads.map((ad)=>{
+                        const isActive=ad.status==='approved'; const isDone=ad.status==='completed';
+                        const isPending=ad.status==='pending'; const isRejected=ad.status==='rejected';
+                        const accentCol=isActive?'#4ade80':isDone?'#38bdf8':isPending?'#fbbf24':'#f87171';
+                        const borderCol=isActive?'#166534':isDone?'#1e4080':isPending?'#92400e':'#7f1d1d';
+                        const bgCol=isActive?'#052e16':isDone?'#0c1e3e':isPending?'#1c1000':'#1c0a0a';
+                        return (
+                          <div key={ad.id} style={{background:bgCol,border:`1.5px solid ${borderCol}`,borderRadius:14,overflow:'hidden'}}>
+                            <div style={{padding:'12px 16px',borderBottom:`1px solid ${borderCol}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                              <div style={{flex:1,minWidth:0}}>
+                                <p style={{color:'var(--text)',fontWeight:800,fontSize:15,margin:'0 0 2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ad.title}</p>
+                                <p style={{color:'var(--dim)',fontSize:11,margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>🔗 {ad.url}</p>
+                              </div>
+                              <span style={{background:isActive?'#064e3b':isDone?'#1e3a6e':isPending?'#451a03':'#450a0a',color:accentCol,padding:'3px 14px',borderRadius:20,fontSize:11,fontWeight:800,whiteSpace:'nowrap'}}>
+                                {isActive?'✅ ACTIVE':isDone?'🏁 DONE':isPending?'⏳ PENDING':'REJECTED'}
+                              </span>
+                            </div>
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:0,borderBottom:`1px solid ${borderCol}`}}>
+                              {[
+                                ['💰','Budget',`Rs.${ad.total_budget}`],
+                                ['👥','Target',ad.members_needed],
+                                ['✅','Reached',ad.members_reached],
+                                ['👁️','Viewers',ad.actual_viewers],
+                                ['⏳','Remaining',ad.remaining_clicks],
+                                ['📊','Progress',`${ad.progress_pct}%`],
+                              ].map(([icon,label,val],si,arr)=>(
+                                <div key={label} style={{padding:'10px 8px',textAlign:'center',borderRight:si<arr.length-1?`1px solid ${borderCol}`:'none'}}>
+                                  <p style={{fontSize:16,margin:'0 0 2px'}}>{icon}</p>
+                                  <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600}}>{label}</p>
+                                  <p style={{color:accentCol,fontSize:12,fontWeight:800,margin:0}}>{val}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{padding:'10px 16px'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',marginBottom:5}}>
+                                <span style={{color:'var(--dim)',fontSize:11,fontWeight:600}}>PROGRESS</span>
+                                <span style={{color:accentCol,fontSize:11,fontWeight:800}}>{ad.members_reached}/{ad.members_needed}</span>
+                              </div>
+                              <div style={{height:8,background:'#0b1120',borderRadius:6,overflow:'hidden',border:'1px solid var(--border)'}}>
+                                <div style={{width:`${ad.progress_pct}%`,height:'100%',background:`linear-gradient(90deg,${accentCol},${isDone?'#818cf8':isActive?'#86efac':'#fde68a'})`,borderRadius:6}}/>
+                              </div>
+                              <p style={{color:'var(--dim)',fontSize:10,margin:'6px 0 0'}}>Submitted: {new Date(ad.created_at).toLocaleString()}{ad.admin_note&&<span style={{color:'#fbbf24',marginLeft:8}}>Note: {ad.admin_note}</span>}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {advertiserDetail.ads.length===0&&<div className="sgc-empty">No campaigns found.</div>}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="sgc-page-header">
+                      <h2 className="sgc-heading">📊 Advertiser Management</h2>
+                      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                        <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{advertiserList.length} advertisers</span>
+                        <button className="sgc-btn-sm" style={{background:'#1e3a6e',color:'var(--accent)',padding:'6px 14px'}} onClick={()=>{ setAdvertiserLoading(true); API.get('/admin/advertiser-management').then(r=>{ setAdvertiserList(r.data); setAdvertiserLoading(false); }).catch(()=>setAdvertiserLoading(false)); }}>🔄 Refresh</button>
+                      </div>
+                    </div>
+                    {advertiserLoading && <div style={{textAlign:'center',padding:40,color:'var(--dim)',fontSize:14}}>⏳ Loading advertisers...</div>}
+                    {!advertiserLoading && (
+                      <>
+                        <div className="sgc-stats" style={{marginBottom:24}}>
+                          {[
+                            ['Total Advertisers',advertiserList.length,'var(--accent)'],
+                            ['Total Campaigns',advertiserList.reduce((s,a)=>s+a.total_ads,0),'var(--yellow)'],
+                            ['Active Campaigns',advertiserList.reduce((s,a)=>s+a.active_ads,0),'var(--green)'],
+                            ['Total Budget',`Rs.${advertiserList.reduce((s,a)=>s+a.total_budget_spent,0).toFixed(2)}`,'var(--purple)'],
+                          ].map(([l,v,c])=>(
+                            <div key={l} className="sgc-stat-card">
+                              <div className="sgc-stat-label">{l}</div>
+                              <div className="sgc-stat-val" style={{color:c}}>{v}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                          {advertiserList.map((adv)=>(
+                            <div key={adv.user_id} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden',transition:'border-color .2s'}}
+                              onMouseEnter={e=>e.currentTarget.style.borderColor='var(--yellow)'}
+                              onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                              <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+                                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                                  <div style={{width:40,height:40,borderRadius:'50%',background:'linear-gradient(135deg,var(--yellow),#d97706)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900,fontSize:18,color:'var(--bg)',flexShrink:0}}>{adv.username[0].toUpperCase()}</div>
+                                  <div>
+                                    <p style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>@{adv.username}</p>
+                                    <p style={{color:'var(--dim)',fontSize:11,margin:'2px 0 0'}}>{adv.email} &bull; <span style={{color:'var(--accent)',textTransform:'capitalize'}}>{adv.membership}</span></p>
+                                  </div>
+                                </div>
+                                <button onClick={async()=>{ setAdvertiserLoading(true); try{ const r=await API.get(`/admin/advertiser-management/${adv.user_id}`); setAdvertiserDetail(r.data); }catch{} setAdvertiserLoading(false); }}
+                                  style={{padding:'8px 18px',background:'linear-gradient(135deg,var(--yellow),#d97706)',border:'none',borderRadius:9,color:'var(--bg)',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>
+                                  View Details →
+                                </button>
+                              </div>
+                              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(100px,1fr))',gap:0}}>
+                                {[
+                                  ['📢','Total Ads',adv.total_ads,'var(--accent)'],
+                                  ['✅','Clicks',adv.total_clicks_received,'var(--green)'],
+                                  ['💰','Budget',`Rs.${adv.total_budget_spent}`,'var(--yellow)'],
+                                  ['🟢','Active',adv.active_ads,'#4ade80'],
+                                  ['🏁','Done',adv.completed_ads,'var(--purple)'],
+                                ].map(([icon,label,val,col],si,arr)=>(
+                                  <div key={label} style={{padding:'12px 8px',textAlign:'center',borderRight:si<arr.length-1?'1px solid var(--border)':'none'}}>
+                                    <p style={{fontSize:18,margin:'0 0 2px'}}>{icon}</p>
+                                    <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 3px',fontWeight:600}}>{label}</p>
+                                    <p style={{color:col,fontSize:14,fontWeight:800,margin:0}}>{val}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              {adv.ads.length>0&&(
+                                <div style={{borderTop:'1px solid var(--border)',padding:'10px 18px'}}>
+                                  <p style={{color:'var(--dim)',fontSize:10,fontWeight:700,letterSpacing:.5,margin:'0 0 8px'}}>CAMPAIGNS</p>
+                                  <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                                    {adv.ads.slice(0,4).map(ad=>(
+                                      <div key={ad.id} style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'4px 12px',fontSize:11}}>
+                                        <span style={{color:'var(--text)',fontWeight:600,marginRight:6}}>{ad.title?.substring(0,20)}{ad.title?.length>20?'...':''}</span>
+                                        <span style={{background:ad.status==='approved'?'#064e3b':ad.status==='completed'?'#1e3a6e':ad.status==='pending'?'#451a03':'#450a0a',color:ad.status==='approved'?'#4ade80':ad.status==='completed'?'#38bdf8':ad.status==='pending'?'#fbbf24':'#fca5a5',padding:'1px 7px',borderRadius:20,fontSize:10,fontWeight:700}}>{ad.status}</span>
+                                      </div>
+                                    ))}
+                                    {adv.ads.length>4&&<span style={{color:'var(--dim)',fontSize:11,padding:'4px 8px'}}>+{adv.ads.length-4} more</span>}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {advertiserList.length===0&&<div className="sgc-empty">No advertisers found. Users who submit ad campaigns will appear here.</div>}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

@@ -166,13 +166,14 @@ body {
 }
 .sgc-logout:hover { background:rgba(239,68,68,.2); border-color:#ef4444; }
 
-/* ── Top Bar (mobile) ── */
+/* ── Top Bar ── */
 .sgc-topbar {
-  display:none; align-items:center; justify-content:space-between;
-  padding:12px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 20px;
   background: var(--hero-grad);
   border-bottom:none;
   box-shadow: 0 2px 12px rgba(13,148,136,.2);
+  flex-shrink:0;
 }
 .hamburger {
   background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.3);

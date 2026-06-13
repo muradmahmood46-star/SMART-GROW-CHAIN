@@ -54,11 +54,16 @@ if not db.query(User).filter(User.username == "demouser").first():
 # Create membership plans
 if db.query(MembershipPlan).count() == 0:
     plans = [
-        MembershipPlan(name="free", price=0, daily_ads=5, earning_per_click=0.001, referral_commission=0.05),
-        MembershipPlan(name="basic", price=5, daily_ads=15, earning_per_click=0.003, referral_commission=0.08),
-        MembershipPlan(name="premium", price=20, daily_ads=50, earning_per_click=0.01, referral_commission=0.10),
+        MembershipPlan(name="GSC Free Plan", price=0, period_days=7, daily_ads=5, earning_per_click=0.001, referral_commission=0.05, sort_order=0),
+        MembershipPlan(name="basic", price=5, period_days=30, daily_ads=15, earning_per_click=0.003, referral_commission=0.08, sort_order=1),
+        MembershipPlan(name="premium", price=20, period_days=30, daily_ads=50, earning_per_click=0.01, referral_commission=0.10, sort_order=2),
     ]
     db.add_all(plans)
+else:
+    # Ensure GSC Free Plan exists
+    from app.models.models import MembershipPlan as MP
+    if not db.query(MP).filter(MP.price == 0).first():
+        db.add(MP(name="GSC Free Plan", price=0, period_days=7, daily_ads=5, earning_per_click=0.001, referral_commission=0.05, sort_order=0))
 
 db.commit()
 db.close()

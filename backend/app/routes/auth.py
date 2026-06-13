@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import User, SiteSettings
+from app.models.models import User, SiteSettings, Notification
 from app.schemas.schemas import UserRegister, UserLogin, Token
 from app.utils import hash_password, verify_password, create_access_token, generate_referral_code
 from pydantic import BaseModel
@@ -85,15 +85,23 @@ def _create_user(data, db: Session):
         if referrer:
             referred_by = referrer.id
     d = data if isinstance(data, dict) else data.dict()
+    # Registration bonus
+    bonus_row = db.query(SiteSettings).filter(SiteSettings.key == "registration_bonus").first()
+    reg_bonus = float(bonus_row.value) if bonus_row and bonus_row.value else 0.0
     user = User(
         username=d["username"],
         email=d["email"],
         password=hash_password(d["password"]),
         referral_code=generate_referral_code(),
-        referred_by=referred_by
+        referred_by=referred_by,
+        balance=reg_bonus,
+        total_earned=reg_bonus
     )
     db.add(user)
     db.commit()
+    if reg_bonus > 0:
+        db.add(Notification(user_id=user.id, title="Welcome Bonus 🎁", message=f"You have received a registration bonus of Rs. {reg_bonus}. Buy a plan to activate withdrawal."))
+        db.commit()
     return {"message": "Registration successful"}
 
 @router.post("/register/verify-otp")

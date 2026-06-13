@@ -818,6 +818,102 @@ def set_free_plan_days(data: FreePlanDays, db: Session = Depends(get_db), admin=
     return {"message": "Updated", "days": data.days}
 
 
+# ── ADVERTISER MANAGEMENT (NEW ISOLATED MODULE) ───────────────────────────
+@router.get("/advertiser-management")
+def get_advertiser_management(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    """Return all users who have submitted at least one ad request, with per-ad tracking."""
+    advertisers = db.query(User).join(
+        UserAdRequest, UserAdRequest.user_id == User.id
+    ).filter(User.is_admin == False).distinct().all()
+
+    result = []
+    for u in advertisers:
+        reqs = db.query(UserAdRequest).filter(UserAdRequest.user_id == u.id).order_by(UserAdRequest.created_at.desc()).all()
+        ads_data = []
+        for r in reqs:
+            completed = r.members_reached or 0
+            remaining = max((r.members_needed or 0) - completed, 0)
+            pct = round((completed / r.members_needed * 100), 1) if r.members_needed > 0 else 0
+            ads_data.append({
+                "id": r.id,
+                "title": r.title,
+                "url": r.url,
+                "total_budget": r.total_cost,
+                "members_needed": r.members_needed,
+                "members_reached": completed,
+                "remaining_clicks": remaining,
+                "progress_pct": pct,
+                "status": r.status,
+                "payment_method": r.payment_method,
+                "created_at": r.created_at
+            })
+        total_clicks   = sum(a["members_reached"] for a in ads_data)
+        total_budget   = sum(a["total_budget"] for a in ads_data)
+        active_count   = sum(1 for a in ads_data if a["status"] == "approved")
+        completed_count = sum(1 for a in ads_data if a["status"] == "completed")
+        result.append({
+            "user_id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "membership": u.membership,
+            "total_ads": len(ads_data),
+            "total_clicks_received": total_clicks,
+            "total_budget_spent": round(total_budget, 2),
+            "active_ads": active_count,
+            "completed_ads": completed_count,
+            "ads": ads_data
+        })
+    return result
+
+
+@router.get("/advertiser-management/{user_id}")
+def get_advertiser_detail(user_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    """Detailed view for a single advertiser."""
+    user = db.query(User).filter(User.id == user_id, User.is_admin == False).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Advertiser not found")
+    reqs = db.query(UserAdRequest).filter(UserAdRequest.user_id == user_id).order_by(UserAdRequest.created_at.desc()).all()
+    ads_data = []
+    for r in reqs:
+        completed = r.members_reached or 0
+        remaining = max((r.members_needed or 0) - completed, 0)
+        pct = round((completed / r.members_needed * 100), 1) if r.members_needed > 0 else 0
+        # fetch actual viewers from earnings for this campaign url
+        viewers_count = db.query(Earning).join(Ad, Earning.ad_id == Ad.id).filter(
+            Ad.url == r.url, Earning.type == "click"
+        ).count()
+        ads_data.append({
+            "id": r.id,
+            "title": r.title,
+            "url": r.url,
+            "total_budget": r.total_cost,
+            "members_needed": r.members_needed,
+            "members_reached": completed,
+            "actual_viewers": viewers_count,
+            "remaining_clicks": remaining,
+            "progress_pct": pct,
+            "status": r.status,
+            "payment_method": r.payment_method,
+            "admin_note": r.admin_note,
+            "created_at": r.created_at
+        })
+    return {
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "membership": user.membership,
+        "joined": user.created_at,
+        "total_ads": len(ads_data),
+        "total_clicks_received": sum(a["members_reached"] for a in ads_data),
+        "total_actual_viewers": sum(a["actual_viewers"] for a in ads_data),
+        "total_budget_spent": round(sum(a["total_budget"] for a in ads_data), 2),
+        "active_ads": sum(1 for a in ads_data if a["status"] == "approved"),
+        "completed_ads": sum(1 for a in ads_data if a["status"] == "completed"),
+        "pending_ads": sum(1 for a in ads_data if a["status"] == "pending"),
+        "ads": ads_data
+    }
+
+
 # ── NOTIFICATIONS ─────────────────────────────────────────────────────────
 class NotificationCreate(BaseModel):
     title: str
