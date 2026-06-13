@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
 import '../panel.css';
@@ -967,7 +967,7 @@ export default function Dashboard() {
                         : `${(p.referral_commission*100).toFixed(0)}%`;
                       return (
                         <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isCurrent?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
-                          {isCurrent&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}>{String.fromCharCode(10003)} Current Plan</div>}
+                          {isCurrent&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{String.fromCharCode(10003)} Current Plan</div>}
                           <h3 style={{color:col,textTransform:'capitalize',marginBottom:4,fontSize:17}}>{p.name}</h3>
                           <p style={{color:'var(--text)',fontSize:26,fontWeight:800,marginBottom:16}}>Rs. {p.price}<span style={{fontSize:13,color:'var(--dim)',fontWeight:400}}>/{p.period_days}d</span></p>
                           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
