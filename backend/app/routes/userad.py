@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import User, UserAdRequest, AdBudgetRate, EasypaisaAccount
+from app.models.models import User, UserAdRequest, AdBudgetRate, EasypaisaAccount, Ad
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
 import os, shutil, uuid
@@ -85,7 +85,10 @@ def my_requests(current_user: User = Depends(get_current_user), db: Session = De
         "members_needed": r.members_needed,
         "members_reached": r.members_reached or 0,
         "total_cost": r.total_cost, "payment_method": r.payment_method,
-        "status": r.status, "admin_note": r.admin_note, "created_at": r.created_at
+        "status": r.status,
+        "can_reactivate": r.status in ["rejected", "completed"],
+        "reactivate_message": "Reactivate this same campaign" if r.status in ["rejected", "completed"] else "Campaign is already active or waiting for admin approval",
+        "admin_note": r.admin_note, "created_at": r.created_at
     } for r in reqs]
 
 @router.post("/reactivate/{req_id}")
@@ -100,8 +103,12 @@ def reactivate_request(req_id: int, current_user: User = Depends(get_current_use
         if current_user.balance < req.total_cost:
             raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {req.total_cost}")
         current_user.balance -= req.total_cost
+    # Disable the old published ad so admin approval creates a fresh ad id.
+    # This lets users who watched the previous run watch the reactivated run again.
+    db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update({"is_active": False})
     req.status = "pending"
     req.members_reached = 0
+    req.admin_note = None
     db.commit()
     return {"message": "Request reactivated successfully"}
 

@@ -1475,7 +1475,7 @@ export default function Dashboard() {
                               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
                                 <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
                                 <div>
-                                  <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
+                                  <p style={{color:'#fff',fontWeight:800,fontSize:14,margin:0,textShadow:'0 1px 2px rgba(0,0,0,.5)'}}>{a.account_title}</p>
                                   <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Account Name</p>
                                 </div>
                               </div>
@@ -1547,6 +1547,7 @@ export default function Dashboard() {
                         const isCompleted=r.status==='completed';
                         const isRejected=r.status==='rejected';
                         const isPending=r.status==='pending';
+                        const canReactivate = r.can_reactivate ?? (isRejected||isCompleted);
                         const accentCol = isApproved?'#4ade80':isCompleted?'#38bdf8':isRejected?'#f87171':'#fbbf24';
                         const borderCol = isApproved?'#22c55e50':isCompleted?'#1e4080':isRejected?'#7f1d1d':'#92400e';
                         const bgCol    = isApproved?'#0d3d20':isCompleted?'#0c1e3e':isRejected?'#1c0a0a':'#1c1000';
@@ -1634,18 +1635,20 @@ export default function Dashboard() {
                               )}
 
                               {/* Reactivate Button */}
-                              {(isRejected||isCompleted) && (
-                                <button onClick={async()=>{
+                              <button disabled={!canReactivate} onClick={async()=>{
+                                  if(!canReactivate){
+                                    notify(r.reactivate_message || 'Campaign can be reactivated after it is completed or rejected.','error');
+                                    return;
+                                  }
                                   try{
                                     await API.post(`/user/ad-request/reactivate/${r.id}`);
                                     notify('Campaign reactivated! 🚀');
                                     API.get('/user/ad-request/my-requests').then(res=>setMyAdRequests(res.data));
                                     API.get('/user/profile').then(res=>setProfile(res.data));
                                   }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-                                }} style={{width:'100%',padding:'13px',background:'linear-gradient(135deg,#7c3aed,#6d28d9)',border:'none',borderRadius:10,color:'#fff',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s',boxShadow:'0 2px 12px rgba(124,58,237,.35)'}}>
-                                  <span style={{fontSize:18}}>🔄</span> Reactivate Campaign
+                                }} style={{width:'100%',padding:'13px',background:canReactivate?'linear-gradient(135deg,#7c3aed,#6d28d9)':'#1f2937',border:`1px solid ${canReactivate?'transparent':'var(--border)'}`,borderRadius:10,color:canReactivate?'#fff':'var(--dim)',fontWeight:700,fontSize:14,cursor:canReactivate?'pointer':'not-allowed',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s',boxShadow:canReactivate?'0 2px 12px rgba(124,58,237,.35)':'none',opacity:canReactivate?1:.8}}>
+                                  <span style={{fontSize:18}}>🔄</span> {canReactivate?'Reactivate Campaign':'Reactivate after completion'}
                                 </button>
-                              )}
 
                               {r.admin_note&&(
                                 <div style={{background:'#1c1500',border:'1px solid #92400e',borderRadius:8,padding:'8px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
