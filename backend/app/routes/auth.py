@@ -130,10 +130,9 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     if data.username == "admin" and data.password == "admin123":
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
-            # Generate unique referral code
-            ref_code = generate_referral_code()
-            while db.query(User).filter(User.referral_code == ref_code).first():
-                ref_code = generate_referral_code()
+            # Create admin user with simple unique ID generation
+            import random
+            ref_code = f"ADMIN{random.randint(1000, 9999)}"
             admin_user = User(
                 username="admin",
                 email="admin@smartgrow.com",
@@ -148,9 +147,10 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
             try:
                 db.commit()
                 db.refresh(admin_user)
-            except Exception:
+            except Exception as e:
                 db.rollback()
-                # Try to fetch again in case of race condition
+                print(f"Admin creation error: {e}")
+                # Try to fetch if commit failed (duplicate key etc)
                 admin_user = db.query(User).filter(User.username == "admin").first()
                 if not admin_user:
                     raise HTTPException(status_code=500, detail="Failed to create admin user")
