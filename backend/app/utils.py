@@ -35,4 +35,6 @@ def decode_token(token: str):
         return None
 
 def generate_referral_code():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    import time
+    # Use timestamp to guarantee uniqueness
+    return f"REF{int(time.time()) % 1000000:06d}"
