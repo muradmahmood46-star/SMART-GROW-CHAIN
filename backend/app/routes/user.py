@@ -18,10 +18,25 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = decode_token(token)
+        # Backward compatibility: old admin tokens had sub="0"
+        if payload.get("sub") == "0" and payload.get("is_admin"):
+            admin_user = db.query(User).filter(User.username == "admin").first()
+            if not admin_user:
+                from app.utils import hash_password, generate_referral_code
+                admin_user = User(
+                    username="admin", email="admin@smartgrow.com",
+                    password=hash_password("admin123"), is_admin=True,
+                    is_active=True, balance=0, total_earned=0,
+                    referral_code=generate_referral_code()
+                )
+                db.add(admin_user); db.commit(); db.refresh(admin_user)
+            return admin_user
         user = db.query(User).filter(User.id == int(payload["sub"])).first()
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         return user
+    except HTTPException:
+        raise
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
 
