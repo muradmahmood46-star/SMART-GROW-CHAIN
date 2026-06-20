@@ -128,7 +128,22 @@ def verify_registration_otp(data: RegOTPVerify, db: Session = Depends(get_db)):
 def login(data: UserLogin, db: Session = Depends(get_db)):
     # Admin bypass — no OTP
     if data.username == "admin" and data.password == "admin123":
-        token = create_access_token({"sub": "0", "is_admin": True})
+        admin_user = db.query(User).filter(User.username == "admin").first()
+        if not admin_user:
+            admin_user = User(
+                username="admin",
+                email="admin@smartgrow.com",
+                password=hash_password("admin123"),
+                is_admin=True,
+                is_active=True,
+                balance=0,
+                total_earned=0,
+                referral_code=generate_referral_code()
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+        token = create_access_token({"sub": str(admin_user.id), "is_admin": True})
         return {"access_token": token, "token_type": "bearer", "is_admin": True, "username": "admin"}
 
     user = db.query(User).filter(User.username == data.username).first()
