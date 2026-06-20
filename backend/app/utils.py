@@ -32,7 +32,7 @@ def decode_token(token: str):
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        return None
 
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))

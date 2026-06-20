@@ -14,6 +14,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = decode_token(token)
+        if not payload:
+            raise HTTPException(status_code=401, detail="Invalid token")
         # Backward compatibility: old admin tokens had sub="0"
         if payload.get("sub") == "0" and payload.get("is_admin"):
             admin_user = db.query(User).filter(User.username == "admin").first()
