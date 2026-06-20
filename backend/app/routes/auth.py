@@ -130,6 +130,10 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     if data.username == "admin" and data.password == "admin123":
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
+            # Generate unique referral code
+            ref_code = generate_referral_code()
+            while db.query(User).filter(User.referral_code == ref_code).first():
+                ref_code = generate_referral_code()
             admin_user = User(
                 username="admin",
                 email="admin@smartgrow.com",
@@ -138,11 +142,18 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
                 is_active=True,
                 balance=0,
                 total_earned=0,
-                referral_code=generate_referral_code()
+                referral_code=ref_code
             )
             db.add(admin_user)
-            db.commit()
-            db.refresh(admin_user)
+            try:
+                db.commit()
+                db.refresh(admin_user)
+            except Exception:
+                db.rollback()
+                # Try to fetch again in case of race condition
+                admin_user = db.query(User).filter(User.username == "admin").first()
+                if not admin_user:
+                    raise HTTPException(status_code=500, detail="Failed to create admin user")
         token = create_access_token({"sub": str(admin_user.id), "is_admin": True})
         return {"access_token": token, "token_type": "bearer", "is_admin": True, "username": "admin"}
 
