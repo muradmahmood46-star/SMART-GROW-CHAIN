@@ -502,7 +502,7 @@ export default function Dashboard() {
                   </div>
                   <div className="sgc-quick-actions">
                     <button className="sgc-quick-btn sgc-quick-btn-deposit" onClick={()=>setTab('transfer')}>📲 Deposit</button>
-                    <button className={`sgc-quick-btn ${siteSettings.withdraw_enabled==='false'?'sgc-quick-btn-withdraw-closed':'sgc-quick-btn-withdraw'}`} onClick={()=>setTab('payout')} disabled={siteSettings.withdraw_enabled==='false'} style={{opacity:siteSettings.withdraw_enabled==='false'?0.78:1,cursor:siteSettings.withdraw_enabled==='false'?'not-allowed':'pointer'}}>💸 {siteSettings.withdraw_enabled==='false'?'Withdraw Closed':'Withdraw'}</button>
+                    <button className="sgc-quick-btn sgc-quick-btn-withdraw" onClick={()=>setTab('payout')}>💸 Withdraw</button>
                   </div>
                 </div>
 
