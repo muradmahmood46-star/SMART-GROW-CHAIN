@@ -3,8 +3,8 @@
   "name": "SCG",
   "icons": [
     {
-      "src": "logo scg.jpeg",
-      "type": "image/jpeg"
+      "src": "favicon.png",
+      "type": "image/png"
     }
   ],
   "start_url": ".",

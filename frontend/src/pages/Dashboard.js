@@ -22,13 +22,14 @@ const TABS = [
 ];
 
 const HERO_SLIDES = [
+  { src:'/favicon.png',      alt:'Smart Grow Chain' },
   { src:'/hero pic1.jpg',  alt:'Smart Grow Chain' },
   { src:'/hero pic 2.jpg', alt:'Investment Growth' },
   { src:'/hero pic 3.jpg', alt:'Earn & Grow' },
 ];
 
 function HeroSlider() {
-  const [activeSlide, setActiveSlide] = React.useState(1);
+  const [activeSlide, setActiveSlide] = React.useState(0);
   const trackRef = React.useRef(null);
   const slideCount = HERO_SLIDES.length;
   // The repeated slides make it possible to keep scrolling in either direction.
@@ -46,7 +47,7 @@ function HeroSlider() {
 
   React.useEffect(() => {
     // Start with the middle image selected, using the middle copy of the loop.
-    const frame = requestAnimationFrame(() => centerSlide(slideCount + 1, 'auto'));
+    const frame = requestAnimationFrame(() => centerSlide(slideCount, 'auto'));
     return () => cancelAnimationFrame(frame);
   }, [centerSlide, slideCount]);
 
