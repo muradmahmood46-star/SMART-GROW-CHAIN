@@ -83,7 +83,7 @@ function HeroSlider() {
     <div className="sgc-hero-slider">
       <div className="sgc-hero-slider-track" ref={trackRef} onScroll={handleScroll}>
         {loopSlides.map((s,i)=>(
-          <div key={`${s.src}-${i}`} className={`sgc-hero-slide${activeSlide===i%slideCount?' active-slide':''}`}>
+          <div key={`${s.src}-${i}`} className={`sgc-hero-slide${activeSlide===i%slideCount?' active-slide':''}${s.src==='/favicon.png'?' hero-logo-slide':''}`}>
             <img src={s.src} alt={s.alt}/>
           </div>
         ))}
