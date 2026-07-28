@@ -321,7 +321,9 @@ body {
 .sgc-hero-slider {
   width:100%; border-radius:20px;
   margin-bottom:20px;
-  box-shadow:0 6px 28px rgba(0,0,0,.12);
+  padding:5px;
+  background:linear-gradient(135deg,rgba(14,165,233,.75),rgba(37,99,235,.34),rgba(125,211,252,.7));
+  box-shadow:0 8px 30px rgba(37,99,235,.22),0 0 0 3px rgba(14,165,233,.08);
   animation:fadeUp .35s ease both;
   position:relative;
 }
@@ -341,6 +343,10 @@ body {
   scroll-snap-align:center;
   border-radius:20px;
   overflow:hidden;
+  position:relative;
+  border:2px solid rgba(37,99,235,.42);
+  background:#e0f2fe;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),0 5px 16px rgba(30,64,175,.16);
   transition:flex-basis .32s ease, transform .32s ease, opacity .32s ease, filter .32s ease;
   opacity:0.58;
   filter:blur(.65px) saturate(.9);
@@ -351,9 +357,23 @@ body {
   filter:none;
   transform:scale(1);
   flex:0 0 calc(46% - 4px);
+  border-color:#38bdf8;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.85),0 9px 26px rgba(37,99,235,.34),0 0 0 3px rgba(56,189,248,.18);
+}
+.sgc-hero-slide::after {
+  content:'';
+  position:absolute;
+  top:13%; bottom:13%; right:0;
+  width:4px;
+  border-radius:4px 0 0 4px;
+  background:linear-gradient(#7dd3fc,#2563eb);
+  box-shadow:0 0 12px rgba(37,99,235,.75);
+  opacity:.75;
+  pointer-events:none;
 }
 .sgc-hero-slide img {
   width:100%; display:block;
+  position:relative; z-index:1;
   object-fit:contain;
   border-radius:20px;
   background:#f0f4f8;

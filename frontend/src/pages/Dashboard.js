@@ -491,10 +491,14 @@ export default function Dashboard() {
 
                 {/* Quick Balance + Deposit/Withdraw Card */}
                 <div className="sgc-quick-balance">
-                  <div className="sgc-quick-balance-row" style={{display:'none'}}>
+                  <div className="sgc-quick-balance-row">
                     <div className="sgc-quick-bal-item">
-                      <div className="sgc-quick-bal-label">💳 Available Balance</div>
+                      <div className="sgc-quick-bal-label">Available Balance</div>
                       <div className="sgc-quick-bal-val" style={{color:'#0d9488'}}>Rs. {profile.balance.toFixed(2)}</div>
+                    </div>
+                    <div className="sgc-quick-bal-item">
+                      <div className="sgc-quick-bal-label">Total Earned</div>
+                      <div className="sgc-quick-bal-val" style={{color:'#0891b2'}}>Rs. {profile.total_earned.toFixed(2)}</div>
                     </div>
                     <div className="sgc-quick-bal-item">
                       <div className="sgc-quick-bal-label">☀️ Today's Earning</div>
