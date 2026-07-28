@@ -399,17 +399,17 @@ export default function Dashboard() {
           <span style={{color:'#fff',fontWeight:800,fontSize:15}}>🌱 Smart Grow Chain</span>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <div style={{position:'relative'}}>
-              <button onClick={()=>setShowNotifDropdown(v=>!v)}
+              <button className={`sgc-notification-bell ${notifications.filter(n=>!n.is_read).length>0?'has-unread':''}`} onClick={()=>setShowNotifDropdown(v=>!v)} aria-label="Open notifications"
                 style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:18,position:'relative'}}>
                 🔔
                 {notifications.filter(n=>!n.is_read).length>0 && (
-                  <span style={{position:'absolute',top:-4,right:-4,background:'#ef4444',color:'#fff',borderRadius:'50%',width:16,height:16,fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <span className="sgc-notification-count">
                     {notifications.filter(n=>!n.is_read).length}
                   </span>
                 )}
               </button>
               {showNotifDropdown && (
-                <div style={{position:'absolute',right:0,top:44,width:280,background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',zIndex:999,overflow:'hidden'}}>
+                <div className="sgc-notification-dropdown">
                   <div style={{padding:'10px 14px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <span style={{color:'var(--text)',fontWeight:700,fontSize:13}}>Notifications</span>
                     <button onClick={()=>{setShowNotifDropdown(false);setTab('notifications');}} style={{background:'none',border:'none',color:'var(--accent)',fontSize:12,cursor:'pointer',fontFamily:'var(--font)'}}>See all</button>

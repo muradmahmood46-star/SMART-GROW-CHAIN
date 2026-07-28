@@ -249,6 +249,74 @@ body {
   background-repeat:no-repeat; background-position:center; background-size:19px 19px;
 }
 
+/* ── User notification bell ── */
+.sgc-notification-bell {
+  background:rgba(255,255,255,.96) !important;
+  border:1px solid rgba(255,255,255,.7) !important;
+  box-shadow:0 3px 12px rgba(15,23,42,.18);
+  transition:transform .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.sgc-notification-bell:hover {
+  transform:translateY(-2px);
+  background:#fff !important;
+  box-shadow:0 7px 18px rgba(15,23,42,.25);
+}
+.sgc-notification-bell.has-unread { animation:sgc-bell-ring 2.8s ease-in-out infinite; }
+.sgc-notification-count {
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  min-width:17px;
+  height:17px;
+  padding:0 4px;
+  box-sizing:border-box;
+  border:2px solid #0d9488;
+  border-radius:999px;
+  background:#ef4444;
+  color:#fff;
+  font-size:9px;
+  font-weight:800;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 2px 8px rgba(239,68,68,.55);
+  animation:sgc-notification-pulse 1.8s ease-in-out infinite;
+}
+.sgc-notification-dropdown {
+  position:absolute;
+  right:0;
+  top:46px;
+  width:min(320px,calc(100vw - 28px));
+  background:rgba(255,255,255,.98);
+  border:1px solid #dbeafe;
+  border-radius:16px;
+  box-shadow:0 18px 45px rgba(15,23,42,.25);
+  z-index:999;
+  overflow:hidden;
+  transform-origin:top right;
+  animation:sgc-notification-pop .2s ease-out both;
+}
+@keyframes sgc-bell-ring {
+  0%,76%,100% { transform:rotate(0); }
+  80% { transform:rotate(14deg); }
+  84% { transform:rotate(-12deg); }
+  88% { transform:rotate(8deg); }
+  92% { transform:rotate(-5deg); }
+}
+@keyframes sgc-notification-pulse {
+  0%,100% { transform:scale(1); }
+  50% { transform:scale(1.12); }
+}
+@keyframes sgc-notification-pop {
+  from { opacity:0; transform:translateY(-8px) scale(.96); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .sgc-notification-bell.has-unread,
+  .sgc-notification-count,
+  .sgc-notification-dropdown { animation:none; }
+}
+
 /* ── Hero Banner Slider ── */
 .sgc-hero-slider {
   width:100%; border-radius:20px;

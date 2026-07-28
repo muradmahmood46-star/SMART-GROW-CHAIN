@@ -22,7 +22,6 @@ const TABS = [
   { key:'easypaisa',   icon:'📱', label:'Payment Options'  },
   { key:'emails',      icon:'📧', label:'Admin Emails'    },
   { key:'messages',    icon:'📣', label:'Admin Messages'  },
-  { key:'notify',      icon:'🔔', label:'Send Notification'},
   { key:'advertiser-mgmt', icon:'📊', label:'Advertiser Mgmt' },
 ];
 
@@ -1402,14 +1401,14 @@ export default function AdminPanel() {
                 </div>
 
                 {/* Bell Notification — quick link */}
-                <div className="sgc-form" style={{maxWidth:480,marginBottom:24,background:'#0d1e38',border:'1px solid #1e4080'}}>
+                <div className="sgc-form" style={{display:'none'}}>
                   <h4 style={{color:'var(--accent)',fontSize:13,fontWeight:700,marginBottom:8}}>🔔 Bell (In-App) Notifications</h4>
                   <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 12px'}}>In-app notifications sidhe user ke bell icon mein jaati hain.</p>
                   <button className="sgc-btn-primary" style={{width:'auto',padding:'10px 24px'}} onClick={()=>setTab('notify')}>→ Send Notification</button>
                 </div>
 
                 {/* Email Notification — quick link */}
-                <div className="sgc-form" style={{maxWidth:480,marginBottom:24,background:'#071a0d',border:'1px solid #166534'}}>
+                <div className="sgc-form" style={{display:'none'}}>
                   <h4 style={{color:'var(--green)',fontSize:13,fontWeight:700,marginBottom:8}}>📧 Email Notifications</h4>
                   <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 12px'}}>"Send Notification" tab mein Email checkbox enable karke email bhi bhej sakte hain.</p>
                   <button className="sgc-btn-primary" style={{width:'auto',padding:'10px 24px',background:'var(--green)',color:'var(--bg)'}} onClick={()=>setTab('notify')}>→ Send Email Notification</button>
@@ -1473,10 +1472,10 @@ export default function AdminPanel() {
             )}
 
             {/* ── SEND NOTIFICATION ── */}
-            {tab==='notify' && (
+            {tab==='messages' && (
               <div>
                 <h2 className="sgc-heading">🔔 Send Notification</h2>
-                <div className="sgc-form" style={{maxWidth:480}}>
+                <div id="send-notification" className="sgc-form" style={{maxWidth:480,marginBottom:24}}>
                   <label className="sgc-label">Title</label>
                   <input className="sgc-input" placeholder="e.g. New Update!" value={notifTitle} onChange={e=>setNotifTitle(e.target.value)}/>
                   <label className="sgc-label">Message</label>
