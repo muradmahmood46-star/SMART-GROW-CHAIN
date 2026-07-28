@@ -336,7 +336,7 @@ export default function Dashboard() {
   const todayEarned = earnings.filter(e=>{ const d=new Date(e.clicked_at); const t=new Date(); return d.toDateString()===t.toDateString(); }).reduce((s,e)=>s+e.amount,0);
 
   return (
-    <div className="panel-wrap">
+    <div className="panel-wrap sgc-user-dashboard">
       <div className={`sgc-overlay ${sidebarOpen?'open':''}`} onClick={()=>{setSidebarOpen(false);setShowNotifDropdown(false);}}/>
 
       {/* ── SIDEBAR ── */}
@@ -506,8 +506,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="sgc-quick-actions">
-                    <button className="sgc-quick-btn sgc-quick-btn-deposit" onClick={()=>setTab('transfer')}>📲 Deposit</button>
-                    <button className="sgc-quick-btn sgc-quick-btn-withdraw" onClick={()=>setTab('payout')}>💸 Withdraw</button>
+                    <button className="sgc-quick-btn sgc-quick-btn-deposit" onClick={()=>setTab('transfer')}><span className="sgc-quick-btn-icon">📲</span><span>Deposit</span></button>
+                    <button className="sgc-quick-btn sgc-quick-btn-withdraw" onClick={()=>setTab('payout')}><span className="sgc-quick-btn-icon">💸</span><span>Withdraw</span></button>
                   </div>
                 </div>
 
@@ -525,7 +525,7 @@ export default function Dashboard() {
                     ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777','🎁',false],
                     ['Membership',profile.membership.toUpperCase(),'#d97706','🏆',false],
                   ].map(([l,v,c,icon,growth],i)=>(
-                    <div key={i} className="sgc-stat-card" style={{borderLeftColor:c}}>
+                    <div key={i} className="sgc-stat-card" style={{borderLeftColor:c,'--stat-color':c}}>
                       <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
                         <span style={{fontSize:16,background:`${c}18`,borderRadius:8,padding:'3px 6px'}}>{icon}</span>
                         <div className="sgc-stat-label" style={{margin:0}}>{l}</div>
@@ -549,7 +549,7 @@ export default function Dashboard() {
                 <h3 className="sgc-subheading" style={{marginBottom:12}}>Quick Actions</h3>
 
                 {/* ── Advertise Big Button ── */}
-                <button onClick={()=>{ setTab('create-ad'); setShowAdWelcome(true); }}
+                <button className="sgc-advertise-banner" onClick={()=>{ setTab('create-ad'); setShowAdWelcome(true); }}
                   style={{width:'100%',padding:'18px 20px',marginBottom:12,background:'linear-gradient(135deg,#f97316,#ea580c,#dc2626)',border:'none',borderRadius:16,color:'#fff',cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:14,boxShadow:'0 4px 20px rgba(249,115,22,.4)',transition:'transform .2s,box-shadow .2s',animation:'fadeUp .3s ease both'}}
                   onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';e.currentTarget.style.boxShadow='0 8px 28px rgba(249,115,22,.5)';}}
                   onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 4px 20px rgba(249,115,22,.4)';}}>
@@ -564,7 +564,7 @@ export default function Dashboard() {
                 {/* ── Other Actions ── */}
                 <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:28}}>
                   {[['📺','View Ads','ads'],['📲','Deposit','transfer'],['💸','Payout','payout'],['🎫','Support','support']].map(([icon,label,key])=>(
-                    <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,transition:'all .2s'}}
+                    <button className="sgc-bottom-action" key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,transition:'all .2s'}}
                       onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
                       onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
                       {icon} {label}
