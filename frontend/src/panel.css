@@ -215,7 +215,7 @@ body {
 
 /* Dashboard stat cards: unified purple animated style */
 .sgc-stats > .sgc-stat-card {
-  background:linear-gradient(135deg,#9b7de3 0%,#b49ae9 52%,#d0c0f4 100%);
+  background:linear-gradient(135deg,#a78bfa 0%,#c4b5fd 52%,#ddd6fe 100%);
   border-color:rgba(237,233,254,.62);
   border-left-color:#f5f3ff !important;
   color:#fff;

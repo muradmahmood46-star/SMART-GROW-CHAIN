@@ -512,7 +512,9 @@ export default function Dashboard() {
                 </div>
                 <div className="sgc-stats">
                   {[
+                    ['Total Balance',`Rs. ${profile.balance.toFixed(2)}`,'#0d9488','💳',true],
                     ['Total Earned',`Rs. ${profile.total_earned.toFixed(2)}`,'#0891b2','🪙',true],
+                    ['Today Earned',`Rs. ${todayEarned.toFixed(2)}`,'#d97706','☀️',false],
                     ['Ads Available',availableAds,'#7c3aed','📺',false],
                     ['Total Clicks',earnings.filter(e=>e.type==='click').length,'#0891b2','👆',false],
                     ['Referrals',referrals?.total_referrals||0,'#059669','👥',false],
