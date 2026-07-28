@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# Getting Started with SCG
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project was bootstrapped for SCG.
 
 ## Available Scripts
 
@@ -41,9 +41,9 @@ You don't have to ever use `eject`. The curated feature set is suitable for smal
 
 ## Learn More
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+You can learn more about SCG in the project documentation.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+For further information, refer to the SCG project documentation.
 
 ### Code Splitting
 

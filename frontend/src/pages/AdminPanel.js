@@ -8,7 +8,7 @@ const TABS = [
   { key:'users',       icon:'👥', label:'Users'           },
   { key:'ads',         icon:'📺', label:'Advertisements'  },
   { key:'create-ad',   icon:'➕', label:'Create Ad'       },
-  { key:'withdrawals', icon:'💸', label:'Payout Requests' },
+  { key:'withdrawals', icon:'💸', label:'Payout Request & Setting' },
   { key:'deposits',    icon:'📥', label:'Fund Requests'   },
   { key:'transfers',   icon:'🔄', label:'Fund Transfers'  },
   { key:'tickets',     icon:'🎫', label:'Support Tickets' },
@@ -89,14 +89,30 @@ export default function AdminPanel() {
   const [advertiserList, setAdvertiserList] = useState([]);
   const [advertiserDetail, setAdvertiserDetail] = useState(null);
   const [advertiserLoading, setAdvertiserLoading] = useState(false);
+  const [withdrawSettings, setWithdrawSettings] = useState({ withdraw_enabled: true, withdraw_until: '', withdraw_schedule_time: '' });
+  const [withdrawHours, setWithdrawHours] = useState(1);
+  const [schedOnTime, setSchedOnTime] = useState('');
+  const [schedOnAmPm, setSchedOnAmPm] = useState('AM');
+  const [schedOffTime, setSchedOffTime] = useState('');
+  const [schedOffAmPm, setSchedOffAmPm] = useState('AM');
   const navigate = useNavigate();
 
   const notify = (text, type='success') => { setMsg({text,type}); setTimeout(()=>setMsg({text:'',type:''}),3500); };
+  const showWithdrawSettingsError = (error) => {
+    const status = error.response?.status;
+    notify(
+      status === 404
+        ? 'Withdraw settings endpoint was not found. Restart/update the backend server, then try again.'
+        : error.response?.data?.detail || 'Unable to update withdraw settings. Please try again.',
+      'error'
+    );
+  };
 
   const loadAll = () => {
     API.get('/admin/stats').then(r=>setStats(r.data));
     API.get('/admin/users').then(r=>setUsers(r.data));
     API.get('/admin/ads').then(r=>setAds(r.data));
+    API.get('/admin/withdraw-settings').then(r=>setWithdrawSettings(r.data)).catch(()=>{});
     API.get('/admin/withdrawals').then(r=>setWithdrawals(r.data));
     API.get('/admin/deposits').then(r=>setDeposits(r.data));
     API.get('/admin/fund-transfers').then(r=>setTransfers(r.data));
@@ -447,9 +463,145 @@ export default function AdminPanel() {
             {tab==='withdrawals' && (
               <div>
                 <div className="sgc-page-header">
-                  <h2 className="sgc-heading">💸 Payout Requests</h2>
+                  <h2 className="sgc-heading">💸 Payout Request & Setting</h2>
                   <span style={{color:'var(--red)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{pendingW} pending</span>
                 </div>
+
+                {/* ── Withdraw Toggle Controls ── */}
+                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:'20px 24px',marginBottom:24}}>
+                  <h4 style={{color:'var(--yellow)',fontSize:14,fontWeight:700,marginBottom:16}}>⚙️ Withdraw Access Control</h4>
+
+                  {/* Current Status */}
+                  <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20,padding:'12px 16px',background:withdrawSettings.withdraw_enabled?'#052e16':'#450a0a',border:`1px solid ${withdrawSettings.withdraw_enabled?'#166534':'#7f1d1d'}`,borderRadius:12}}>
+                    <div style={{width:12,height:12,borderRadius:'50%',background:withdrawSettings.withdraw_enabled?'#4ade80':'#ef4444',boxShadow:`0 0 8px ${withdrawSettings.withdraw_enabled?'#4ade80':'#ef4444'}`}}/>
+                    <span style={{color:withdrawSettings.withdraw_enabled?'#4ade80':'#fca5a5',fontWeight:700,fontSize:14}}>
+                      Withdraw is currently {withdrawSettings.withdraw_enabled?'OPEN':'CLOSED'}
+                    </span>
+                    {withdrawSettings.withdraw_until && (
+                      <span style={{color:'var(--dim)',fontSize:12,marginLeft:'auto'}}>
+                        Auto-closes: {new Date(withdrawSettings.withdraw_until).toLocaleString('en-PK',{timeZone:'Asia/Karachi'})}
+                      </span>
+                    )}
+                    {withdrawSettings.withdraw_schedule_time && (
+                      <span style={{color:'var(--accent)',fontSize:12,marginLeft:'auto'}}>
+                        Scheduled: {withdrawSettings.withdraw_schedule_time} PKT daily
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:16}}>
+
+                    {/* A: Manual Toggle */}
+                    <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:12,padding:'16px'}}>
+                      <p style={{color:'var(--text)',fontWeight:700,fontSize:13,margin:'0 0 4px'}}>A. Manual ON/OFF</p>
+                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 14px'}}>Instantly enable or disable withdraw for all users</p>
+                      <div style={{display:'flex',gap:10}}>
+                        <button onClick={async()=>{
+                          try {
+                            await API.put('/admin/withdraw-settings/toggle',{enabled:true});
+                            setWithdrawSettings(s=>({...s,withdraw_enabled:true,withdraw_until:''}));
+                            notify('Withdraw ENABLED ✅');
+                          } catch (error) { showWithdrawSettingsError(error); }
+                        }} style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)',opacity:withdrawSettings.withdraw_enabled?0.5:1}}>
+                          ✓ Turn ON
+                        </button>
+                        <button onClick={async()=>{
+                          try {
+                            await API.put('/admin/withdraw-settings/toggle',{enabled:false});
+                            setWithdrawSettings(s=>({...s,withdraw_enabled:false,withdraw_until:''}));
+                            notify('Withdraw DISABLED 🔒');
+                          } catch (error) { showWithdrawSettingsError(error); }
+                        }} style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)',opacity:!withdrawSettings.withdraw_enabled?0.5:1}}>
+                          ✕ Turn OFF
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* B: Duration-Based */}
+                    <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:12,padding:'16px'}}>
+                      <p style={{color:'var(--text)',fontWeight:700,fontSize:13,margin:'0 0 4px'}}>B. Auto-Enable by Duration</p>
+                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 14px'}}>Turn ON for custom hours, then auto-OFF</p>
+                      <div style={{display:'flex',gap:8,marginBottom:8}}>
+                        <input type="number" min="1" max="720" value={withdrawHours} onChange={e=>setWithdrawHours(parseInt(e.target.value)||1)}
+                          style={{flex:1,background:'var(--card)',border:'1px solid var(--border)',borderRadius:9,color:'var(--text)',padding:'9px 12px',fontFamily:'var(--font)',fontSize:14,fontWeight:700}}/>
+                        <span style={{color:'var(--dim)',fontSize:13,alignSelf:'center',whiteSpace:'nowrap'}}>hour(s)</span>
+                      </div>
+                      <div style={{display:'flex',gap:6,marginBottom:8}}>
+                        {[1,2,3,6,12].map(h=>(
+                          <button key={h} onClick={()=>setWithdrawHours(h)}
+                            style={{flex:1,padding:'6px 2px',background:withdrawHours===h?'#1e3a6e':'var(--card)',color:withdrawHours===h?'var(--accent)':'var(--dim)',border:`1px solid ${withdrawHours===h?'#1e4080':'var(--border)'}`,borderRadius:7,cursor:'pointer',fontWeight:700,fontSize:12,fontFamily:'var(--font)'}}>
+                            {h}h
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={async()=>{
+                        try {
+                          await API.put('/admin/withdraw-settings/duration',{hours:withdrawHours});
+                          const response = await API.get('/admin/withdraw-settings');
+                          setWithdrawSettings(response.data);
+                          notify(`Withdraw ON for ${withdrawHours} hour(s) ⏱️`);
+                        } catch (error) { showWithdrawSettingsError(error); }
+                      }} style={{width:'100%',padding:'10px',background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}}>
+                        ⏱️ Enable for {withdrawHours}h
+                      </button>
+                    </div>
+
+                    {/* C: Scheduled Time */}
+                    <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:12,padding:'16px'}}>
+                      <p style={{color:'var(--text)',fontWeight:700,fontSize:13,margin:'0 0 4px'}}>C. Schedule Daily Time (PKT)</p>
+                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 12px'}}>Set ON & OFF time — runs daily</p>
+                      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <span style={{color:'#4ade80',fontSize:12,fontWeight:700,minWidth:32}}>ON</span>
+                          <input type="time" value={schedOnTime} onChange={e=>setSchedOnTime(e.target.value)}
+                            style={{flex:1,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'8px 10px',fontFamily:'var(--font)',fontSize:13}}/>
+                          <select value={schedOnAmPm} onChange={e=>setSchedOnAmPm(e.target.value)}
+                            style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'8px',fontFamily:'var(--font)',fontSize:13}}>
+                            <option>AM</option><option>PM</option>
+                          </select>
+                        </div>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <span style={{color:'#fca5a5',fontSize:12,fontWeight:700,minWidth:32}}>OFF</span>
+                          <input type="time" value={schedOffTime} onChange={e=>setSchedOffTime(e.target.value)}
+                            style={{flex:1,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'8px 10px',fontFamily:'var(--font)',fontSize:13}}/>
+                          <select value={schedOffAmPm} onChange={e=>setSchedOffAmPm(e.target.value)}
+                            style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'8px',fontFamily:'var(--font)',fontSize:13}}>
+                            <option>AM</option><option>PM</option>
+                          </select>
+                        </div>
+                        <button onClick={async()=>{
+                          if(!schedOnTime||!schedOffTime){notify('Please set both ON and OFF time','error');return;}
+                          const val=`${schedOnTime} ${schedOnAmPm}|${schedOffTime} ${schedOffAmPm}`;
+                          try {
+                            await API.put('/admin/withdraw-settings/schedule',{time_pkt:val});
+                            setWithdrawSettings(s=>({...s,withdraw_schedule_time:val}));
+                            notify('Schedule saved ✅');
+                          } catch (error) { showWithdrawSettingsError(error); }
+                        }} style={{padding:'10px',background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}}>
+                          💾 Save Schedule
+                        </button>
+                        {withdrawSettings.withdraw_schedule_time && (
+                          <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:8,padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <span style={{color:'var(--accent)',fontSize:12,fontWeight:700}}>
+                              🟢 {withdrawSettings.withdraw_schedule_time.split('|')[0]||'—'} → 🔴 {withdrawSettings.withdraw_schedule_time.split('|')[1]||'—'}
+                            </span>
+                            <button onClick={async()=>{
+                              try {
+                                await API.put('/admin/withdraw-settings/schedule',{time_pkt:''});
+                                setWithdrawSettings(s=>({...s,withdraw_schedule_time:''}));
+                                setSchedOnTime(''); setSchedOffTime('');
+                                notify('Schedule cleared');
+                              } catch (error) { showWithdrawSettingsError(error); }
+                            }} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>✕ Clear</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Payout Requests List */}
                 <div style={{display:'flex',flexDirection:'column',gap:14}}>
                   {withdrawals.map(w=>{
                     const isPending=w.status==='pending';

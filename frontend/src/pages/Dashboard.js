@@ -6,7 +6,6 @@ import '../panel.css';
 const TABS = [
   { key:'dashboard',    icon:'🏠', label:'Dashboard'       },
   { key:'ads',          icon:'📺', label:'Advertisement'   },
-  { key:'transfer',     icon:'📲', label:'Deposit'         },
   { key:'fund-history', icon:'📂', label:'Fund History'    },
   { key:'payout',       icon:'💸', label:'Payout'          },
   { key:'payout-hist',  icon:'📋', label:'Payout History'  },
@@ -21,6 +20,81 @@ const TABS = [
   { key:'2fa',          icon:'🔐', label:'2FA Security'    },
   { key:'notifications',icon:'🔔', label:'Notifications'   },
 ];
+
+const HERO_SLIDES = [
+  { src:'/hero pic1.jpg',  alt:'Smart Grow Chain' },
+  { src:'/hero pic 2.jpg', alt:'Investment Growth' },
+  { src:'/hero pic 3.jpg', alt:'Earn & Grow' },
+];
+
+function HeroSlider() {
+  const [activeSlide, setActiveSlide] = React.useState(1);
+  const trackRef = React.useRef(null);
+  const slideCount = HERO_SLIDES.length;
+  // The repeated slides make it possible to keep scrolling in either direction.
+  const loopSlides = [...HERO_SLIDES, ...HERO_SLIDES, ...HERO_SLIDES];
+
+  const centerSlide = React.useCallback((physicalIndex, behavior = 'smooth') => {
+    const track = trackRef.current;
+    const slide = track?.children[physicalIndex];
+    if (!track || !slide) return;
+    track.scrollTo({
+      left: slide.offsetLeft - (track.clientWidth - slide.offsetWidth) / 2,
+      behavior,
+    });
+  }, []);
+
+  React.useEffect(() => {
+    // Start with the middle image selected, using the middle copy of the loop.
+    const frame = requestAnimationFrame(() => centerSlide(slideCount + 1, 'auto'));
+    return () => cancelAnimationFrame(frame);
+  }, [centerSlide, slideCount]);
+
+  const handleScroll = () => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const trackCenter = track.scrollLeft + track.clientWidth / 2;
+    let closestIndex = 0;
+    let closestDistance = Infinity;
+    Array.from(track.children).forEach((slide, index) => {
+      const distance = Math.abs(slide.offsetLeft + slide.offsetWidth / 2 - trackCenter);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+    setActiveSlide(closestIndex % slideCount);
+
+    // Once a duplicate reaches the center, silently move to its matching
+    // middle copy. The user can therefore continue swiping forever.
+    if (closestIndex <= slideCount - 1) {
+      requestAnimationFrame(() => centerSlide(closestIndex + slideCount, 'auto'));
+    } else if (closestIndex >= slideCount * 2) {
+      requestAnimationFrame(() => centerSlide(closestIndex - slideCount, 'auto'));
+    }
+  };
+  const goTo = (i) => {
+    centerSlide(slideCount + i);
+    setActiveSlide(i);
+  };
+  return (
+    <div className="sgc-hero-slider">
+      <div className="sgc-hero-slider-track" ref={trackRef} onScroll={handleScroll}>
+        {loopSlides.map((s,i)=>(
+          <div key={`${s.src}-${i}`} className={`sgc-hero-slide${activeSlide===i%slideCount?' active-slide':''}`}>
+            <img src={s.src} alt={s.alt}/>
+          </div>
+        ))}
+      </div>
+      <div className="sgc-hero-dots">
+        {HERO_SLIDES.map((_,i)=>(
+          <button key={i} className={`sgc-hero-dot${activeSlide===i?' active':''}`} onClick={()=>goTo(i)}/>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const [profile, setProfile]         = useState(null);
@@ -350,7 +424,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#0d9488,#0891b2)',width:36,height:36,fontSize:15,flexShrink:0}}>
+            <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#0d9488,#0891b2)',width:36,height:36,fontSize:15,flexShrink:0,boxShadow:'0 0 0 2px rgba(13,148,136,.5),0 0 0 4px rgba(13,148,136,.15)'}}>
               {profile.username[0].toUpperCase()}
             </div>
           </div>
@@ -358,44 +432,6 @@ export default function Dashboard() {
 
         <div className="panel-body">
           {msg.text && <div className="sgc-toast" style={{background:msg.type==='error'?'var(--red)':msg.type==='info'?'#1e3a6e':'var(--green)',color:msg.type==='error'?'#fff':msg.type==='info'?'var(--accent)':'var(--bg)',border:msg.type==='info'?'1px solid var(--accent)':'none'}}>{msg.text}</div>}
-
-          {/* Free plan expiry warning */}
-          {freePlanExpired && profile?.membership==='free' && (
-            <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:12,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:24}}>⚠️</span>
-              <div style={{flex:1}}>
-                <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Free Plan Expired!</p>
-                <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Your free plan has expired. Please purchase a plan to continue earning.</p>
-              </div>
-              <button onClick={()=>setTab('plans')} style={{background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'8px 16px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Buy Plan</button>
-            </div>
-          )}
-          {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
-            <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:20}}></span>
-              <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
-              <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
-            </div>
-          )}
-
-          {/* Free plan expiry warning */}
-          {freePlanExpired && profile?.membership==='free' && (
-            <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:12,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:24}}>⚠️</span>
-              <div style={{flex:1}}>
-                <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Free Plan Expired!</p>
-                <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Your free plan has expired. Please purchase a plan to continue earning.</p>
-              </div>
-              <button onClick={()=>setTab('plans')} style={{background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'8px 16px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Buy Plan</button>
-            </div>
-          )}
-          {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
-            <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:20}}></span>
-              <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
-              <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
-            </div>
-          )}
 
           {/* ── ADVERTISE WELCOME MODAL ── */}
           {showAdWelcome && advertiserMsg && (
@@ -430,25 +466,76 @@ export default function Dashboard() {
             {/* ── DASHBOARD ── */}
             {tab==='dashboard' && (
               <div>
+                {/* Hero Banner Slider */}
+                <HeroSlider />
+
+                {/* Free plan expiry warning */}
+                {freePlanExpired && profile?.membership==='free' && (
+                  <div style={{background:'linear-gradient(135deg,#450a0a,#7f1d1d)',border:'1px solid #ef4444',borderRadius:14,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12,boxShadow:'0 0 18px rgba(239,68,68,.18)'}}>
+                    <span style={{fontSize:24,filter:'drop-shadow(0 0 6px rgba(239,68,68,.7))'}}>⚠️</span>
+                    <div style={{flex:1}}>
+                      <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Free Plan Expired!</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Your free plan has expired. Please purchase a plan to continue earning.</p>
+                    </div>
+                    <button onClick={()=>setTab('plans')} style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#fff',border:'none',borderRadius:10,padding:'8px 16px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap',boxShadow:'0 4px 14px rgba(245,158,11,.4)',transition:'box-shadow .2s,transform .2s'}} onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 6px 20px rgba(245,158,11,.6)';e.currentTarget.style.transform='translateY(-1px)';}} onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 4px 14px rgba(245,158,11,.4)';e.currentTarget.style.transform='translateY(0)';}}>Buy Plan</button>
+                  </div>
+                )}
+                {!freePlanExpired && freePlanDaysLeft!==null && freePlanDaysLeft<=3 && profile?.membership==='free' && (
+                  <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
+                    <span style={{fontSize:20}}></span>
+                    <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
+                    <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
+                  </div>
+                )}
+
+                {/* Quick Balance + Deposit/Withdraw Card */}
+                <div className="sgc-quick-balance">
+                  <div className="sgc-quick-balance-row" style={{display:'none'}}>
+                    <div className="sgc-quick-bal-item">
+                      <div className="sgc-quick-bal-label">💳 Available Balance</div>
+                      <div className="sgc-quick-bal-val" style={{color:'#0d9488'}}>Rs. {profile.balance.toFixed(2)}</div>
+                    </div>
+                    <div className="sgc-quick-bal-item">
+                      <div className="sgc-quick-bal-label">☀️ Today's Earning</div>
+                      <div className="sgc-quick-bal-val" style={{color:'#d97706'}}>Rs. {todayEarned.toFixed(2)}</div>
+                    </div>
+                  </div>
+                  <div className="sgc-quick-actions">
+                    <button className="sgc-quick-btn sgc-quick-btn-deposit" onClick={()=>setTab('transfer')}>📲 Deposit</button>
+                    <button className={`sgc-quick-btn ${siteSettings.withdraw_enabled==='false'?'sgc-quick-btn-withdraw-closed':'sgc-quick-btn-withdraw'}`} onClick={()=>setTab('payout')} disabled={siteSettings.withdraw_enabled==='false'} style={{opacity:siteSettings.withdraw_enabled==='false'?0.78:1,cursor:siteSettings.withdraw_enabled==='false'?'not-allowed':'pointer'}}>💸 {siteSettings.withdraw_enabled==='false'?'Withdraw Closed':'Withdraw'}</button>
+                  </div>
+                </div>
+
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
                   <h2 className="sgc-heading" style={{margin:0}}>Dashboard</h2>
                 </div>
                 <div className="sgc-stats">
                   {[
-                    ['Total Balance',`Rs. ${profile.balance.toFixed(2)}`,'#0d9488'],
-                    ['Total Earned',`Rs. ${profile.total_earned.toFixed(2)}`,'#0891b2'],
-                    ['Today Earned',`Rs. ${todayEarned.toFixed(2)}`,'#d97706'],
-                    ['Ads Available',availableAds,'#7c3aed'],
-                    ['Total Clicks',earnings.filter(e=>e.type==='click').length,'#0891b2'],
-                    ['Referrals',referrals?.total_referrals||0,'#059669'],
-                    ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777'],
-                    ['Membership',profile.membership.toUpperCase(),'#d97706'],
-                  ].map(([l,v,c],i)=>(
-                    <div key={i} className="sgc-stat-card">
-                      <div className="sgc-stat-label">{l}</div>
+                    ['Total Earned',`Rs. ${profile.total_earned.toFixed(2)}`,'#0891b2','🪙',true],
+                    ['Ads Available',availableAds,'#7c3aed','📺',false],
+                    ['Total Clicks',earnings.filter(e=>e.type==='click').length,'#0891b2','👆',false],
+                    ['Referrals',referrals?.total_referrals||0,'#059669','👥',false],
+                    ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777','🎁',false],
+                    ['Membership',profile.membership.toUpperCase(),'#d97706','🏆',false],
+                  ].map(([l,v,c,icon,growth],i)=>(
+                    <div key={i} className="sgc-stat-card" style={{borderLeftColor:c}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                        <span style={{fontSize:16,background:`${c}18`,borderRadius:8,padding:'3px 6px'}}>{icon}</span>
+                        <div className="sgc-stat-label" style={{margin:0}}>{l}</div>
+                      </div>
                       <div className="sgc-stat-val" style={{color:c}}>{v}</div>
+                      {growth && <span className="sgc-growth-badge">📈</span>}
                     </div>
                   ))}
+                  {siteSettings.whatsapp_link && (
+                    <a href={siteSettings.whatsapp_link} target="_blank" rel="noreferrer" className="sgc-stat-card sgc-whatsapp-stat-card">
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                        <span className="sgc-stat-card-icon sgc-whatsapp-icon" aria-label="WhatsApp">☎</span>
+                        <div className="sgc-stat-label" style={{margin:0}}>WhatsApp Group</div>
+                      </div>
+                      <div className="sgc-stat-val">Join Now →</div>
+                    </a>
+                  )}
                 </div>
 
                 {/* Quick Actions */}
@@ -476,12 +563,6 @@ export default function Dashboard() {
                       {icon} {label}
                     </button>
                   ))}
-                  {siteSettings.whatsapp_link && (
-                    <a href={siteSettings.whatsapp_link} target="_blank" rel="noreferrer"
-                      style={{padding:'10px 18px',background:'#25d366',border:'1px solid #25d366',borderRadius:10,color:'#fff',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,textDecoration:'none'}}>
-                      💬 WhatsApp Group
-                    </a>
-                  )}
                 </div>
 
                 {/* Recent Transactions */}
@@ -508,13 +589,13 @@ export default function Dashboard() {
                 )}
 
                 {/* Dashboard Bottom Custom Message */}
-                {dashboardMsg&&(
-                  <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:16,padding:'16px 20px',marginTop:16}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                {dashboardMsg?.trim() &&(
+                  <div className="sgc-important-ticker" role="status" aria-label="Important message">
+                    <div className="sgc-important-ticker-old-title">
                       <span style={{fontSize:20}}>📋</span>
                       <span style={{color:'var(--accent)',fontWeight:800,fontSize:14,letterSpacing:.3}}>IMPORTANT NOTICE</span>
                     </div>
-                    <p style={{color:'var(--muted)',fontSize:14,lineHeight:1.8,margin:0,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{dashboardMsg}</p>
+                    <p className="sgc-important-ticker-track" data-message={dashboardMsg}>{dashboardMsg}</p>
                   </div>
                 )}
               </div>
@@ -604,6 +685,21 @@ export default function Dashboard() {
             {tab==='payout' && (
               <div>
                 <h2 className="sgc-heading">💸 Payout</h2>
+                {siteSettings.withdraw_enabled === 'false' && (
+                  <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:12,padding:'14px 18px',marginBottom:20,display:'flex',alignItems:'center',gap:12}}>
+                    <span style={{fontSize:22}}>🔒</span>
+                    <div>
+                      <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Withdraw Currently Closed</p>
+                      <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Withdraw is temporarily disabled. Please check back later.</p>
+                    </div>
+                  </div>
+                )}
+                {siteSettings.withdraw_enabled !== 'false' && siteSettings.withdraw_until && (
+                  <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:12,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:16}}>⏱️</span>
+                    <p style={{color:'#4ade80',fontSize:13,margin:0,fontWeight:600}}>Withdraw open until: {new Date(siteSettings.withdraw_until).toLocaleString('en-PK',{timeZone:'Asia/Karachi'})}</p>
+                  </div>
+                )}
                 {kycData?.kyc_status !== 'approved' ? (
                   <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:14,padding:'28px 24px',textAlign:'center',maxWidth:480}}>
                     <div style={{fontSize:48,marginBottom:12}}>🚪</div>
