@@ -23,10 +23,10 @@ const TABS = [
 ];
 
 const HERO_SLIDES = [
-  { src:'/favicon.png',      alt:'Smart Grow Chain' },
-  { src:'/hero pic1.jpg',  alt:'Smart Grow Chain' },
-  { src:'/hero pic 2.jpg', alt:'Investment Growth' },
-  { src:'/hero pic 3.jpg', alt:'Earn & Grow' },
+  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
+  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
+  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
+  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
 ];
 
 function HeroSlider() {
