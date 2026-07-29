@@ -44,7 +44,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 # ── PROFILE ─────────────────────────────────────────────────────────────────
 @router.get("/profile", response_model=UserOut)
-def get_profile(current_user: User = Depends(get_current_user)):
+def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.balance is None:
+        current_user.balance = 0.0
+        db.commit()
+    if current_user.total_earned is None:
+        current_user.total_earned = 0.0
+        db.commit()
     return current_user
 
 # ── ADS ──────────────────────────────────────────────────────────────────────
@@ -172,6 +178,20 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
 # ── WITHDRAW ─────────────────────────────────────────────────────────────────
 @router.post("/withdraw")
 def request_withdrawal(data: WithdrawalCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Check withdraw toggle
+    w_enabled = db.query(SiteSettings).filter(SiteSettings.key == "withdraw_enabled").first()
+    w_until   = db.query(SiteSettings).filter(SiteSettings.key == "withdraw_until").first()
+    enabled = True if (not w_enabled or w_enabled.value == "true") else False
+    if w_until and w_until.value:
+        try:
+            if datetime.utcnow() > datetime.fromisoformat(w_until.value):
+                enabled = False
+                if w_enabled: w_enabled.value = "false"
+                w_until.value = ""
+                db.commit()
+        except: pass
+    if not enabled:
+        raise HTTPException(status_code=400, detail="Withdraw is currently closed. Please try again later.")
     if current_user.kyc_status != "approved":
         raise HTTPException(status_code=400, detail="Please complete your KYC verification first before withdrawing.")
     # Get plan-based min/max withdrawal
@@ -393,7 +413,46 @@ def get_tickets(current_user: User = Depends(get_current_user), db: Session = De
 @router.get("/settings")
 def get_public_settings(db: Session = Depends(get_db)):
     rows = db.query(SiteSettings).all()
-    return {r.key: r.value for r in rows}
+    settings = {r.key: r.value for r in rows}
+    # auto-expire duration-based withdraw
+    until_str = settings.get("withdraw_until", "")
+    if until_str:
+        try:
+            if datetime.utcnow() > datetime.fromisoformat(until_str):
+                settings["withdraw_enabled"] = "false"
+                settings["withdraw_until"] = ""
+                for k, v in [("withdraw_enabled", "false"), ("withdraw_until", "")]:
+                    s = db.query(SiteSettings).filter(SiteSettings.key == k).first()
+                    if s: s.value = v
+                db.commit()
+        except: pass
+    # schedule-based auto-enable (PKT = UTC+5)
+    sched = settings.get("withdraw_schedule_time", "")
+    if sched and settings.get("withdraw_enabled", "true") != "true":
+        try:
+            now_pkt_hour = (datetime.utcnow().hour + 5) % 24
+            now_pkt_min  = datetime.utcnow().minute
+            # format: "HH:MM AM|HH:MM PM" or legacy "HH:MM"
+            on_part = sched.split('|')[0].strip() if '|' in sched else sched.strip()
+            # parse 12h AM/PM format
+            from datetime import datetime as dt
+            on_dt = dt.strptime(on_part, "%I:%M %p") if 'AM' in on_part or 'PM' in on_part else dt.strptime(on_part, "%H:%M")
+            if now_pkt_hour == on_dt.hour and now_pkt_min < 60:
+                settings["withdraw_enabled"] = "true"
+        except: pass
+    # schedule-based auto-disable
+    sched = settings.get("withdraw_schedule_time", "")
+    if sched and settings.get("withdraw_enabled", "true") == "true" and '|' in sched:
+        try:
+            now_pkt_hour = (datetime.utcnow().hour + 5) % 24
+            now_pkt_min  = datetime.utcnow().minute
+            off_part = sched.split('|')[1].strip()
+            from datetime import datetime as dt
+            off_dt = dt.strptime(off_part, "%I:%M %p") if 'AM' in off_part or 'PM' in off_part else dt.strptime(off_part, "%H:%M")
+            if now_pkt_hour == off_dt.hour and now_pkt_min < 60:
+                settings["withdraw_enabled"] = "false"
+        except: pass
+    return settings
 
 # ── MEMBERSHIP PLANS ──────────────────────────────────────────────────────────
 @router.get("/plans")
