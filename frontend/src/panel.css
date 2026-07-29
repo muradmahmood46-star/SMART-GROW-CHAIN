@@ -397,6 +397,10 @@ body {
 @media (max-width:768px) {
   .sgc-hero-slide { flex-basis:calc(27% - 6px); }
   .sgc-hero-slide.active-slide { flex-basis:calc(46% - 4px); }
+  /* Filters are rasterized at the slide's scaled mobile size and soften the images. */
+  .sgc-hero-slide,
+  .sgc-user-dashboard .sgc-hero-slide { filter:none; }
+  .sgc-hero-slide img { width:100%; height:auto; }
 }
 
 /* ── Quick Balance Card ── */
@@ -632,10 +636,10 @@ body {
 .sgc-user-dashboard .sgc-topbar { background:linear-gradient(105deg,#16a085 0%,#1abc9c 48%,#3498db 100%); box-shadow:0 3px 14px rgba(26,188,156,.22); }
 .sgc-user-dashboard .sgc-hero-slider { padding:0; background:transparent; box-shadow:none; margin-bottom:22px; }
 .sgc-user-dashboard .sgc-hero-slider-track { gap:12px; padding:0 4px; }
-.sgc-user-dashboard .sgc-hero-slide { border:2px solid #5bb8f5; background:#fff; box-shadow:0 7px 18px rgba(30,64,175,.14); filter:blur(.3px) saturate(.94); }
+.sgc-user-dashboard .sgc-hero-slide { border:1px solid #5bb8f5; border-radius:22px; background:#fff; box-shadow:0 8px 20px rgba(30,64,175,.16); filter:blur(.3px) saturate(.94); }
 .sgc-user-dashboard .sgc-hero-slide::after { display:none; }
-.sgc-user-dashboard .sgc-hero-slide.active-slide { border-color:#2189d5; box-shadow:0 10px 24px rgba(30,64,175,.2); }
-.sgc-user-dashboard .sgc-hero-slide img { border-radius:19px; }
+.sgc-user-dashboard .sgc-hero-slide.active-slide { border-color:#2189d5; box-shadow:0 11px 26px rgba(30,64,175,.22); }
+.sgc-user-dashboard .sgc-hero-slide img { box-sizing:border-box; border:1px solid rgba(59,130,246,.5); border-radius:21px; box-shadow:0 4px 12px rgba(30,64,175,.1); }
 .sgc-user-dashboard .sgc-hero-slide.hero-logo-slide img { width:100%; height:190px; max-height:none; margin:0; object-fit:cover; }
 .sgc-user-dashboard .sgc-hero-dots { padding-top:12px; }
 .sgc-user-dashboard .sgc-hero-dot { background:#cbd5df; }
