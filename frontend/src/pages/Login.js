@@ -12,9 +12,9 @@ export default function Login() {
   const navigate = useNavigate();
 
   useEffect(()=>{
-    const onBack = (e) => { e.preventDefault(); navigate('/'); };
-    window.addEventListener('popstate', onBack);
     window.history.pushState(null, '', window.location.href);
+    const onBack = () => { navigate('/'); };
+    window.addEventListener('popstate', onBack);
     return ()=>window.removeEventListener('popstate', onBack);
   },[navigate]);
 

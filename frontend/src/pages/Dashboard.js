@@ -331,24 +331,21 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
-  // ── Mobile hardware back button — exact same as topbar arrow ──
+  // ── Mobile hardware back button ──
   useEffect(()=>{
-    // Always keep a dummy state on top so popstate fires
     window.history.pushState(null, '', window.location.href);
     const onBack = () => {
-      // Step 1: close sidebar
       if(sidebarOpen){
         setSidebarOpen(false);
         window.history.pushState(null, '', window.location.href);
         return;
       }
-      // Step 2: go to dashboard
       if(tab !== 'dashboard'){
         setTab('dashboard');
         window.history.pushState(null, '', window.location.href);
         return;
       }
-      // Step 3: go to login
+      // on dashboard → go to login (clear session)
       localStorage.clear();
       navigate('/login');
     };

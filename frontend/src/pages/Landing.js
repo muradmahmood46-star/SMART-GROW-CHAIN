@@ -12,6 +12,14 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
+    // On home page, back button = exit app
+    window.history.pushState(null, '', window.location.href);
+    const onBack = () => { window.history.go(-2); };
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  }, []);
+
+  useEffect(() => {
     setShowCookieNotice(!localStorage.getItem('sgc-cookie-choice'));
     const observer = new IntersectionObserver(
       entries => entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('is-visible')),
