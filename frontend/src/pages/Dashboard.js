@@ -332,26 +332,29 @@ export default function Dashboard() {
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
   // ── Mobile hardware back button ──
+  const sidebarOpenRef = React.useRef(sidebarOpen);
+  const tabRef = React.useRef(tab);
+  useEffect(()=>{ sidebarOpenRef.current = sidebarOpen; }, [sidebarOpen]);
+  useEffect(()=>{ tabRef.current = tab; }, [tab]);
+
   useEffect(()=>{
     window.history.pushState(null, '', window.location.href);
     const onBack = () => {
-      if(sidebarOpen){
+      window.history.pushState(null, '', window.location.href);
+      if(sidebarOpenRef.current){
         setSidebarOpen(false);
-        window.history.pushState(null, '', window.location.href);
         return;
       }
-      if(tab !== 'dashboard'){
+      if(tabRef.current !== 'dashboard'){
         setTab('dashboard');
-        window.history.pushState(null, '', window.location.href);
         return;
       }
-      // on dashboard → go to login (clear session)
       localStorage.clear();
       navigate('/login');
     };
     window.addEventListener('popstate', onBack);
     return ()=>window.removeEventListener('popstate', onBack);
-  },[sidebarOpen, tab, navigate]);
+  },[navigate]);
 
   const loadRefLevel = async (lvl) => {
     setSelectedRefLevel(lvl);

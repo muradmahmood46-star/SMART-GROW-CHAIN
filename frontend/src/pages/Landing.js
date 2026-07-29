@@ -14,7 +14,9 @@ export default function Landing() {
   useEffect(() => {
     // On home page, back button = exit app
     window.history.pushState(null, '', window.location.href);
-    const onBack = () => { window.history.go(-2); };
+    const onBack = () => {
+      window.history.pushState(null, '', window.location.href);
+    };
     window.addEventListener('popstate', onBack);
     return () => window.removeEventListener('popstate', onBack);
   }, []);
