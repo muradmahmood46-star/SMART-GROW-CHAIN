@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import User, UserAdRequest, AdBudgetRate, EasypaisaAccount, Ad
+from app.models.models import User, UserAdRequest, AdBudgetRate, EasypaisaAccount, Ad, Earning
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
 import os, shutil, uuid
@@ -128,6 +128,33 @@ def reactivate_request(req_id: int, current_user: User = Depends(get_current_use
     req.admin_note = None
     db.commit()
     return {"message": "Request reactivated successfully"}
+
+@router.get("/viewers/{req_id}")
+def get_campaign_viewers(req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id, UserAdRequest.user_id == current_user.id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Not found")
+    earnings = db.query(Earning).filter(Earning.type == "click").join(
+        Ad, Earning.ad_id == Ad.id
+    ).filter(Ad.url == req.url).order_by(Earning.clicked_at.desc()).all()
+    result = []
+    for e in earnings:
+        user = db.query(User).filter(User.id == e.user_id).first()
+        if not user:
+            continue
+        result.append({
+            "username": user.username,
+            "email": user.email,
+            "membership": user.membership,
+            "balance": round(user.balance, 2),
+            "total_earned": round(user.total_earned, 2),
+            "kyc_status": user.kyc_status or "none",
+            "plan_expires_at": user.plan_expires_at,
+            "is_active": user.is_active,
+            "viewed_at": e.clicked_at,
+            "earned_amount": round(e.amount, 2),
+        })
+    return result
 
 @router.get("/easypaisa-accounts")
 def get_accounts(db: Session = Depends(get_db)):
