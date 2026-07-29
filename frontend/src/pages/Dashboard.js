@@ -1802,7 +1802,7 @@ export default function Dashboard() {
                                 <button onClick={async()=>{
                                   if(campaignViewers[r.id]!==undefined){ setCampaignViewers(p=>({...p,[r.id]:undefined})); return; }
                                   try{
-                                    const res=await API.get(`/admin/campaign-viewers/${r.id}`,{headers:{Authorization:`Bearer ${localStorage.getItem('token')}`}});
+                                    const res=await API.get(`/user/ad-request/viewers/${r.id}`);
                                     setCampaignViewers(p=>({...p,[r.id]:res.data}));
                                   }catch{ notify('Could not load viewers','error'); }
                                 }} style={{width:'100%',padding:'12px',background:campaignViewers[r.id]!==undefined?'#1e3a6e':'#0f2a4a',border:`1.5px solid #38bdf8`,borderRadius:10,color:'#38bdf8',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s'}}>
