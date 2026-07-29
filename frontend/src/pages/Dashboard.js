@@ -1815,26 +1815,76 @@ export default function Dashboard() {
                               {/* Viewers List */}
                               {campaignViewers[r.id]!==undefined && (
                                 <div style={{background:'#0b1120',borderRadius:10,border:'1px solid var(--border)',overflow:'hidden'}}>
-                                  <div style={{padding:'8px 12px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
-                                    <span style={{fontSize:14}}>👁️</span>
-                                    <span style={{color:'var(--muted)',fontSize:12,fontWeight:700}}>VIEWERS ({campaignViewers[r.id].length})</span>
+                                  <div style={{padding:'10px 14px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                      <span style={{fontSize:14}}>👁️</span>
+                                      <span style={{color:'var(--muted)',fontSize:12,fontWeight:700}}>VIEWERS ({campaignViewers[r.id].length})</span>
+                                    </div>
+                                    {campaignViewers[r.id].length>0 && (
+                                      <span style={{color:'var(--green)',fontSize:11,fontWeight:700}}>Total Earned by Viewers: Rs. {campaignViewers[r.id].reduce((s,v)=>s+(v.earned_amount||0),0).toFixed(2)}</span>
+                                    )}
                                   </div>
-                                  <div style={{maxHeight:180,overflowY:'auto'}}>
+                                  <div style={{maxHeight:420,overflowY:'auto'}}>
                                     {campaignViewers[r.id].length===0&&(
                                       <p style={{color:'var(--dim)',fontSize:12,textAlign:'center',padding:'16px',margin:0}}>No viewers yet — campaign may be pending approval.</p>
                                     )}
-                                    {campaignViewers[r.id].map((v,vi)=>(
-                                      <div key={vi} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 12px',borderBottom:vi<campaignViewers[r.id].length-1?'1px solid var(--border)':'none'}}>
-                                        <div style={{display:'flex',alignItems:'center',gap:8}}>
-                                          <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'var(--bg)',flexShrink:0}}>{v.username[0].toUpperCase()}</div>
-                                          <span style={{color:'var(--text)',fontSize:13,fontWeight:600}}>@{v.username}</span>
+                                    {campaignViewers[r.id].map((v,vi)=>{
+                                      const kycCol = v.kyc_status==='approved'?'#4ade80':v.kyc_status==='pending'?'#fbbf24':'#94a3b8';
+                                      const kycBg  = v.kyc_status==='approved'?'#064e3b':v.kyc_status==='pending'?'#451a03':'#1e293b';
+                                      const kycLabel = v.kyc_status==='approved'?'✅ Verified':v.kyc_status==='pending'?'⏳ Pending':'❌ Not Verified';
+                                      const planExp = v.plan_expires_at ? new Date(v.plan_expires_at) : null;
+                                      const planActive = planExp && planExp > new Date();
+                                      return (
+                                        <div key={vi} style={{padding:'12px 14px',borderBottom:vi<campaignViewers[r.id].length-1?'1px solid var(--border)':'none',background:vi%2===0?'transparent':'rgba(255,255,255,.02)'}}>
+                                          {/* Row 1: Avatar + Username + Status badges */}
+                                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,flexWrap:'wrap'}}>
+                                            <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'var(--bg)',flexShrink:0}}>{v.username[0].toUpperCase()}</div>
+                                            <div style={{flex:1,minWidth:0}}>
+                                              <p style={{color:'var(--text)',fontSize:13,fontWeight:700,margin:0}}>@{v.username}</p>
+                                              <p style={{color:'var(--dim)',fontSize:11,margin:0}}>{v.email}</p>
+                                            </div>
+                                            <span style={{background:v.is_active?'#064e3b':'#450a0a',color:v.is_active?'#4ade80':'#fca5a5',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:700,flexShrink:0}}>{v.is_active?'🟢 Active':'🔴 Inactive'}</span>
+                                          </div>
+                                          {/* Row 2: Details grid */}
+                                          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:6}}>
+                                            <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>MEMBERSHIP</p>
+                                              <p style={{color:'var(--yellow)',fontSize:12,fontWeight:700,margin:0,textTransform:'capitalize'}}>🏆 {v.membership}</p>
+                                            </div>
+                                            <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>BALANCE</p>
+                                              <p style={{color:'var(--green)',fontSize:12,fontWeight:700,margin:0}}>Rs. {v.balance}</p>
+                                            </div>
+                                            <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>TOTAL EARNED</p>
+                                              <p style={{color:'var(--accent)',fontSize:12,fontWeight:700,margin:0}}>Rs. {v.total_earned}</p>
+                                            </div>
+                                            <div style={{background:kycBg,borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>KYC</p>
+                                              <p style={{color:kycCol,fontSize:11,fontWeight:700,margin:0}}>{kycLabel}</p>
+                                            </div>
+                                            <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>PLAN STATUS</p>
+                                              <p style={{color:planActive?'#4ade80':'#fca5a5',fontSize:11,fontWeight:700,margin:0}}>{planActive?`✅ Active till ${planExp.toLocaleDateString('en-PK',{day:'numeric',month:'short'})}`:planExp?'❌ Expired':'—'}</p>
+                                            </div>
+                                            <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>EARNED FROM AD</p>
+                                              <p style={{color:'var(--yellow)',fontSize:12,fontWeight:700,margin:0}}>Rs. {v.earned_amount}</p>
+                                            </div>
+                                            {v.kyc_name&&v.kyc_name!=='-'&&(
+                                              <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                                <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>REAL NAME</p>
+                                                <p style={{color:'var(--muted)',fontSize:11,fontWeight:600,margin:0}}>{v.kyc_name}</p>
+                                              </div>
+                                            )}
+                                            <div style={{background:'#0d1e38',borderRadius:8,padding:'6px 10px'}}>
+                                              <p style={{color:'var(--dim)',fontSize:9,fontWeight:700,margin:'0 0 2px',letterSpacing:.5}}>VIEWED AT</p>
+                                              <p style={{color:'var(--dim)',fontSize:10,fontWeight:600,margin:0}}>{new Date(v.viewed_at).toLocaleString('en-PK',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                                          <span style={{background:'#1e3a6e',color:'var(--accent)',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:600,textTransform:'capitalize'}}>{v.membership||'free'}</span>
-                                          {v.plan_expires_at&&<span style={{color:new Date(v.plan_expires_at)<new Date()?'var(--red)':'var(--green)',fontSize:10}}>{new Date(v.plan_expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</span>}
-                                        </div>
-                                      </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
