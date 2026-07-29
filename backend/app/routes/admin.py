@@ -661,11 +661,29 @@ def get_campaign_viewers(req_id: int, db: Session = Depends(get_db), admin=Depen
         raise HTTPException(status_code=404, detail="Not found")
     earnings = db.query(Earning).filter(Earning.type == "click").join(
         Ad, Earning.ad_id == Ad.id
-    ).filter(Ad.url == req.url).all()
+    ).filter(Ad.url == req.url).order_by(Earning.clicked_at.desc()).all()
     result = []
     for e in earnings:
         user = db.query(User).filter(User.id == e.user_id).first()
-        result.append({"username": user.username if user else "?", "viewed_at": e.clicked_at})
+        if not user:
+            continue
+        from app.models.models import KYCRequest
+        kyc = db.query(KYCRequest).filter(KYCRequest.user_id == user.id).order_by(KYCRequest.created_at.desc()).first()
+        result.append({
+            "username": user.username,
+            "email": user.email,
+            "membership": user.membership,
+            "balance": round(user.balance, 2),
+            "total_earned": round(user.total_earned, 2),
+            "kyc_status": user.kyc_status or "none",
+            "kyc_name": kyc.full_name if kyc else "-",
+            "kyc_phone": kyc.phone if kyc else "-",
+            "plan_expires_at": user.plan_expires_at,
+            "is_active": user.is_active,
+            "joined": user.created_at,
+            "viewed_at": e.clicked_at,
+            "earned_amount": round(e.amount, 2),
+        })
     return result
 
 
