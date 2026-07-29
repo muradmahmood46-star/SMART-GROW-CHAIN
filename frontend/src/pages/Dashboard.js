@@ -24,9 +24,9 @@ const TABS = [
 
 const HERO_SLIDES = [
   { src:'/hero pic main.png', alt:'Smart Grow Chain' },
-  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
-  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
-  { src:'/hero pic main.png', alt:'Smart Grow Chain' },
+  { src:'/hero pic1.jpg',     alt:'Smart Grow Chain 1' },
+  { src:'/hero pic 2.jpg',    alt:'Smart Grow Chain 2' },
+  { src:'/hero pic 3.jpg',    alt:'Smart Grow Chain 3' },
 ];
 
 function HeroSlider() {
