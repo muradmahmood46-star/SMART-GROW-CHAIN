@@ -331,17 +331,28 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
-  // ── Mobile hardware back button — same as topbar arrow ──
+  // ── Mobile hardware back button — exact same as topbar arrow ──
   useEffect(()=>{
-    const onBack = (e) => {
-      e.preventDefault();
-      if(sidebarOpen){ setSidebarOpen(false); return; }
-      if(tab!=='dashboard'){ setTab('dashboard'); return; }
+    // Always keep a dummy state on top so popstate fires
+    window.history.pushState(null, '', window.location.href);
+    const onBack = () => {
+      // Step 1: close sidebar
+      if(sidebarOpen){
+        setSidebarOpen(false);
+        window.history.pushState(null, '', window.location.href);
+        return;
+      }
+      // Step 2: go to dashboard
+      if(tab !== 'dashboard'){
+        setTab('dashboard');
+        window.history.pushState(null, '', window.location.href);
+        return;
+      }
+      // Step 3: go to login
+      localStorage.clear();
       navigate('/login');
     };
     window.addEventListener('popstate', onBack);
-    // Push a dummy state so popstate fires on first back press
-    window.history.pushState(null, '', window.location.href);
     return ()=>window.removeEventListener('popstate', onBack);
   },[sidebarOpen, tab, navigate]);
 
