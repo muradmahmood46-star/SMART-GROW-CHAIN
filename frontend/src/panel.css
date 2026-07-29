@@ -645,10 +645,8 @@ body {
 .sgc-user-dashboard .sgc-hero-dot { background:#cbd5df; }
 .sgc-user-dashboard .sgc-hero-dot.active { background:#1abc9c; }
 .sgc-user-dashboard .sgc-quick-balance { background:#fff; border:1px solid #e7edf3; border-radius:16px; padding:20px; box-shadow:0 7px 22px rgba(15,23,42,.07); }
-.sgc-user-dashboard .sgc-quick-balance-row { gap:0; margin-bottom:20px; }
-.sgc-user-dashboard .sgc-quick-bal-item { min-width:0; padding:0 16px; border-right:1px solid #edf1f4; }
-.sgc-user-dashboard .sgc-quick-bal-item:first-child { padding-left:0; }
-.sgc-user-dashboard .sgc-quick-bal-item:last-child { padding-right:0; border-right:none; }
+.sgc-user-dashboard .sgc-quick-balance-row { gap:12px; margin-bottom:20px; }
+.sgc-user-dashboard .sgc-quick-bal-item { min-width:0; padding:12px; background:#f8fafc; border:1px solid #e7edf3; border-radius:12px; box-shadow:0 3px 9px rgba(15,23,42,.05); }
 .sgc-user-dashboard .sgc-quick-bal-label { color:#98a2b3; font-size:10px; }
 .sgc-user-dashboard .sgc-quick-bal-val { color:#172033 !important; font-size:22px; }
 .sgc-user-dashboard .sgc-quick-actions { justify-content:center; gap:18px; }
@@ -674,8 +672,10 @@ body {
 .sgc-user-dashboard .sgc-th { background:#f7f9fb; color:#667085; font-weight:800; }
 .sgc-user-dashboard .sgc-tr:hover { background:#f8fbfa; }
 @media (max-width:768px) {
+  /* This must follow the dashboard slide rule above, which otherwise restores blur(.3px). */
+  .sgc-user-dashboard .sgc-hero-slide { filter:none; }
   .sgc-user-dashboard .sgc-quick-balance-row { gap:14px 0; }
-  .sgc-user-dashboard .sgc-quick-bal-item { flex-basis:33.333%; padding:0 8px; }
+  .sgc-user-dashboard .sgc-quick-bal-item { flex-basis:33.333%; padding:10px 8px; }
   .sgc-user-dashboard .sgc-quick-bal-val { font-size:17px; }
   .sgc-user-dashboard .sgc-quick-actions { gap:12px; }
   .sgc-user-dashboard .sgc-quick-btn { flex:1; }
