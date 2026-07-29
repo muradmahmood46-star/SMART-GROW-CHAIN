@@ -618,8 +618,8 @@ export default function Dashboard() {
                   <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{availableAds} available today</span>
                 </div>
                 <div className="sgc-ads-grid">
-                  {ads.map((ad,i)=>(
-                    <div key={ad.id} className="sgc-ad-card" style={{opacity:ad.already_clicked?0.55:1,animationDelay:`${i*.05}s`,border:ad.is_sponsored?'2px solid #f59e0b':'1px solid var(--border)'}}>
+                  {ads.filter(a=>!a.already_clicked).map((ad,i)=>(
+                    <div key={ad.id} className="sgc-ad-card" style={{animationDelay:`${i*.05}s`,border:ad.is_sponsored?'2px solid #f59e0b':'1px solid var(--border)'}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
                         <div style={{flex:1,marginRight:8}}>
                           {ad.is_sponsored && <span style={{background:'#451a03',color:'#f59e0b',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,display:'inline-block',marginBottom:4}}>⭐ SPONSORED</span>}
@@ -644,13 +644,13 @@ export default function Dashboard() {
                         </div>
                       )}
                       <button className="sgc-click-btn"
-                        style={{background:ad.already_clicked?'var(--card)':'linear-gradient(135deg,var(--accent),var(--accent2))',color:ad.already_clicked?'var(--dim)':'var(--bg)',cursor:(ad.already_clicked||!!activeAd)?'not-allowed':'pointer'}}
-                        onClick={()=>startAd(ad)} disabled={ad.already_clicked||!!activeAd}>
-                        {ad.already_clicked?'✓ Clicked Today':activeAd?.id===ad.id?`⏳ ${countdown}s`:activeAd?'⏳ Watching...':'▶ Click & Earn'}
+                        style={{background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'var(--bg)',cursor:!!activeAd?'not-allowed':'pointer'}}
+                        onClick={()=>startAd(ad)} disabled={!!activeAd}>
+                        {activeAd?.id===ad.id?`⏳ ${countdown}s`:activeAd?'⏳ Watching...':'▶ Click & Earn'}
                       </button>
                     </div>
                   ))}
-                  {ads.length===0&&<div className="sgc-empty">No ads available right now.<br/>Check back later!</div>}
+                  {ads.filter(a=>!a.already_clicked).length===0&&<div className="sgc-empty">No ads available right now.<br/>Check back later!</div>}
                 </div>
 
                 {/* Today's Watch History */}
