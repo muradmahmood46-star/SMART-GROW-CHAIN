@@ -16,10 +16,6 @@ function AdminRoute({ children }) {
 }
 
 function HomeRoute() {
-  const token = localStorage.getItem('token');
-  const isAdmin = localStorage.getItem('is_admin') === 'true';
-  if (token && isAdmin) return <Navigate to="/admin" />;
-  if (token) return <Navigate to="/dashboard" />;
   return <Landing />;
 }
 
@@ -33,7 +29,7 @@ export default function App() {
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
         {/* Redirect old routes */}
-        <Route path="/user/login" element={<Navigate to="/login" />} />
+        <Route path="/user/login" element={<Navigate to="/" />} />
         <Route path="/admin/login" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>

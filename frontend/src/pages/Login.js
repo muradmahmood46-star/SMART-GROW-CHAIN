@@ -4,11 +4,9 @@ import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
   const [form, setForm]         = useState({ username: '', password: '' });
-  const [step, setStep]         = useState('login'); // login | otp | 2fa
+  const [step, setStep]         = useState('login'); // login | 2fa
   const [faCode, setFaCode]     = useState('');
-  const [otpCode, setOtpCode]   = useState('');
   const [pendingData, setPendingData] = useState(null);
-  const [maskedEmail, setMaskedEmail] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
@@ -20,8 +18,6 @@ export default function Login() {
       const res = await API.post('/auth/login', form);
       if (res.data.requires_2fa) {
         setPendingData(res.data); setStep('2fa');
-      } else if (res.data.requires_otp) {
-        setPendingData(res.data); setMaskedEmail(res.data.masked_email); setStep('otp');
       } else {
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('is_admin', String(res.data.is_admin));
@@ -30,20 +26,6 @@ export default function Login() {
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid username or password');
-    } finally { setLoading(false); }
-  };
-
-  const handleOTP = async (e) => {
-    e.preventDefault();
-    setLoading(true); setError('');
-    try {
-      const res = await API.post('/auth/verify-otp', { temp_token: pendingData.temp_token, otp: otpCode });
-      localStorage.setItem('token', res.data.access_token);
-      localStorage.setItem('is_admin', String(res.data.is_admin));
-      localStorage.setItem('username', res.data.username);
-      navigate(res.data.is_admin ? '/admin' : '/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Invalid OTP code');
     } finally { setLoading(false); }
   };
 
@@ -68,7 +50,7 @@ export default function Login() {
         <div style={s.logo}>🌱</div>
         <h2 style={s.title}>Smart Grow Chain</h2>
         <p style={s.sub}>
-          {step==='otp' ? 'Enter verification code' : step==='2fa' ? 'Enter 2FA code' : 'Login to your account'}
+          {step==='2fa' ? 'Enter 2FA code' : 'Login to your account'}
         </p>
         {error && <div style={s.error}>{error}</div>}
 
@@ -81,28 +63,7 @@ export default function Login() {
             <input style={s.input} type="password" placeholder="Enter password" value={form.password}
               onChange={e=>setForm({...form,password:e.target.value})} required/>
             <button style={{...s.btn,opacity:loading?0.7:1}} type="submit" disabled={loading}>
-              {loading?'Sending OTP...':'Login'}
-            </button>
-          </form>
-        )}
-
-        {step==='otp' && (
-          <form onSubmit={handleOTP}>
-            <div style={{background:'#1e3a6e',border:'1px solid #38bdf8',borderRadius:10,padding:'12px 16px',marginBottom:20,textAlign:'center'}}>
-              <p style={{color:'#94a3b8',fontSize:13,margin:'0 0 4px'}}>📧 Code sent to</p>
-              <p style={{color:'#38bdf8',fontWeight:700,fontSize:14,margin:0}}>{maskedEmail}</p>
-              <p style={{color:'#64748b',fontSize:11,margin:'6px 0 0'}}>Check your inbox. Valid for 10 minutes.</p>
-            </div>
-            <label style={s.label}>Verification Code</label>
-            <input style={{...s.input,letterSpacing:10,textAlign:'center',fontSize:24,fontWeight:700}}
-              placeholder="000000" value={otpCode} onChange={e=>setOtpCode(e.target.value)}
-              maxLength={6} required autoFocus/>
-            <button style={{...s.btn,opacity:loading?0.7:1}} type="submit" disabled={loading}>
-              {loading?'Verifying...':'Verify & Login'}
-            </button>
-            <button type="button" onClick={()=>{setStep('login');setOtpCode('');setError('');}}
-              style={{...s.btn,marginTop:8,background:'transparent',color:'#64748b',border:'1px solid #334155'}}>
-              ← Back
+              {loading?'Logging in...':'Login'}
             </button>
           </form>
         )}

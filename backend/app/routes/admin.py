@@ -308,11 +308,10 @@ def confirm_deposit(dep_id: int, db: Session = Depends(get_db), admin=Depends(ge
         raise HTTPException(status_code=400, detail="Already processed")
     user = db.query(User).filter(User.id == dep.user_id).first()
     if user:
-        user.balance += dep.amount_pkr
-        user.total_earned += dep.amount_pkr
+        user.balance -= dep.amount_pkr
     dep.status = "confirmed"
     db.commit()
-    return {"message": f"Deposit confirmed. Rs. {dep.amount_pkr} added to user balance"}
+    return {"message": f"Deposit confirmed. Rs. {dep.amount_pkr} deducted from user balance"}
 
 @router.put("/deposits/{dep_id}/reject")
 def reject_deposit(dep_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
@@ -843,6 +842,66 @@ def set_free_plan_days(data: FreePlanDays, db: Session = Depends(get_db), admin=
     else: db.add(SiteSettings(key="free_plan_days", value=str(data.days)))
     db.commit()
     return {"message": "Updated", "days": data.days}
+
+
+# ── WITHDRAW TOGGLE SETTINGS ──────────────────────────────────────────
+from datetime import datetime
+
+class WithdrawToggle(BaseModel):
+    enabled: bool
+
+class WithdrawDuration(BaseModel):
+    hours: int  # 1, 2, or 3
+
+class WithdrawSchedule(BaseModel):
+    time_pkt: str  # e.g. "19:00", "20:00", "21:00"
+
+def _set_setting(db: Session, key: str, value: str):
+    s = db.query(SiteSettings).filter(SiteSettings.key == key).first()
+    if s: s.value = value
+    else: db.add(SiteSettings(key=key, value=value))
+    db.commit()
+
+@router.get("/withdraw-settings")
+def get_withdraw_settings(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    rows = {r.key: r.value for r in db.query(SiteSettings).filter(
+        SiteSettings.key.in_(["withdraw_enabled", "withdraw_until", "withdraw_schedule_time"])
+    ).all()}
+    enabled = rows.get("withdraw_enabled", "true") == "true"
+    until_str = rows.get("withdraw_until", "")
+    # auto-expire duration
+    if until_str:
+        try:
+            until_dt = datetime.fromisoformat(until_str)
+            if datetime.utcnow() > until_dt:
+                enabled = False
+                _set_setting(db, "withdraw_enabled", "false")
+                _set_setting(db, "withdraw_until", "")
+                until_str = ""
+        except: pass
+    return {
+        "withdraw_enabled": enabled,
+        "withdraw_until": until_str,
+        "withdraw_schedule_time": rows.get("withdraw_schedule_time", "")
+    }
+
+@router.put("/withdraw-settings/toggle")
+def toggle_withdraw(data: WithdrawToggle, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    _set_setting(db, "withdraw_enabled", "true" if data.enabled else "false")
+    _set_setting(db, "withdraw_until", "")  # clear duration when manually toggled
+    return {"message": "Updated", "withdraw_enabled": data.enabled}
+
+@router.put("/withdraw-settings/duration")
+def set_withdraw_duration(data: WithdrawDuration, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    until = datetime.utcnow() + timedelta(hours=data.hours)
+    _set_setting(db, "withdraw_enabled", "true")
+    _set_setting(db, "withdraw_until", until.isoformat())
+    return {"message": f"Withdraw enabled for {data.hours} hour(s)", "withdraw_until": until.isoformat()}
+
+@router.put("/withdraw-settings/schedule")
+def set_withdraw_schedule(data: WithdrawSchedule, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    _set_setting(db, "withdraw_schedule_time", data.time_pkt)
+    return {"message": f"Withdraw scheduled at {data.time_pkt} PKT daily"}
 
 
 # ── ADVERTISER MANAGEMENT (NEW ISOLATED MODULE) ───────────────────────────

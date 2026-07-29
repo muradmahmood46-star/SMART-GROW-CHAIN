@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
 import '../panel.css';
@@ -16,7 +16,7 @@ const TABS = [
   { key:'referrals',   icon:'👥', label:'Referrals'       },
   { key:'ref-settings',icon:'⚙️', label:'Referral Commission'},
   { key:'ad-view-log', icon:'📌', label:'Ad View Log'     },
-  { key:'ad-requests', icon:'💰', label:'Ad Rate Setting'  },
+  { key:'ad-requests', icon:'💰', label:'Ad Rate & Request'  },
   { key:'kyc',         icon:'🪪', label:'KYC Requests'    },
   { key:'plan-purchases', icon:'🏆', label:'Plan Purchases'   },
   { key:'easypaisa',   icon:'📱', label:'Payment Options'  },
@@ -38,6 +38,7 @@ export default function AdminPanel() {
   const [plans, setPlans]             = useState([]);
   const [tab, setTab]                 = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
   const [newAd, setNewAd]             = useState({ title:'', url:'', description:'', earning_amount:1, timer_seconds:10, daily_limit:100 });
   const [newEP, setNewEP] = useState({ account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'', bank_name:'' });
   const [editEP, setEditEP]           = useState(null);
@@ -215,6 +216,7 @@ export default function AdminPanel() {
   const saveEditEmail   = async()=>{ try{ await API.put(`/admin/emails/${editEmail.id}`,{email:editEmailVal}); loadAll(); notify('Email updated'); setEditEmail(null); } catch(err){ notify(err.response?.data?.detail||'Error','error'); } };
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
+  const backToLogin=()=>navigate('/login');
 
   const pendingW = withdrawals.filter(w=>w.status==='pending').length;
   const pendingD = deposits.filter(d=>d.status==='pending').length;
@@ -223,7 +225,7 @@ export default function AdminPanel() {
 
   return (
     <div className="panel-wrap">
-      <div className={`sgc-overlay ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
+      <div className={`sgc-overlay ${sidebarOpen?'open':''}`} onClick={()=>{setSidebarOpen(false);}}/>
 
       {/* Balance Modal */}
       {balanceModal && (
@@ -257,10 +259,11 @@ export default function AdminPanel() {
       )}
 
       {/* ── SIDEBAR ── */}
-      <aside className={`sgc-sidebar ${sidebarOpen?'open':''}`}>
+      <aside className={`sgc-sidebar ${sidebarOpen?'open':''}${sidebarCollapsed?' collapsed':''}`}>
         <div className="sgc-logo slide-l">
           <span className="sgc-logo-icon">🌱</span>
           <span className="sgc-logo-text" style={{color:'var(--yellow)'}}>Smart Grow Chain</span>
+          <button className="sgc-sidebar-back-btn" onClick={()=>{setSidebarCollapsed(true);setSidebarOpen(false);}} aria-label="Hide sidebar">←</button>
         </div>
         <p className="sgc-logo-sub">Admin Control Panel</p>
 
@@ -276,7 +279,7 @@ export default function AdminPanel() {
           {TABS.map(({key,icon,label})=>(
             <button key={key} className={`nav-btn ${tab===key?'active':''}`}
               style={tab===key?{}:{}}
-              onClick={()=>{ setTab(key); setSidebarOpen(false); if(key==='advertiser-mgmt'&&advertiserList.length===0){ setAdvertiserLoading(true); API.get('/admin/advertiser-management').then(r=>{ setAdvertiserList(r.data); setAdvertiserLoading(false); }).catch(()=>setAdvertiserLoading(false)); } }}>
+              onClick={()=>{ setTab(key); if(window.innerWidth<=768){setSidebarCollapsed(true);setSidebarOpen(false);} if(key==='advertiser-mgmt'&&advertiserList.length===0){ setAdvertiserLoading(true); API.get('/admin/advertiser-management').then(r=>{ setAdvertiserList(r.data); setAdvertiserLoading(false); }).catch(()=>setAdvertiserLoading(false)); } }}>
               <span className="nav-icon">{icon}</span>
               <span className="nav-label">{label}</span>
               {key==='withdrawals' && pendingW>0 && <span className="nav-badge">{pendingW}</span>}
@@ -289,15 +292,21 @@ export default function AdminPanel() {
           ))}
         </nav>
         <div style={{flex:1}}/>
+        <button className="sgc-back-to-login" onClick={backToLogin}>← Back to Login</button>
         <button className="sgc-logout" onClick={logout}>🚪 Logout</button>
       </aside>
 
       {/* ── MAIN ── */}
-      <div className="panel-main">
+      <div className={`panel-main${sidebarCollapsed?" sidebar-hidden":""}`}>
         <div className="sgc-topbar">
-          <button className="hamburger" onClick={()=>setSidebarOpen(true)}>☰</button>
-          <span style={{color:'var(--yellow)',fontWeight:800,fontSize:15}}>🌱 SGC Admin</span>
-          <div className="sgc-avatar" style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',width:36,height:36,fontSize:15,flexShrink:0}}>A</div>
+          <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+            <button className="hamburger" onClick={()=>{if(window.innerWidth<=768){setSidebarOpen(true);}setSidebarCollapsed(false);}}>☰</button>
+            <button className="sgc-topbar-login-back" onClick={()=>{ if(tab!=="dashboard"){ setTab("dashboard"); } else { navigate("/login"); } }} aria-label="Go back" title="Go back">←</button>
+          </div>
+          <span className="sgc-topbar-title">🌱 SGC Admin</span>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            <div className="sgc-topbar-avatar">A</div>
+          </div>
         </div>
 
         <div className="panel-body">

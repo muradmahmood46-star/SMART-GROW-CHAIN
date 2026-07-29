@@ -88,17 +88,28 @@ def _create_user(data, db: Session):
     # Registration bonus
     bonus_row = db.query(SiteSettings).filter(SiteSettings.key == "registration_bonus").first()
     reg_bonus = float(bonus_row.value) if bonus_row and bonus_row.value else 0.0
+    # Generate unique referral code
+    import random
+    ref_code = f"REF{random.randint(1000, 9999)}"
+    while db.query(User).filter(User.referral_code == ref_code).first():
+        ref_code = f"REF{random.randint(1000, 9999)}"
     user = User(
         username=d["username"],
         email=d["email"],
         password=hash_password(d["password"]),
-        referral_code=generate_referral_code(),
+        referral_code=ref_code,
         referred_by=referred_by,
         balance=reg_bonus,
         total_earned=reg_bonus
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        print(f"User creation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create user")
     if reg_bonus > 0:
         db.add(Notification(user_id=user.id, title="Welcome Bonus 🎁", message=f"You have received a registration bonus of Rs. {reg_bonus}. Buy a plan to activate withdrawal."))
         db.commit()
