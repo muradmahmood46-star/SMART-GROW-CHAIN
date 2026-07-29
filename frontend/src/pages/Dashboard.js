@@ -143,6 +143,7 @@ export default function Dashboard() {
   const [dashboardMsg, setDashboardMsg] = useState('');
   const [withdrawalMsg, setWithdrawalMsg] = useState('');
   const [advertiserMsg, setAdvertiserMsg] = useState('');
+  const [adSectionMsg, setAdSectionMsg] = useState('');
   const [selectedRefLevel, setSelectedRefLevel] = useState(null);
   const [refLevelData, setRefLevelData] = useState({});
   const [refLevelLoading, setRefLevelLoading] = useState(false);
@@ -195,7 +196,7 @@ export default function Dashboard() {
     API.get('/user/plans').then(r=>setPlans(r.data));
     API.get('/user/ad-request/rate').then(r=>{ setAdRate(r.data.rate_pkr); setAdWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
-    API.get('/user/settings').then(r=>{ setSiteSettings(r.data); setReferralMsg(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
+    API.get('/user/settings').then(r=>{ setSiteSettings(r.data); setReferralMsg(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); setAdSectionMsg(r.data.ad_section_message||''); if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
     API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
     API.get('/user/kyc/status').then(r=>{ setKycData(r.data); setFreePlanExpired(r.data.free_plan_expired); setFreePlanDaysLeft(r.data.free_plan_days_left); }).catch(()=>{});
     API.get('/user/notifications').then(r=>setNotifications(r.data)).catch(()=>{});
@@ -617,6 +618,12 @@ export default function Dashboard() {
                   <h2 className="sgc-heading">📺 Advertisement</h2>
                   <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{availableAds} available today</span>
                 </div>
+                {adSectionMsg?.trim() && (
+                  <div style={{background:'linear-gradient(135deg,#1c1000,#451a03)',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',gap:10,alignItems:'flex-start'}}>
+                    <span style={{fontSize:18,flexShrink:0}}>📢</span>
+                    <p style={{color:'#fbbf24',fontSize:13,margin:0,lineHeight:1.7,fontWeight:600,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{adSectionMsg}</p>
+                  </div>
+                )}
                 <div className="sgc-ads-grid">
                   {ads.filter(a=>!a.already_clicked).map((ad,i)=>(
                     <div key={ad.id} className="sgc-ad-card" style={{animationDelay:`${i*.05}s`,border:ad.is_sponsored?'2px solid #f59e0b':'1px solid var(--border)'}}>
@@ -654,24 +661,36 @@ export default function Dashboard() {
                 </div>
 
                 {/* Today's Watch History */}
-                {earnings.filter(e=>{ const d=new Date(e.clicked_at); return d.toDateString()===new Date().toDateString() && e.type==='click'; }).length>0 && (
-                  <div style={{marginTop:24}}>
-                    <h3 className="sgc-subheading" style={{marginBottom:12}}>📋 Today's Watch History</h3>
-                    <div className="sgc-table-wrap">
-                      <table className="sgc-table">
-                        <thead><tr><th className="sgc-th">#</th><th className="sgc-th">Ad</th><th className="sgc-th">Earned</th><th className="sgc-th">Time</th></tr></thead>
-                        <tbody>{earnings.filter(e=>{ const d=new Date(e.clicked_at); return d.toDateString()===new Date().toDateString() && e.type==='click'; }).map((e,i)=>(
-                          <tr key={i} className="sgc-tr">
-                            <td className="sgc-td" style={{color:'var(--dim)',fontWeight:600}}>{i+1}</td>
-                            <td className="sgc-td" style={{color:'var(--text)',fontWeight:600}}>Ad #{e.ad_id}</td>
-                            <td className="sgc-td" style={{color:'var(--green)',fontWeight:700}}>+Rs. {e.amount?.toFixed(2)}</td>
-                            <td className="sgc-td" style={{color:'var(--dim)',fontSize:12}}>{new Date(e.clicked_at).toLocaleTimeString()}</td>
-                          </tr>
-                        ))}</tbody>
-                      </table>
+                {(()=>{
+                  const todayClicks = earnings.filter(e=>{ const d=new Date(e.clicked_at); return d.toDateString()===new Date().toDateString() && e.type==='click'; });
+                  const todayTotal = todayClicks.reduce((s,e)=>s+(e.amount||0),0);
+                  if(!todayClicks.length) return null;
+                  return (
+                    <div style={{marginTop:24}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:8}}>
+                        <h3 className="sgc-subheading" style={{margin:0}}>📋 Today's Watch History</h3>
+                        <div style={{background:'linear-gradient(135deg,#064e3b,#065f46)',border:'1px solid #166534',borderRadius:10,padding:'6px 16px',display:'flex',alignItems:'center',gap:8}}>
+                          <span style={{fontSize:14}}>💰</span>
+                          <span style={{color:'var(--dim)',fontSize:12,fontWeight:600}}>Total Earned Today:</span>
+                          <span style={{color:'#4ade80',fontSize:15,fontWeight:800,fontFamily:'monospace'}}>Rs. {todayTotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="sgc-table-wrap">
+                        <table className="sgc-table">
+                          <thead><tr><th className="sgc-th">#</th><th className="sgc-th">Ad</th><th className="sgc-th">Earned</th><th className="sgc-th">Time</th></tr></thead>
+                          <tbody>{todayClicks.map((e,i)=>(
+                            <tr key={i} className="sgc-tr">
+                              <td className="sgc-td" style={{color:'var(--dim)',fontWeight:600}}>{i+1}</td>
+                              <td className="sgc-td" style={{color:'var(--text)',fontWeight:600}}>Ad #{e.ad_id}</td>
+                              <td className="sgc-td" style={{color:'var(--green)',fontWeight:700}}>+Rs. {e.amount?.toFixed(2)}</td>
+                              <td className="sgc-td" style={{color:'var(--dim)',fontSize:12}}>{new Date(e.clicked_at).toLocaleTimeString()}</td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 

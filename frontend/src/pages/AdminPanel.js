@@ -73,6 +73,8 @@ export default function AdminPanel() {
   const [withdrawalMsgInput, setWithdrawalMsgInput] = useState('');
   const [advertiserMsg, setAdvertiserMsg] = useState('');
   const [advertiserMsgInput, setAdvertiserMsgInput] = useState('');
+  const [adSectionMsg, setAdSectionMsg] = useState('');
+  const [adSectionMsgInput, setAdSectionMsgInput] = useState('');
   const [whatsappLink, setWhatsappLink] = useState('');
   const [whatsappInput, setWhatsappInput] = useState('');
   const [referralMsg, setReferralMsg] = useState('');
@@ -129,7 +131,7 @@ export default function AdminPanel() {
     API.get('/admin/free-plan-days').then(r=>setFreePlanDays(r.data.days)).catch(()=>{});
     API.get('/admin/ad-budget-rate').then(r=>{ setAdBudgetRate(r.data.rate_pkr); setNewBudgetRate(r.data.rate_pkr); setWelcomeMsg(r.data.welcome_message||''); }).catch(()=>{});
     API.get('/admin/settings').then(r=>{ if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
-    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setWithdrawalMsgInput(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); setAdvertiserMsgInput(r.data.advertiser_message||''); const rb=parseFloat(r.data.registration_bonus||0); setRegistrationBonus(rb); setRegBonusInput(rb); }).catch(()=>{});
+    API.get('/admin/settings').then(r=>{ setWhatsappLink(r.data.whatsapp_link||''); setWhatsappInput(r.data.whatsapp_link||''); setTransferMsg(r.data.transfer_message||''); setTransferMsgInput(r.data.transfer_message||''); setReferralMsg(r.data.referral_message||''); setReferralMsgInput(r.data.referral_message||''); setDashboardMsg(r.data.dashboard_message||''); setDashboardMsgInput(r.data.dashboard_message||''); setWithdrawalMsg(r.data.withdrawal_message||''); setWithdrawalMsgInput(r.data.withdrawal_message||''); setAdvertiserMsg(r.data.advertiser_message||''); setAdvertiserMsgInput(r.data.advertiser_message||''); setAdSectionMsg(r.data.ad_section_message||''); setAdSectionMsgInput(r.data.ad_section_message||''); const rb=parseFloat(r.data.registration_bonus||0); setRegistrationBonus(rb); setRegBonusInput(rb); }).catch(()=>{});
   };
 
   useEffect(()=>{ loadAll(); },[]);
@@ -1476,6 +1478,15 @@ export default function AdminPanel() {
                   <textarea className="sgc-input" rows={8} placeholder="e.g. Apna ad submit karne se pehle in rules ko zaroor parhein..." value={advertiserMsgInput} onChange={e=>setAdvertiserMsgInput(e.target.value)} style={{resize:'vertical',minHeight:150}}/>
                   <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/advertiser_message',{value:advertiserMsgInput}); setAdvertiserMsg(advertiserMsgInput); notify('Saved ✅'); }}>Save</button>
                   {advertiserMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {advertiserMsg.substring(0,80)}{advertiserMsg.length>80?'...':''}</p>}
+                </div>
+
+                {/* Ad Section Message */}
+                <div className="sgc-form" style={{maxWidth:480,marginTop:24}}>
+                  <h4 style={{color:'#f59e0b',fontSize:13,fontWeight:700,marginBottom:4}}>📺 Advertisement Section Message</h4>
+                  <p style={{color:'var(--dim)',fontSize:11,marginBottom:12}}>User ke Advertisement tab mein ads se pehle ek notice box mein show hoga</p>
+                  <textarea className="sgc-input" rows={4} placeholder="e.g. Roz ads dekhen aur zyada kamayen! Har ad ke baad earning turant credit hoti hai." value={adSectionMsgInput} onChange={e=>setAdSectionMsgInput(e.target.value)} style={{resize:'vertical',minHeight:90}}/>
+                  <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{ await API.put('/admin/settings/ad_section_message',{value:adSectionMsgInput}); setAdSectionMsg(adSectionMsgInput); notify('Saved ✅'); }}>Save</button>
+                  {adSectionMsg&&<p style={{color:'var(--dim)',fontSize:11,marginTop:8}}>Current: {adSectionMsg.substring(0,80)}{adSectionMsg.length>80?'...':''}</p>}
                 </div>
               </div>
             )}
