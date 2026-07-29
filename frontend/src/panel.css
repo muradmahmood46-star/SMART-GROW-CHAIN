@@ -632,10 +632,11 @@ body {
 .sgc-user-dashboard .sgc-topbar { background:linear-gradient(105deg,#16a085 0%,#1abc9c 48%,#3498db 100%); box-shadow:0 3px 14px rgba(26,188,156,.22); }
 .sgc-user-dashboard .sgc-hero-slider { padding:0; background:transparent; box-shadow:none; margin-bottom:22px; }
 .sgc-user-dashboard .sgc-hero-slider-track { gap:12px; padding:0 4px; }
-.sgc-user-dashboard .sgc-hero-slide { border:1px solid #e7edf3; background:#fff; box-shadow:0 5px 18px rgba(15,23,42,.09); filter:blur(.3px) saturate(.94); }
+.sgc-user-dashboard .sgc-hero-slide { border:2px solid #5bb8f5; background:#fff; box-shadow:0 7px 18px rgba(30,64,175,.14); filter:blur(.3px) saturate(.94); }
 .sgc-user-dashboard .sgc-hero-slide::after { display:none; }
-.sgc-user-dashboard .sgc-hero-slide.active-slide { border-color:#dce7ed; box-shadow:0 10px 26px rgba(15,23,42,.13); }
-.sgc-user-dashboard .sgc-hero-slide img { border-radius:18px; }
+.sgc-user-dashboard .sgc-hero-slide.active-slide { border-color:#2189d5; box-shadow:0 10px 24px rgba(30,64,175,.2); }
+.sgc-user-dashboard .sgc-hero-slide img { border-radius:19px; }
+.sgc-user-dashboard .sgc-hero-slide.hero-logo-slide img { width:100%; height:190px; max-height:none; margin:0; object-fit:cover; }
 .sgc-user-dashboard .sgc-hero-dots { padding-top:12px; }
 .sgc-user-dashboard .sgc-hero-dot { background:#cbd5df; }
 .sgc-user-dashboard .sgc-hero-dot.active { background:#1abc9c; }
