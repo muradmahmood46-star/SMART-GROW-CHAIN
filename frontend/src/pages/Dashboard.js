@@ -331,6 +331,20 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
+  // ── Mobile hardware back button — same as topbar arrow ──
+  useEffect(()=>{
+    const onBack = (e) => {
+      e.preventDefault();
+      if(sidebarOpen){ setSidebarOpen(false); return; }
+      if(tab!=='dashboard'){ setTab('dashboard'); return; }
+      navigate('/login');
+    };
+    window.addEventListener('popstate', onBack);
+    // Push a dummy state so popstate fires on first back press
+    window.history.pushState(null, '', window.location.href);
+    return ()=>window.removeEventListener('popstate', onBack);
+  },[sidebarOpen, tab, navigate]);
+
   const loadRefLevel = async (lvl) => {
     setSelectedRefLevel(lvl);
     if (refLevelData[lvl] !== undefined) return; // cached

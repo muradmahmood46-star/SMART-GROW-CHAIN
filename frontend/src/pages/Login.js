@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../api';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -10,6 +10,13 @@ export default function Login() {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
+
+  useEffect(()=>{
+    const onBack = (e) => { e.preventDefault(); navigate('/'); };
+    window.addEventListener('popstate', onBack);
+    window.history.pushState(null, '', window.location.href);
+    return ()=>window.removeEventListener('popstate', onBack);
+  },[navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
