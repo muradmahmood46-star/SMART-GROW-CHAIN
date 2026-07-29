@@ -370,12 +370,25 @@ def fund_transfer(data: TransferData, current_user: User = Depends(get_current_u
         raise HTTPException(status_code=400, detail="Insufficient balance")
     if data.receiver_username == current_user.username:
         raise HTTPException(status_code=400, detail="Cannot transfer to yourself")
+    # Exact username match (case-sensitive)
     receiver = db.query(User).filter(User.username == data.receiver_username).first()
     if not receiver:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found. Please enter the exact username.")
     current_user.balance -= data.amount
     receiver.balance += data.amount
     db.add(FundTransfer(sender_id=current_user.id, receiver_id=receiver.id, amount=data.amount, note=data.note))
+    # Notification to sender
+    db.add(Notification(
+        user_id=current_user.id,
+        title="Fund Sent 📤",
+        message=f"Rs. {data.amount:.2f} has been deducted from your account and sent to @{receiver.username}."
+    ))
+    # Notification to receiver
+    db.add(Notification(
+        user_id=receiver.id,
+        title="Fund Received 📥",
+        message=f"Rs. {data.amount:.2f} has been received in your account from @{current_user.username}."
+    ))
     db.commit()
     return {"message": f"Rs. {data.amount} transferred to {receiver.username}"}
 

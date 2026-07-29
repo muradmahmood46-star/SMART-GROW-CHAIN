@@ -702,7 +702,10 @@ export default function Dashboard() {
                   <div className="sgc-stat-card"><div className="sgc-stat-label">Total Confirmed</div><div className="sgc-stat-val" style={{color:'var(--green)'}}>Rs. {myDeposits.filter(d=>d.status==='confirmed').reduce((s,d)=>s+d.amount_pkr,0).toFixed(2)}</div></div>
                   <div className="sgc-stat-card"><div className="sgc-stat-label">Pending</div><div className="sgc-stat-val" style={{color:'var(--yellow)'}}>{myDeposits.filter(d=>d.status==='pending').length}</div></div>
                 </div>
-                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+
+                {/* Deposits */}
+                <h3 className="sgc-subheading" style={{marginBottom:10}}>💳 Deposit History</h3>
+                <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:28}}>
                   {myDeposits.map((d,i)=>{
                     const isPending=d.status==='pending';
                     const isConfirmed=d.status==='confirmed';
@@ -736,6 +739,37 @@ export default function Dashboard() {
                     );
                   })}
                   {myDeposits.length===0&&<div className="sgc-empty">No deposit history yet.</div>}
+                </div>
+
+                {/* Fund Transfers */}
+                <h3 className="sgc-subheading" style={{marginBottom:10}}>🔄 Transfer History</h3>
+                <div className="sgc-table-wrap">
+                  <table className="sgc-table">
+                    <thead><tr>
+                      <th className="sgc-th">Direction</th>
+                      <th className="sgc-th">User</th>
+                      <th className="sgc-th">Amount</th>
+                      <th className="sgc-th">Note</th>
+                      <th className="sgc-th">Date</th>
+                    </tr></thead>
+                    <tbody>{transfers.map((t,i)=>(
+                      <tr key={i} className="sgc-tr">
+                        <td className="sgc-td">
+                          <span className="sgc-badge" style={{background:t.direction==='received'?'#064e3b':'#450a0a'}}>
+                            {t.direction==='received'?'↓ Received':'↑ Sent'}
+                          </span>
+                        </td>
+                        <td className="sgc-td" style={{color:'var(--text)',fontWeight:600}}>@{t.direction==='received'?t.from:t.to}</td>
+                        <td className="sgc-td" style={{color:t.direction==='received'?'var(--green)':'var(--red)',fontWeight:700}}>
+                          {t.direction==='received'?'+':'-'}Rs. {t.amount?.toFixed(2)}
+                        </td>
+                        <td className="sgc-td" style={{color:'var(--dim)',fontSize:12}}>{t.note||'-'}</td>
+                        <td className="sgc-td" style={{color:'var(--dim)',fontSize:12}}>{new Date(t.date).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                    {transfers.length===0&&<tr><td colSpan={5} className="sgc-td" style={{textAlign:'center',padding:24}}>No transfers yet</td></tr>}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
