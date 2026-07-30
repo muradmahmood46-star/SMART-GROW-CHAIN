@@ -366,16 +366,18 @@ export default function Dashboard() {
     window.history.pushState(null, '', window.location.href);
     const onBack = () => {
       window.history.pushState(null, '', window.location.href);
+      // Pehle sidebar close karo agar open hai
       if(sidebarOpenRef.current){
         setSidebarOpen(false);
         setSidebarCollapsed(true);
-        setTab('dashboard');
         return;
       }
+      // Phir tab change karo agar dashboard par nahi hai
       if(tabRef.current !== 'dashboard'){
         setTab('dashboard');
         return;
       }
+      // Finally login page par le jao
       navigate('/login', {replace:true});
     };
     window.addEventListener('popstate', onBack);
