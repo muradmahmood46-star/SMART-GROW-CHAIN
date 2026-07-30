@@ -159,9 +159,10 @@ export default function Dashboard() {
   const [planTransactionId, setPlanTransactionId] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [myPlanPurchases, setMyPlanPurchases] = useState([]);
-  const [tab, setTab]                 = useState('dashboard');
+  const [tab, setTab]                 = useState(() => { try { return sessionStorage.getItem('sgc_active_ad') ? 'ads' : 'dashboard'; } catch { return 'dashboard'; } });
   const [activeAd, setActiveAd]       = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
   const [countdown, setCountdown]     = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
+  const [isWatching, setIsWatching]   = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
   const [deposit, setDeposit]           = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
@@ -185,6 +186,29 @@ export default function Dashboard() {
   const [adDepScreenshot, setAdDepScreenshot] = useState(null);
   const [adDepDeposit, setAdDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
   const navigate = useNavigate();
+
+  // Restore ad state on page load
+  useEffect(() => {
+    const storedAd = sessionStorage.getItem('sgc_active_ad');
+    const storedCountdown = sessionStorage.getItem('sgc_ad_countdown');
+    if (storedAd) {
+      setActiveAd(JSON.parse(storedAd));
+      setCountdown(parseInt(storedCountdown) || 0);
+      // Replace the current history entry to avoid looping back to the external ad
+      history.replaceState({ adReturned: true }, '', location.href);
+    }
+  }, []);
+
+  // Listen for back navigation (popstate) to retain ad state
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (activeAd) {
+        setTab('ads');
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [activeAd]);
 
   const notify = (text, type='success') => { setMsg({text,type}); setTimeout(()=>setMsg({text:'',type:''}),3500); };
 
@@ -236,51 +260,77 @@ export default function Dashboard() {
   },[]);
 
   // ── Ad Timer ──
-  const [adTabVisible, setAdTabVisible] = useState(true);
-  useEffect(()=>{
-    const handleElapsedTime = () => {
-      const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
-      if (hiddenAt && !document.hidden) {
-        const elapsed = (Date.now() - hiddenAt) / 1000;
+  const handleReturnToSite = useCallback(() => {
+    const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
+    if (hiddenAt) {
+      const elapsed = (Date.now() - hiddenAt) / 1000;
+      if (elapsed > 0) {
         setCountdown(prev => {
-          if (prev <= 0) return 0;
           const newC = Math.max(0, prev - elapsed);
           sessionStorage.setItem('sgc_ad_countdown', Math.ceil(newC));
           return Math.ceil(newC);
         });
-        sessionStorage.removeItem('sgc_hidden_at');
       }
-    };
+      sessionStorage.removeItem('sgc_hidden_at');
+    }
+    setIsWatching(false);
+  }, []);
 
-    // Run on mount in case user refreshed after being away
-    handleElapsedTime();
+  useEffect(()=>{
+    handleReturnToSite();
 
     const onVis = () => {
-      const isVisible = !document.hidden;
-      setAdTabVisible(isVisible);
-      if (!isVisible) {
-        // Tab went to background
-        sessionStorage.setItem('sgc_hidden_at', Date.now());
-      } else {
-        // Tab came back
-        handleElapsedTime();
+      if (!document.hidden) {
+        handleReturnToSite();
       }
     };
+    const onFocus = () => {
+      handleReturnToSite();
+    };
     document.addEventListener('visibilitychange', onVis);
-    return ()=>document.removeEventListener('visibilitychange', onVis);
-  },[]);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+    }
+  },[handleReturnToSite]);
+
+  useEffect(() => {
+    let t;
+    if (isWatching && activeAd) {
+      t = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 0) return 0;
+          const newC = prev - 1;
+          sessionStorage.setItem('sgc_ad_countdown', newC);
+          return newC;
+        });
+        sessionStorage.setItem('sgc_hidden_at', Date.now());
+      }, 1000);
+    }
+    return () => {
+      if (t) clearInterval(t);
+    };
+  }, [isWatching, activeAd]);
 
   const startAd = async (ad) => {
-    if (ad.already_clicked || (activeAd && activeAd.id !== ad.id)) return;
+    if (ad.already_clicked) return;
+    if (activeAd && activeAd.id !== ad.id) {
+      notify("You are already watching an ad. Please complete it first.", "error");
+      return;
+    }
     try {
       if (!activeAd || activeAd.id !== ad.id) {
         await API.post(`/user/click/start/${ad.id}`);
+        setActiveAd(ad); 
+        setCountdown(ad.timer_seconds);
+        sessionStorage.setItem('sgc_active_ad', JSON.stringify(ad));
+        sessionStorage.setItem('sgc_ad_countdown', ad.timer_seconds);
       }
-      setActiveAd(ad); 
-      setCountdown(ad.timer_seconds);
-      sessionStorage.setItem('sgc_active_ad', JSON.stringify(ad));
-      sessionStorage.setItem('sgc_ad_countdown', ad.timer_seconds);
-      window.open(ad.url,'_blank');
+      
+      setIsWatching(true);
+      sessionStorage.setItem('sgc_hidden_at', Date.now());
+      window.location.href = ad.url;
     } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
   };
 
@@ -295,13 +345,14 @@ export default function Dashboard() {
           setProfile(p=>({...p,balance:r.data.new_balance}));
           setAds(prev=>prev.map(a=>a.id===activeAd.id?{...a,already_clicked:true}:a));
           setActiveAd(null);
+          setIsWatching(false);
           sessionStorage.removeItem('sgc_active_ad');
           sessionStorage.removeItem('sgc_ad_countdown');
           sessionStorage.removeItem('sgc_hidden_at');
           API.get('/user/earnings').then(r=>setEarnings(r.data));
           API.get('/user/transactions').then(r=>setTransactions(r.data));
         })
-        .catch(err=>{ notify(err.response?.data?.detail||'Error','error'); setActiveAd(null); sessionStorage.removeItem('sgc_active_ad'); });
+        .catch(err=>{ notify(err.response?.data?.detail||'Error','error'); setActiveAd(null); setIsWatching(false); sessionStorage.removeItem('sgc_active_ad'); sessionStorage.removeItem('sgc_hidden_at'); });
     }
   },[countdown,activeAd]);
 
@@ -538,17 +589,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {activeAd && (
-            <div className="sgc-timer-wrap">
-              <div>
-                <p style={{fontWeight:700,color:'var(--accent)',marginBottom:6}}>⏳ Watching: {activeAd.title}</p>
-                <div style={{width:200,height:5,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
-                  <div style={{width:`${timerPct}%`,height:'100%',background:'linear-gradient(90deg,var(--accent),var(--green))',borderRadius:4,transition:'width 1s linear'}}/>
-                </div>
-              </div>
-              <div className="sgc-timer-circle">{countdown}s</div>
-            </div>
-          )}
 
           <div className="fade-up" key={tab}>
 
@@ -721,6 +761,19 @@ export default function Dashboard() {
                     <p style={{color:'#fbbf24',fontSize:13,margin:0,lineHeight:1.7,fontWeight:600,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>{adSectionMsg}</p>
                   </div>
                 )}
+                {activeAd && (
+                  <div className="sgc-timer-wrap" style={{marginBottom: 20}}>
+                    <div>
+                      <p style={{fontWeight:700,color:'var(--accent)',marginBottom:6}}>
+                        {isWatching ? '⏳ Watching...' : '⏸ Paused:'} {activeAd.title}
+                      </p>
+                      <div style={{width:200,height:5,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
+                        <div style={{width:`${timerPct}%`,height:'100%',background:'linear-gradient(90deg,var(--accent),var(--green))',borderRadius:4,transition:'width 1s linear'}}/>
+                      </div>
+                    </div>
+                    <div className="sgc-timer-circle">{countdown}s</div>
+                  </div>
+                )}
                 <div className="sgc-ads-grid">
                   {ads.filter(a=>!a.already_clicked).map((ad,i)=>(
                     <div key={ad.id} className="sgc-ad-card" style={{animationDelay:`${i*.05}s`,border:ad.is_sponsored?'2px solid #f59e0b':'1px solid var(--border)'}}>
@@ -739,7 +792,7 @@ export default function Dashboard() {
                       {activeAd?.id===ad.id && (
                         <div style={{marginBottom:10,background:'#0d1e38',border:'1px solid var(--accent)',borderRadius:10,padding:'10px 14px',display:'flex',alignItems:'center',gap:10}}>
                           <div style={{flex:1}}>
-                            <p style={{color:'var(--accent)',fontSize:12,fontWeight:700,margin:'0 0 4px'}}>⏳ Watching ad... please wait</p>
+                            <p style={{color:'var(--accent)',fontSize:12,fontWeight:700,margin:'0 0 4px'}}>{isWatching ? '⏳ Watching ad...' : '⏸ Paused - Click Continue'}</p>
                             <div style={{height:6,background:'var(--border)',borderRadius:4,overflow:'hidden'}}>
                               <div style={{width:`${timerPct}%`,height:'100%',background:'linear-gradient(90deg,var(--accent),var(--green))',borderRadius:4,transition:'width 1s linear'}}/>
                             </div>
@@ -749,16 +802,11 @@ export default function Dashboard() {
                       )}
                       <button className="sgc-click-btn"
                         style={{background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'var(--bg)',cursor:!!activeAd&&activeAd.id!==ad.id?'not-allowed':'pointer'}}
-                        onClick={()=>{
-                          if(activeAd?.id===ad.id && adTabVisible){
-                            window.open(ad.url,'_blank');
-                          } else {
-                            startAd(ad);
-                          }
-                        }} disabled={!!activeAd&&activeAd.id!==ad.id}>
+                        onClick={() => startAd(ad)} 
+                        disabled={!!activeAd&&activeAd.id!==ad.id}>
                         {activeAd?.id===ad.id
-                          ? (adTabVisible ? '▶ Continue Ad' : `⏳ ${countdown}s`)
-                          : activeAd?'⏳ Watching...':'▶ Click & Earn'}
+                          ? '▶ Continue Ad'
+                          : activeAd?'🔒 Complete active ad first':'▶ Click & Earn'}
                       </button>
                     </div>
                   ))}

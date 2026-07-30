@@ -272,14 +272,28 @@ def delete_easypaisa(acc_id: int, db: Session = Depends(get_db), admin=Depends(g
     acc = db.query(EasypaisaAccount).filter(EasypaisaAccount.id == acc_id).first()
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    # Keep old deposit records intact while removing their account reference.
-    # Otherwise PostgreSQL correctly rejects the delete because deposits use this FK.
-    db.query(Deposit).filter(Deposit.easypaisa_account_id == acc_id).update(
-        {Deposit.easypaisa_account_id: None}, synchronize_session=False
-    )
-    db.delete(acc)
-    db.commit()
-    return {"message": "Deleted"}
+    
+    try:
+        from sqlalchemy import text
+        # Make sure the column is nullable just in case it was created as NOT NULL
+        try:
+            db.execute(text("ALTER TABLE deposits ALTER COLUMN easypaisa_account_id DROP NOT NULL"))
+            db.commit()
+        except Exception:
+            db.rollback()
+            pass
+
+        # Update using raw SQL to avoid any ORM dictionary key issues
+        db.execute(
+            text("UPDATE deposits SET easypaisa_account_id = NULL WHERE easypaisa_account_id = :acc_id"),
+            {"acc_id": acc_id}
+        )
+        db.delete(acc)
+        db.commit()
+        return {"message": "Deleted"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── DEPOSITS ────────────────────────────────────────────────────

@@ -154,7 +154,16 @@ export default function AdminPanel() {
   const rejectDeposit  = async(id)=>{ await API.put(`/admin/deposits/${id}/reject`); loadAll(); notify('Fund rejected'); };
   const closeTicket    = async(id)=>{ await API.put(`/admin/tickets/${id}/close`); loadAll(); notify('Ticket closed'); };
   const toggleEP       = async(id)=>{ await API.put(`/admin/easypaisa/${id}/toggle`); loadAll(); notify('Updated'); };
-  const deleteEP       = async(id)=>{ if(!window.confirm('Delete account?')) return; await API.delete(`/admin/easypaisa/${id}`); loadAll(); notify('Deleted'); };
+  const deleteEP       = async(id)=>{ 
+    if(!window.confirm('Delete account?')) return; 
+    try {
+      await API.delete(`/admin/easypaisa/${id}`); 
+      loadAll(); 
+      notify('Deleted'); 
+    } catch (err) {
+      notify(err.response?.data?.detail || err.message, 'error');
+    }
+  };
   const deleteEmail    = async(id)=>{ await API.delete(`/admin/emails/${id}`); loadAll(); notify('Email deleted'); };
 
   const createAd = async(e)=>{
