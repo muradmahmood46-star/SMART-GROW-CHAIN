@@ -272,6 +272,11 @@ def delete_easypaisa(acc_id: int, db: Session = Depends(get_db), admin=Depends(g
     acc = db.query(EasypaisaAccount).filter(EasypaisaAccount.id == acc_id).first()
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
+    # Keep old deposit records intact while removing their account reference.
+    # Otherwise PostgreSQL correctly rejects the delete because deposits use this FK.
+    db.query(Deposit).filter(Deposit.easypaisa_account_id == acc_id).update(
+        {Deposit.easypaisa_account_id: None}, synchronize_session=False
+    )
     db.delete(acc)
     db.commit()
     return {"message": "Deleted"}
@@ -606,6 +611,8 @@ def get_user_ad_requests(db: Session = Depends(get_db), admin=Depends(get_admin_
             "rate_pkr": r.rate_pkr,
             "total_cost": r.total_cost,
             "payment_method": r.payment_method,
+            "sender_name": r.sender_name or "-",
+            "transaction_id": r.transaction_id or "-",
             "screenshot_url": f"{os.getenv('BACKEND_URL', 'https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{r.screenshot_path}" if r.screenshot_path else None,
             "status": r.status,
             "admin_note": r.admin_note,
@@ -647,6 +654,10 @@ def reject_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(
         user = db.query(User).filter(User.id == req.user_id).first()
         if user:
             user.balance += req.total_cost
+    # Blocking an already-live wallet campaign must also remove it from users' ad list.
+    db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update(
+        {Ad.is_active: False}, synchronize_session=False
+    )
     req.status = "rejected"
     req.admin_note = data.admin_note
     db.commit()

@@ -147,7 +147,7 @@ export default function Dashboard() {
   const [selectedRefLevel, setSelectedRefLevel] = useState(null);
   const [refLevelData, setRefLevelData] = useState({});
   const [refLevelLoading, setRefLevelLoading] = useState(false);
-  const [adForm, setAdForm]           = useState({ title:'', url:'', members_needed:'' });
+  const [adForm, setAdForm]           = useState({ title:'', url:'', members_needed:'', sender_name:'', transaction_id:'' });
   const [adPayMethod, setAdPayMethod] = useState('wallet');
   const [adScreenshot, setAdScreenshot] = useState(null);
   const [myAdRequests, setMyAdRequests] = useState([]);
@@ -156,6 +156,7 @@ export default function Dashboard() {
   const [planScreenshot, setPlanScreenshot] = useState(null);
   const [planSenderName, setPlanSenderName] = useState('');
   const [planSenderPhone, setPlanSenderPhone] = useState('');
+  const [planTransactionId, setPlanTransactionId] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [myPlanPurchases, setMyPlanPurchases] = useState([]);
   const [tab, setTab]                 = useState('dashboard');
@@ -163,7 +164,6 @@ export default function Dashboard() {
   const [countdown, setCountdown]     = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
-
   const [deposit, setDeposit]           = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
   const [screenshot, setScreenshot]     = useState(null);
   const [selectedMethod, setSelectedMethod] = useState('easypaisa');
@@ -177,13 +177,27 @@ export default function Dashboard() {
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [planTick, setPlanTick] = useState(0);
   const [msg, setMsg]                 = useState({ text:'', type:'' });
+  const [adPlanRequired, setAdPlanRequired] = useState(false);
+  const [planDepMethod, setPlanDepMethod] = useState('wallet');
+  const [planDepScreenshot, setPlanDepScreenshot] = useState(null);
+  const [planDepDeposit, setPlanDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
+  const [adDepMethod, setAdDepMethod] = useState('wallet');
+  const [adDepScreenshot, setAdDepScreenshot] = useState(null);
+  const [adDepDeposit, setAdDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
   const navigate = useNavigate();
 
   const notify = (text, type='success') => { setMsg({text,type}); setTimeout(()=>setMsg({text:'',type:''}),3500); };
 
   const loadData = useCallback(() => {
     API.get('/user/profile').then(r=>setProfile(r.data));
-    API.get('/user/ads').then(r=>setAds(r.data));
+    API.get('/user/ads').then(r=>{
+      if(r.data && r.data.plan_required !== undefined){
+        setAdPlanRequired(r.data.plan_required);
+        setAds(r.data.ads||[]);
+      } else {
+        setAds(Array.isArray(r.data)?r.data:[]);
+      }
+    });
     API.get('/user/earnings').then(r=>setEarnings(r.data));
     API.get('/user/withdrawals').then(r=>setWithdrawals(r.data));
     API.get('/user/referrals').then(r=>{ setReferrals(r.data); setReferralMsg(r.data.referral_message||''); });
@@ -222,6 +236,13 @@ export default function Dashboard() {
   },[]);
 
   // ── Ad Timer ──
+  const [adTabVisible, setAdTabVisible] = useState(true);
+  useEffect(()=>{
+    const onVis = () => setAdTabVisible(!document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return ()=>document.removeEventListener('visibilitychange', onVis);
+  },[]);
+
   const startAd = async (ad) => {
     if (ad.already_clicked || activeAd) return;
     try {
@@ -233,6 +254,9 @@ export default function Dashboard() {
 
   useEffect(()=>{
     if (!activeAd) return;
+    // The countdown only runs while the advertiser tab is open. Returning to
+    // Smart Grow Chain pauses it until the user opens the ad again.
+    if (adTabVisible) return;
     if (countdown>0){ const t=setTimeout(()=>setCountdown(c=>c-1),1000); return ()=>clearTimeout(t); }
     API.post(`/user/click/complete/${activeAd.id}`)
       .then(r=>{
@@ -244,7 +268,7 @@ export default function Dashboard() {
         API.get('/user/transactions').then(r=>setTransactions(r.data));
       })
       .catch(err=>{ notify(err.response?.data?.detail||'Error','error'); setActiveAd(null); });
-  },[countdown,activeAd]);
+  },[countdown,activeAd,adTabVisible]);
 
   // ── Handlers ──
   const handleWithdraw = async(e)=>{
@@ -338,19 +362,21 @@ export default function Dashboard() {
   useEffect(()=>{ tabRef.current = tab; }, [tab]);
 
   useEffect(()=>{
+    if(window.innerWidth > 768) return undefined;
     window.history.pushState(null, '', window.location.href);
     const onBack = () => {
       window.history.pushState(null, '', window.location.href);
       if(sidebarOpenRef.current){
         setSidebarOpen(false);
+        setSidebarCollapsed(true);
+        setTab('dashboard');
         return;
       }
       if(tabRef.current !== 'dashboard'){
         setTab('dashboard');
         return;
       }
-      localStorage.clear();
-      navigate('/login');
+      navigate('/login', {replace:true});
     };
     window.addEventListener('popstate', onBack);
     return ()=>window.removeEventListener('popstate', onBack);
@@ -595,6 +621,9 @@ export default function Dashboard() {
                       {icon} {label}
                     </button>
                   ))}
+                  <button className="sgc-bottom-action" onClick={()=>setTab('kyc')} style={{padding:'10px 18px',background:kycData?.kyc_status==='approved'?'#064e3b':'#450a0a',border:`1px solid ${kycData?.kyc_status==='approved'?'#22c55e':'#ef4444'}`,borderRadius:10,color:kycData?.kyc_status==='approved'?'#4ade80':'#fca5a5',cursor:'pointer',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
+                    {kycData?.kyc_status==='approved'?'✓ Verified Account':'⚠ Unverified Account'}
+                  </button>
                 </div>
 
                 {/* Recent Transactions */}
@@ -643,6 +672,15 @@ export default function Dashboard() {
                   <h2 className="sgc-heading">📺 Advertisement</h2>
                   <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{availableAds} available today</span>
                 </div>
+                {adPlanRequired && (
+                  <div style={{background:'linear-gradient(135deg,#450a0a,#7f1d1d)',border:'1px solid #ef4444',borderRadius:16,padding:'32px 24px',textAlign:'center',maxWidth:480,margin:'0 auto'}}>
+                    <div style={{fontSize:52,marginBottom:12}}>📺</div>
+                    <h3 style={{color:'#fca5a5',fontSize:18,fontWeight:800,margin:'0 0 8px'}}>Plan Required</h3>
+                    <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 20px',lineHeight:1.7}}>Please activate a membership plan first to view and earn from ads.</p>
+                    <button onClick={()=>setTab('plans')} style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#fff',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>🏆 Activate Plan Now</button>
+                  </div>
+                )}
+                {!adPlanRequired && <>
                 {adSectionMsg?.trim() && (
                   <div style={{background:'linear-gradient(135deg,#1c1000,#451a03)',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',gap:10,alignItems:'flex-start'}}>
                     <span style={{fontSize:18,flexShrink:0}}>📢</span>
@@ -676,9 +714,17 @@ export default function Dashboard() {
                         </div>
                       )}
                       <button className="sgc-click-btn"
-                        style={{background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'var(--bg)',cursor:!!activeAd?'not-allowed':'pointer'}}
-                        onClick={()=>startAd(ad)} disabled={!!activeAd}>
-                        {activeAd?.id===ad.id?`⏳ ${countdown}s`:activeAd?'⏳ Watching...':'▶ Click & Earn'}
+                        style={{background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'var(--bg)',cursor:!!activeAd&&activeAd.id!==ad.id?'not-allowed':'pointer'}}
+                        onClick={()=>{
+                          if(activeAd?.id===ad.id && adTabVisible){
+                            window.open(ad.url,'_blank');
+                          } else {
+                            startAd(ad);
+                          }
+                        }} disabled={!!activeAd&&activeAd.id!==ad.id}>
+                        {activeAd?.id===ad.id
+                          ? (adTabVisible ? '🔄 Click to Again Start' : `⏳ ${countdown}s`)
+                          : activeAd?'⏳ Watching...':'▶ Click & Earn'}
                       </button>
                     </div>
                   ))}
@@ -716,6 +762,7 @@ export default function Dashboard() {
                     </div>
                   );
                 })()}
+                </>}
               </div>
             )}
 
@@ -1124,11 +1171,8 @@ export default function Dashboard() {
 
                 {/* Current Plan Info Card */}
                 {(()=>{
-                  const expiryDate = profile.free_plan_expires_at
-                    ? new Date(profile.free_plan_expires_at)
-                    : profile.plan_expires_at
-                    ? new Date(profile.plan_expires_at)
-                    : null;
+                  const activeExpiry = profile.membership==='free' ? profile.free_plan_expires_at : profile.plan_expires_at;
+                  const expiryDate = activeExpiry ? new Date(activeExpiry) : null;
                   const now = new Date();
                   void planTick; // trigger re-render every second
                   const isExpired = expiryDate && expiryDate < now;
@@ -1251,7 +1295,7 @@ export default function Dashboard() {
                       <>
                         <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>PAYMENT METHOD</p>
                         <div style={{display:'flex',gap:10,marginBottom:20}}>
-                          {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa']].map(([val,label])=>(
+                          {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa'],['jazzcash','💳 JazzCash'],['bank','🏦 Bank Transfer']].map(([val,label])=>(
                             <div key={val} onClick={()=>setPlanPayMethod(val)}
                               style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${planPayMethod===val?'var(--accent)':'var(--border)'}`,background:planPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:planPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
                               {label}
@@ -1320,12 +1364,34 @@ export default function Dashboard() {
                       </>
                     )}
 
+                    {selectedPlan.price > 0 && ['jazzcash','bank'].includes(planPayMethod) && (
+                      <>
+                        {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).slice(0,1).map(a=>(
+                          <div key={a.id} style={{background:'var(--card)',border:'1px solid var(--accent)',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
+                            <p style={{color:'var(--accent)',fontSize:11,fontWeight:700,margin:'0 0 10px'}}>SEND PAYMENT TO {planPayMethod==='bank'?'BANK TRANSFER':planPayMethod.toUpperCase()}</p>
+                            {planPayMethod==='bank' && <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 5px'}}>Bank: {a.bank_name||'-'}</p>}
+                            <p style={{color:'var(--text)',fontWeight:700,margin:'0 0 5px'}}>{a.account_title}</p>
+                            <p style={{color:'var(--accent)',fontFamily:'monospace',fontWeight:800,margin:'0 0 8px'}}>{a.account_number}</p>
+                            {a.deposit_message && <p style={{color:'var(--dim)',fontSize:12,margin:0,whiteSpace:'pre-wrap'}}>{a.deposit_message}</p>}
+                            <p style={{color:'var(--yellow)',fontSize:13,fontWeight:700,margin:'10px 0 0'}}>Send exactly: Rs. {selectedPlan.price}</p>
+                          </div>
+                        ))}
+                        {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).length===0 && <p style={{color:'var(--red)',fontSize:12}}>No active {planPayMethod} account is available.</p>}
+                        <label className="sgc-label">Your Name (Sender)</label>
+                        <input className="sgc-input" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)} required/>
+                        <label className="sgc-label">Transaction ID / Sender Number</label>
+                        <input className="sgc-input" value={planTransactionId} onChange={e=>setPlanTransactionId(e.target.value)} required/>
+                        <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
+                        <input className="sgc-input" type="file" accept="image/*" onChange={e=>setPlanScreenshot(e.target.files[0])}/>
+                      </>
+                    )}
+
                     <button className="sgc-btn-primary" onClick={async()=>{
                       try{
                         if(selectedPlan.price > 0 && planPayMethod==='wallet' && profile.balance < selectedPlan.price){
                           notify('Insufficient balance','error'); return;
                         }
-                        if(selectedPlan.price > 0 && planPayMethod==='easypaisa' && !planScreenshot){
+                        if(selectedPlan.price > 0 && planPayMethod!=='wallet' && !planScreenshot){
                           notify('Please upload payment screenshot','error'); return;
                         }
                         const fd=new FormData();
@@ -1333,9 +1399,10 @@ export default function Dashboard() {
                         fd.append('payment_method', selectedPlan.price===0 ? 'wallet' : planPayMethod);
                         fd.append('sender_name', planSenderName);
                         fd.append('sender_phone', planSenderPhone);
-                        if(selectedPlan.price > 0 && planPayMethod==='easypaisa' && planScreenshot) fd.append('screenshot', planScreenshot);
+                        fd.append('sender_phone', planTransactionId || planSenderPhone);
+                        if(selectedPlan.price > 0 && planPayMethod!=='wallet' && planScreenshot) fd.append('screenshot', planScreenshot);
                         await API.post('/user/plan/purchase', fd, {headers:{'Content-Type':'multipart/form-data'}});
-                        notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
+                        notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : planPayMethod==='wallet' ? 'Plan activated successfully! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
                         setSelectedPlan(null);
                         API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data));
                         API.get('/user/profile').then(r=>setProfile(r.data));
@@ -1652,10 +1719,12 @@ export default function Dashboard() {
                         if(parseInt(adForm.members_needed) < minCampaignUsers){ notify('Minimum '+minCampaignUsers+' users required per campaign','error'); return; }
                         fd.append('members_needed', parseInt(adForm.members_needed));
                         fd.append('payment_method', adPayMethod);
+                        fd.append('sender_name', adForm.sender_name||'');
+                        fd.append('transaction_id', adForm.transaction_id||'');
                         if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
                         await API.post('/user/ad-request/submit', fd, {headers:{'Content-Type':'multipart/form-data'}});
                         notify('Ad request submitted! ✅');
-                        setAdForm({title:'',url:'',members_needed:''});
+                        setAdForm({title:'',url:'',members_needed:'',sender_name:'',transaction_id:''});
                         setAdScreenshot(null);
                         API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data));
                         API.get('/user/profile').then(r=>setProfile(r.data));
@@ -1744,6 +1813,17 @@ export default function Dashboard() {
                             {adScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {adScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
                           </label>
                         </>
+                      )}
+                      {adPayMethod!=='wallet' && (
+                        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
+                          <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,margin:'0 0 10px'}}>PAYMENT DETAILS</p>
+                          <label className="sgc-label">Amount Sent</label>
+                          <input className="sgc-input" value={adForm.members_needed ? `Rs. ${(adForm.members_needed*adRate).toFixed(2)}` : ''} readOnly/>
+                          <label className="sgc-label">Send By (your name)</label>
+                          <input className="sgc-input" value={adForm.sender_name||''} onChange={e=>setAdForm({...adForm,sender_name:e.target.value})} required/>
+                          <label className="sgc-label">Transaction ID / Sender Number</label>
+                          <input className="sgc-input" value={adForm.transaction_id||''} onChange={e=>setAdForm({...adForm,transaction_id:e.target.value})} required/>
+                        </div>
                       )}
                       <button className="sgc-btn-primary" type="submit">📢 Submit Ad Request</button>
                     </form>

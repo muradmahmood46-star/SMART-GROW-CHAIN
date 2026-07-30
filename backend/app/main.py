@@ -33,6 +33,8 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE referral_settings ADD COLUMN IF NOT EXISTS details VARCHAR(200)",
         "ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS payout_screenshot_path VARCHAR(255)",
         "ALTER TABLE kyc_requests ADD COLUMN IF NOT EXISTS phone VARCHAR(20)",
+        "ALTER TABLE user_ad_requests ADD COLUMN IF NOT EXISTS sender_name VARCHAR(100)",
+        "ALTER TABLE user_ad_requests ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(100)",
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_enabled', 'true') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_until', '') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_schedule_time', '') ON CONFLICT (key) DO NOTHING",

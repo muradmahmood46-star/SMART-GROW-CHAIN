@@ -11,13 +11,6 @@ export default function Login() {
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  useEffect(()=>{
-    window.history.pushState(null, '', window.location.href);
-    const onBack = () => { navigate('/'); };
-    window.addEventListener('popstate', onBack);
-    return ()=>window.removeEventListener('popstate', onBack);
-  },[navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');

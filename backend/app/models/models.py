@@ -209,6 +209,8 @@ class UserAdRequest(Base):
     rate_pkr        = Column(Float)
     total_cost      = Column(Float)
     payment_method  = Column(String(20), default="wallet")
+    sender_name     = Column(String(100), nullable=True)
+    transaction_id  = Column(String(100), nullable=True)
     screenshot_path = Column(String(255), nullable=True)
     status          = Column(String(20), default="pending")
     admin_note      = Column(String(255), nullable=True)

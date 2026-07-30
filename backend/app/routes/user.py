@@ -15,6 +15,13 @@ import pyotp, qrcode, io, base64
 router = APIRouter(prefix="/user", tags=["User"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+def has_active_plan(user: User) -> bool:
+    """A plan is usable only until its actual expiry time."""
+    now = datetime.utcnow()
+    if user.membership and user.membership != "free":
+        return bool(user.plan_expires_at and user.plan_expires_at > now)
+    return bool(user.free_plan_expires_at and user.free_plan_expires_at > now)
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = decode_token(token)
@@ -56,6 +63,10 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
 # ── ADS ──────────────────────────────────────────────────────────────────────
 @router.get("/ads")
 def get_ads(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Change 3: user must have an active plan to see ads
+    if not has_active_plan(current_user):
+        return {"plan_required": True, "ads": []}
+
     ads = db.query(Ad).filter(Ad.is_active == True).all()
     result = []
     for ad in ads:
@@ -66,7 +77,6 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
         ).first()
         if already_clicked:
             continue
-        # Check if sponsored (from UserAdRequest)
         sponsored = db.query(UserAdRequest).filter(
             UserAdRequest.url == ad.url,
             UserAdRequest.status == "approved"
@@ -80,12 +90,13 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             "already_clicked": False,
             "is_sponsored": sponsored is not None
         })
-    # Sponsored first (sorted by earning desc), then admin ads (sorted by earning desc)
     result.sort(key=lambda x: (0 if x["is_sponsored"] else 1, -x["earning_amount"]))
-    return result
+    return {"plan_required": False, "ads": result}
 
 @router.post("/click/start/{ad_id}")
 def start_click(ad_id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not has_active_plan(current_user):
+        raise HTTPException(status_code=403, detail="Please activate a plan first to view ads")
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
@@ -110,6 +121,8 @@ def start_click(ad_id: int, request: Request, current_user: User = Depends(get_c
 
 @router.post("/click/complete/{ad_id}")
 def complete_click(ad_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not has_active_plan(current_user):
+        raise HTTPException(status_code=403, detail="Your plan has expired. Please activate a plan first")
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
@@ -126,6 +139,8 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
         cast(ClickLog.created_at, Date) == today
     ).order_by(ClickLog.id.desc()).first()
     if log:
+        if (datetime.utcnow() - log.created_at).total_seconds() < ad.timer_seconds:
+            raise HTTPException(status_code=400, detail="Please watch the ad for the full required time")
         log.timer_completed = True
     earning = Earning(user_id=current_user.id, ad_id=ad_id, amount=ad.earning_amount, type="click")
     db.add(earning)
@@ -539,8 +554,12 @@ async def purchase_plan(
     plan = db.query(MembershipPlan).filter(MembershipPlan.id == plan_id, MembershipPlan.is_active == True).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    if current_user.membership == plan.name:
+    current_expiry = current_user.free_plan_expires_at if plan.price <= 0 else current_user.plan_expires_at
+    if current_user.membership == plan.name and current_expiry and current_expiry > datetime.utcnow():
         raise HTTPException(status_code=400, detail="You already have this plan")
+
+    if payment_method not in ["wallet", "easypaisa", "jazzcash", "bank"]:
+        raise HTTPException(status_code=400, detail="Invalid payment method")
 
     screenshot_path = None
     if plan.price <= 0:
@@ -556,9 +575,24 @@ async def purchase_plan(
         db.commit()
         return {"message": "Free plan activated successfully."}
     elif payment_method == "wallet":
+        # Change 4: wallet — check balance, deduct, activate immediately
         if current_user.balance < plan.price:
-            raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {plan.price}, Available: Rs. {round(current_user.balance, 2)}")
+            raise HTTPException(status_code=400, detail=f"insufficient_balance:{plan.price}:{round(current_user.balance, 2)}")
         current_user.balance -= plan.price
+        current_user.membership = plan.name
+        current_user.plan_expires_at = datetime.utcnow() + timedelta(days=plan.period_days or 30)
+        req = PlanPurchaseRequest(
+            user_id=current_user.id, plan_id=plan.id, plan_name=plan.name, plan_price=plan.price,
+            payment_method="wallet", status="approved"
+        )
+        db.add(req)
+        db.add(Notification(user_id=current_user.id, title="Plan Activated ✅", message=f"Your {plan.name} plan has been activated. Rs. {plan.price} deducted from wallet."))
+        # Admin notification
+        admins = db.query(User).filter(User.is_admin == True).all()
+        for admin in admins:
+            db.add(Notification(user_id=admin.id, title="Plan Purchased 🏆", message=f"{current_user.username} activated {plan.name} plan. Rs. {plan.price} deducted from wallet."))
+        db.commit()
+        return {"message": f"{plan.name} plan activated successfully! Rs. {plan.price} deducted from your wallet.", "activated": True}
     else:
         if not screenshot:
             raise HTTPException(status_code=400, detail="Screenshot required for Easypaisa payment")
@@ -579,9 +613,13 @@ async def purchase_plan(
         screenshot_path=screenshot_path,
         sender_name=sender_name or None,
         sender_phone=sender_phone or None,
-        status="pending" if payment_method == "easypaisa" else "pending"
+        status="pending"
     )
     db.add(req)
+    # Admin notification for manual payment
+    admins = db.query(User).filter(User.is_admin == True).all()
+    for admin in admins:
+        db.add(Notification(user_id=admin.id, title="Plan Purchase Request 📋", message=f"{current_user.username} submitted {plan.name} plan purchase via {payment_method}. Please review."))
     db.commit()
     return {"message": "Plan purchase request submitted. Admin will activate your plan shortly."}
 
@@ -593,10 +631,7 @@ def my_plan_purchases(current_user: User = Depends(get_current_user), db: Sessio
         user = db.query(User).filter(User.id == r.user_id).first()
         expiry = None
         if r.status == "approved" and user:
-            if user.free_plan_expires_at:
-                expiry = user.free_plan_expires_at
-            elif user.plan_expires_at:
-                expiry = user.plan_expires_at
+            expiry = user.free_plan_expires_at if user.membership == "free" else user.plan_expires_at
         result.append({
             "id": r.id, "plan_name": r.plan_name, "plan_price": r.plan_price,
             "payment_method": r.payment_method, "status": r.status,

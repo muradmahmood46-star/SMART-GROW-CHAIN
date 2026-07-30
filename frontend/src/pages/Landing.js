@@ -12,11 +12,6 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
-    // On home page, let back button exit naturally (no interception)
-    window.history.pushState(null, '', window.location.href);
-  }, []);
-
-  useEffect(() => {
     setShowCookieNotice(!localStorage.getItem('sgc-cookie-choice'));
     const observer = new IntersectionObserver(
       entries => entries.forEach(entry => entry.isIntersecting && entry.target.classList.add('is-visible')),

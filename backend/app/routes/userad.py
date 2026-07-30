@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import User, UserAdRequest, AdBudgetRate, EasypaisaAccount, Ad, Earning
+from app.models.models import User, UserAdRequest, AdBudgetRate, EasypaisaAccount, Ad, Earning, Notification
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
 import os, shutil, uuid
@@ -56,6 +56,8 @@ async def submit_ad_request(
     url: str = Form(...),
     members_needed: int = Form(...),
     payment_method: str = Form(...),  # "wallet" or "easypaisa"
+    sender_name: str = Form(""),
+    transaction_id: str = Form(""),
     screenshot: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -63,6 +65,10 @@ async def submit_ad_request(
     rate = get_rate(db)
     total_cost = round(members_needed * rate, 2)
 
+    if payment_method not in ["wallet", "easypaisa", "jazzcash", "bank"]:
+        raise HTTPException(status_code=400, detail="Invalid payment method")
+    if members_needed <= 0 or not title.strip() or not url.strip():
+        raise HTTPException(status_code=400, detail="Please provide valid ad details")
     if payment_method == "wallet":
         if current_user.balance < total_cost:
             raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {total_cost}, Available: Rs. {round(current_user.balance, 2)}")
@@ -70,7 +76,7 @@ async def submit_ad_request(
         screenshot_path = None
     else:
         if not screenshot:
-            raise HTTPException(status_code=400, detail="Screenshot required for Easypaisa payment")
+            raise HTTPException(status_code=400, detail="Payment screenshot is required")
         ext = os.path.splitext(screenshot.filename)[-1].lower()
         if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
             raise HTTPException(status_code=400, detail="Only JPG/PNG images allowed")
@@ -87,12 +93,20 @@ async def submit_ad_request(
         rate_pkr=rate,
         total_cost=total_cost,
         payment_method=payment_method,
+        sender_name=sender_name.strip() or None,
+        transaction_id=transaction_id.strip() or None,
         screenshot_path=screenshot_path,
-        status="pending"
+        status="approved" if payment_method == "wallet" else "pending"
     )
     db.add(req)
+    # Wallet campaigns are already paid, therefore go live immediately.
+    if payment_method == "wallet":
+        db.flush()
+        db.add(Ad(title=title.strip(), url=url.strip(), description="Sponsored campaign", earning_amount=0.5, timer_seconds=15, daily_limit=members_needed, is_active=True))
+        for admin in db.query(User).filter(User.is_admin == True).all():
+            db.add(Notification(user_id=admin.id, title="New Wallet Advertisement 📢", message=f"{current_user.username} just advertised an ad. Rs. {total_cost} was deducted from their wallet."))
     db.commit()
-    return {"message": "Ad request submitted successfully", "total_cost": total_cost}
+    return {"message": "Ad is live now." if payment_method == "wallet" else "Ad request submitted successfully", "total_cost": total_cost, "activated": payment_method == "wallet"}
 
 @router.get("/my-requests")
 def my_requests(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
