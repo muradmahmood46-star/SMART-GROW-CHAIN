@@ -24,7 +24,7 @@ export default function UserLogin() {
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('is_admin', res.data.is_admin);
         localStorage.setItem('username', res.data.username);
-        navigate('/dashboard', { replace: true });
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed');
@@ -39,7 +39,7 @@ export default function UserLogin() {
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
-      navigate('/dashboard', { replace: true });
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid OTP code');
     } finally { setLoading(false); }

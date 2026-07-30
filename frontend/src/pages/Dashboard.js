@@ -160,7 +160,24 @@ export default function Dashboard() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [myPlanPurchases, setMyPlanPurchases] = useState([]);
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [tab, setTab]                 = useState(() => { try { return sessionStorage.getItem('sgc_active_ad') ? 'ads' : 'dashboard'; } catch { return 'dashboard'; } });
+  const [tab, _setTab]                 = useState(() => { try { return sessionStorage.getItem('sgc_active_ad') ? 'ads' : 'dashboard'; } catch { return 'dashboard'; } });
+
+  const setTab = useCallback((newTab) => {
+    if (newTab === tab) return;
+    if (tab === 'dashboard' && newTab !== 'dashboard') {
+      window.history.pushState({ internalTab: newTab }, '', window.location.href);
+    } else if (tab !== 'dashboard' && newTab !== 'dashboard') {
+      window.history.replaceState({ internalTab: newTab }, '', window.location.href);
+    } else if (tab !== 'dashboard' && newTab === 'dashboard') {
+      if (window.history.state && window.history.state.internalTab) {
+        window.history.back();
+        return;
+      } else {
+        window.history.replaceState({}, '', window.location.href);
+      }
+    }
+    _setTab(newTab);
+  }, [tab]);
   const [activeAd, setActiveAd]       = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
   const [countdown, setCountdown]     = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
   const [isWatching, setIsWatching]   = useState(false);
@@ -448,32 +465,28 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); window.location.href = '/login'; };
 
-  // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
+  // ── Back button: exact history state management ──
   useEffect(()=>{
-    if(!window.history.state || window.history.state.sgcBack !== 'intercepted'){
-      window.history.replaceState({sgcBack:'intercepted'},'',window.location.href);
-    }
-    
     const onBack = (e) => {
       if(sidebarOpen){
         setSidebarOpen(false);
         setSidebarCollapsed(true);
-        window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+        window.history.pushState(e.state, '', window.location.href);
         return;
       }
       
-      if (tab !== 'dashboard') {
-        setTab('dashboard');
-        window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
-        return;
+      if (e.state && e.state.internalTab) {
+        _setTab(e.state.internalTab);
+      } else {
+        if (tab !== 'dashboard') {
+          _setTab('dashboard');
+        }
       }
-      
-      logout();
     };
     
     window.addEventListener('popstate', onBack);
     return () => window.removeEventListener('popstate', onBack);
-  },[sidebarOpen, tab, logout]);
+  },[sidebarOpen, tab]);
 
 
   const loadRefLevel = async (lvl) => {
@@ -546,7 +559,7 @@ export default function Dashboard() {
         <div className="sgc-topbar">
           <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
             <button className="hamburger" onClick={()=>{if(window.innerWidth<=768){setSidebarOpen(true);}setSidebarCollapsed(false);}}>☰</button>
-            <button className="sgc-topbar-login-back" onClick={()=>{ if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); } else if(tab !== 'dashboard') { setTab('dashboard'); } else { logout(); } }} aria-label="Go back" title="Go back">←</button>
+            <button className="sgc-topbar-login-back" onClick={()=>{ if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); } else if(tab !== 'dashboard') { setTab('dashboard'); } else { navigate(-1); } }} aria-label="Go back" title="Go back">←</button>
           </div>
           <span className="sgc-topbar-title">🌱 Smart Grow Chain</span>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -705,8 +718,8 @@ export default function Dashboard() {
                       {icon} {label}
                     </button>
                   ))}
-                  <button className="sgc-bottom-action" onClick={()=>setTab('kyc')} style={{padding:'10px 18px',background:kycData?.kyc_status==='approved'?'#16a34a':'#dc2626',border:'none',borderRadius:10,color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
-                    {kycData?.kyc_status==='approved'?'✅ Verified':'❌ KYC Verification Needed'}
+                  <button onClick={()=>setTab('kyc')} style={{padding:'10px 18px',backgroundColor:kycData?.kyc_status==='approved'?'#16a34a':'#dc2626',border:'none',borderRadius:10,color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:6,justifyContent:'center',width:'100%',marginTop:'auto',boxShadow:'0 2px 5px rgba(0,0,0,0.2)'}}>
+                    {kycData?.kyc_status==='approved'?'✅ KYC Verified':'❌ KYC Verification Needed'}
                   </button>
                 </div>
 
