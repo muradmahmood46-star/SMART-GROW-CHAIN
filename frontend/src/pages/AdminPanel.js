@@ -333,7 +333,7 @@ export default function AdminPanel() {
         <div className="sgc-topbar">
           <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
             <button className="hamburger" onClick={()=>{if(window.innerWidth<=768){setSidebarOpen(true);}setSidebarCollapsed(false);}}>☰</button>
-            <button className="sgc-topbar-login-back" onClick={()=>{ if(tab!=="dashboard"){ setTab("dashboard"); } else { navigate("/login"); } }} aria-label="Go back" title="Go back">←</button>
+            <button className="sgc-topbar-login-back" onClick={()=>{ if(tab!=="dashboard"){ setTab("dashboard"); } else { logout(); } }} aria-label="Go back" title="Go back">←</button>
           </div>
           <span className="sgc-topbar-title">🌱 SGC Admin</span>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
