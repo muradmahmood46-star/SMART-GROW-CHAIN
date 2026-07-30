@@ -164,6 +164,10 @@ export default function Dashboard() {
 
   const setTab = useCallback((newTab) => {
     if (newTab === tab) return;
+    // Push history entry so back button returns to dashboard from internal pages
+    if (newTab !== 'dashboard') {
+      window.history.pushState({ sgcTab: newTab }, '', window.location.href);
+    }
     _setTab(newTab);
   }, [tab]);
   const [activeAd, setActiveAd]       = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
@@ -461,10 +465,11 @@ export default function Dashboard() {
       return;
     }
     if (tab !== 'dashboard') {
-      _setTab('dashboard');
+      // Use browser back to return to dashboard (preserves history)
+      window.history.back();
     } else {
       // Dashboard → Login
-      navigate('/login', { replace: false });
+      navigate('/login');
     }
   }, [sidebarOpen, tab, navigate]);
 
@@ -475,11 +480,11 @@ export default function Dashboard() {
         setSidebarCollapsed(true);
         return;
       }
-      handleBack();
+      // Only handle sidebar state, let React Router handle tab changes
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  },[sidebarOpen, handleBack]);
+  },[sidebarOpen]);
 
 
   const loadRefLevel = async (lvl) => {
@@ -711,7 +716,7 @@ export default function Dashboard() {
                       {icon} {label}
                     </button>
                   ))}
-                  <button onClick={()=>setTab('kyc')} style={{padding:'8px 14px',backgroundColor:kycData?.kyc_status==='approved'?'#16a34a !important':'#dc2626 !important',border:'none !important',borderRadius:8,color:'#fff !important',cursor:'pointer',fontSize:12,fontWeight:700,display:'inline-flex',alignItems:'center',gap:6,justifyContent:'center',boxShadow:'0 2px 5px rgba(0,0,0,0.2)',whiteSpace:'nowrap'}}>
+                  <button className={`sgc-kyc-status-btn ${kycData?.kyc_status==='approved'?'sgc-kyc-verified':'sgc-kyc-unverified'}`} onClick={()=>setTab('kyc')}>
                     {kycData?.kyc_status==='approved'?'✅ KYC Verified':'❌ KYC Verification Needed'}
                   </button>
                 </div>

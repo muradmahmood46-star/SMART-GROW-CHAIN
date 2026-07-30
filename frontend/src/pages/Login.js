@@ -13,7 +13,7 @@ export default function Login() {
 
   // ── Back button: ensure login can be reached from dashboard ──
   useEffect(()=>{
-    // When login page loads, replace state so back goes to home, not dashboard
+    // When login page loads, replace state so back from dashboard doesn't loop
     if(window.history.state && window.history.state.fromDashboard) {
       window.history.replaceState({ fromDashboard: false }, '', window.location.href);
     }
@@ -30,6 +30,8 @@ export default function Login() {
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('is_admin', String(res.data.is_admin));
         localStorage.setItem('username', res.data.username);
+        // Push Login into history so back from dashboard returns here
+        window.history.pushState({ sgclogin: true }, '', window.location.href);
         navigate(res.data.is_admin ? '/admin' : '/dashboard');
       }
     } catch (err) {
@@ -45,6 +47,8 @@ export default function Login() {
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
+      // Push Login into history so back from dashboard returns here
+      window.history.pushState({ sgclogin: true }, '', window.location.href);
       navigate(res.data.is_admin ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid 2FA code');

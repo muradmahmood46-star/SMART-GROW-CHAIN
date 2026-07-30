@@ -696,6 +696,30 @@ body {
   font-size:13px; font-weight:600; transition:all .15s; font-family:var(--font);
 }
 
+/* ── KYC Status Button ── */
+.sgc-kyc-status-btn {
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  justify-content:center;
+  box-shadow:0 2px 5px rgba(0,0,0,0.2);
+  white-space:nowrap;
+  transition:transform .15s, box-shadow .15s;
+  font-family:var(--font);
+}
+.sgc-kyc-status-btn:hover { transform:translateY(-1px); }
+.sgc-kyc-verified { background:#16a34a; }
+.sgc-kyc-verified:hover { box-shadow:0 4px 10px rgba(22,163,74,.4); }
+.sgc-kyc-unverified { background:#dc2626; }
+.sgc-kyc-unverified:hover { box-shadow:0 4px 10px rgba(220,38,38,.4); }
+
 /* ── Toast ── */
 .sgc-toast {
   position:fixed; top:20px; right:20px; z-index:999;
