@@ -355,34 +355,6 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
-  // ── Mobile hardware back button ──
-  const sidebarOpenRef = React.useRef(sidebarOpen);
-  const tabRef = React.useRef(tab);
-  useEffect(()=>{ sidebarOpenRef.current = sidebarOpen; }, [sidebarOpen]);
-  useEffect(()=>{ tabRef.current = tab; }, [tab]);
-
-  useEffect(()=>{
-    if(window.innerWidth > 768) return undefined;
-    window.history.pushState(null, '', window.location.href);
-    const onBack = () => {
-      window.history.pushState(null, '', window.location.href);
-      // Pehle sidebar close karo agar open hai
-      if(sidebarOpenRef.current){
-        setSidebarOpen(false);
-        setSidebarCollapsed(true);
-        return;
-      }
-      // Phir tab change karo agar dashboard par nahi hai
-      if(tabRef.current !== 'dashboard'){
-        setTab('dashboard');
-        return;
-      }
-      // Finally login page par le jao
-      navigate('/login', {replace:true});
-    };
-    window.addEventListener('popstate', onBack);
-    return ()=>window.removeEventListener('popstate', onBack);
-  },[navigate]);
 
   const loadRefLevel = async (lvl) => {
     setSelectedRefLevel(lvl);
