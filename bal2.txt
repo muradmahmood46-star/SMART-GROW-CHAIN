@@ -1,0 +1,4 @@
+﻿sgc-balance breathe">
+          <div className="sgc-bal-label">💳 Total Balance</div>
+          <div className="sgc-bal-amount">Rs. {sidebarBalance.toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <div className="sgc-bal-earned">Total Earned: Rs. {profile.

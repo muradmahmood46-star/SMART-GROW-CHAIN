@@ -485,7 +485,7 @@ def get_public_settings(db: Session = Depends(get_db)):
 # ── MEMBERSHIP PLANS ──────────────────────────────────────────────────────────
 @router.get("/plans")
 def get_plans(db: Session = Depends(get_db)):
-    plans = db.query(MembershipPlan).all()
+    plans = db.query(MembershipPlan).filter(MembershipPlan.is_active == True).all()
     result = []
     for p in plans:
         result.append({

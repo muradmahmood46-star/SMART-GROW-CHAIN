@@ -1,0 +1,3 @@
+﻿sgc-dashboard-topback" onClick={()=>{setSidebarCollapsed(true);setSidebarOpen(false);}} aria-label="Hide sidebar" title="Hide sidebar">←</button>
+          <button className="hamburger" onClick={()=>{setSidebarCollapsed(false);setSidebarOpen(true);}}>☰</button>
+          <span style={{color:'#fff',f

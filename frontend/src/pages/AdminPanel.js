@@ -213,7 +213,8 @@ export default function AdminPanel() {
     } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
   };
 
-  const deletePlan = async(id)=>{ if(!window.confirm('Delete plan?')) return; await API.delete(`/admin/plans/${id}`); loadAll(); notify('Plan deleted'); };
+  const deletePlan = async(id)=>{ if(!window.confirm('Delete plan?')) return; try { await API.delete(`/admin/plans/${id}`); loadAll(); notify('Plan deleted'); } catch(e) { notify('Failed to delete', 'error'); } };
+  const togglePlanActive = async(id)=>{ await API.put(`/admin/plans/${id}/toggle-active`); loadAll(); notify('Plan status updated'); };
 
   const searchAdLog = async()=>{ const r=await API.get(`/admin/ad-view-log?search=${adLogSearch}`); setAdViewLog(r.data); };
 
@@ -944,7 +945,7 @@ export default function AdminPanel() {
                           <td className="sgc-td" style={{color:'var(--purple)',fontSize:12}}>{p.required_referrals_per_level||3} users</td>
                           <td className="sgc-td" style={{color:'var(--yellow)',fontSize:12}}>Rs. {p.min_withdrawal||0}</td>
                           <td className="sgc-td" style={{color:'var(--red)',fontSize:12}}>{p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}</td>
-                          <td className="sgc-td"><span className="sgc-badge" style={{background:p.is_active?'#064e3b':'#334155'}}>{p.is_active?'Active':'Off'}</span></td>
+                          <td className="sgc-td"><span className="sgc-badge" style={{background:p.is_active?'#064e3b':'#334155',color:p.is_active?'#4ade80':'#94a3b8'}}>{p.is_active?'Active':'Inactive'}</span></td>
                           <td className="sgc-td" style={{display:'flex',gap:6}}>
                             <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{
                               setEditPlan(p);
@@ -958,6 +959,7 @@ export default function AdminPanel() {
                               window.scrollTo(0,0);
                             }}>Edit</button>
                             <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deletePlan(p.id)}>Delete</button>
+                            <button className="sgc-btn-sm" style={{background:p.is_active?'#1e293b':'#064e3b',color:p.is_active?'#94a3b8':'#4ade80'}} onClick={()=>togglePlanActive(p.id)}>{p.is_active?'Deactivate':'Activate'}</button>
                           </td>
                         </tr>
                       );

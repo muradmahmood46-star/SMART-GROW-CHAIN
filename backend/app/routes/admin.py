@@ -431,8 +431,18 @@ def update_plan(plan_id: int, data: PlanUpdate, db: Session = Depends(get_db), a
 def delete_plan(plan_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     plan = db.query(MembershipPlan).filter(MembershipPlan.id == plan_id).first()
     if not plan: raise HTTPException(status_code=404, detail="Plan not found")
+    # Disconnect any purchase requests to prevent foreign key IntegrityError
+    db.query(PlanPurchaseRequest).filter(PlanPurchaseRequest.plan_id == plan_id).update({"plan_id": None})
     db.delete(plan); db.commit()
     return {"message": "Plan deleted"}
+
+@router.put("/plans/{plan_id}/toggle-active")
+def toggle_plan_active(plan_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    plan = db.query(MembershipPlan).filter(MembershipPlan.id == plan_id).first()
+    if not plan: raise HTTPException(status_code=404, detail="Plan not found")
+    plan.is_active = not plan.is_active
+    db.commit()
+    return {"message": "Status updated", "is_active": plan.is_active}
 
 
 # ── FUND TRANSFERS (view all) ──────────────────────────────────────────
