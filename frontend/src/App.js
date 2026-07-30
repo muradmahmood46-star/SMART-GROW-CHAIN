@@ -29,20 +29,26 @@ function AppContent() {
       const isAdmin = localStorage.getItem('is_admin') === 'true';
       const currentPath = location.pathname;
 
-      // Agar landing page par hai to back button ko prevent karke login page par le jao
-      if (currentPath === '/' || currentPath === '/login' || currentPath === '/register') {
+      // Dashboard/Admin par hai to logout karke login page par le jao
+      if (currentPath === '/dashboard' || currentPath === '/admin') {
         e.preventDefault();
         if (token) {
-          if (isAdmin) {
-            navigate('/admin', { replace: true });
-          } else {
-            navigate('/dashboard', { replace: true });
-          }
-        } else {
-          // Agar logged out hai to landing page par hi rakh do
-          navigate('/', { replace: true });
+          localStorage.clear();
         }
+        navigate('/login', { replace: true });
         return false;
+      }
+
+      // Login page par hai to home page par le jao
+      if (currentPath === '/login') {
+        e.preventDefault();
+        navigate('/', { replace: true });
+        return false;
+      }
+
+      // Home/Register par hai to default behavior allow karo (exit)
+      if (currentPath === '/' || currentPath === '/register') {
+        return true;
       }
     };
 
