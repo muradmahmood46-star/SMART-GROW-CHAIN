@@ -1,43 +1,17 @@
 {
-  "name": "smart-grow-chain",
   "version": 2,
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    },
-    {
-      "src": "backend/app/main.py",
-      "use": "@vercel/python"
-    }
-  ],
   "routes": [
     {
-      "src": "/auth/(.*)",
-      "dest": "backend/app/main.py"
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
     },
     {
-      "src": "/user/(.*)",
-      "dest": "backend/app/main.py"
-    },
-    {
-      "src": "/admin/(.*)",
-      "dest": "backend/app/main.py"
-    },
-    {
-      "src": "/deposit/(.*)",
-      "dest": "backend/app/main.py"
-    },
-    {
-      "src": "/uploads/(.*)",
-      "dest": "backend/app/main.py"
+      "src": "/(.*\\.(js|css|json|png|jpg|jpeg|gif|ico|svg|webp|woff|woff2))",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/$1"
+      "dest": "/index.html"
     }
   ]
 }
