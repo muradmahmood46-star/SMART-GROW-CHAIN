@@ -353,7 +353,7 @@ export default function Dashboard() {
     catch(err){ notify('Error','error'); }
   };
 
-  const logout=()=>{ localStorage.clear(); navigate('/login', { replace: true }); };
+  const logout=()=>{ localStorage.clear(); window.location.href = '/login'; };
 
   // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
   useEffect(()=>{

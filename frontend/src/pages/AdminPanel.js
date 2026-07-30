@@ -217,7 +217,7 @@ export default function AdminPanel() {
 
   const saveEditEmail   = async()=>{ try{ await API.put(`/admin/emails/${editEmail.id}`,{email:editEmailVal}); loadAll(); notify('Email updated'); setEditEmail(null); } catch(err){ notify(err.response?.data?.detail||'Error','error'); } };
 
-  const logout=()=>{ localStorage.clear(); navigate('/login', { replace: true }); };
+  const logout=()=>{ localStorage.clear(); window.location.href = '/login'; };
   const backToLogin=()=>navigate('/login');
 
   // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
