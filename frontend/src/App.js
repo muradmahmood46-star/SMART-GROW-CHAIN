@@ -44,13 +44,6 @@ function AppContent() {
         }
         return false;
       }
-
-      // Agar dashboard ya admin par hai to login page par le jao
-      if (currentPath === '/dashboard' || currentPath === '/admin') {
-        e.preventDefault();
-        navigate('/login', { replace: true });
-        return false;
-      }
     };
 
     // Browser back button intercept
