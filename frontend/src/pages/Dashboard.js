@@ -160,8 +160,8 @@ export default function Dashboard() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [myPlanPurchases, setMyPlanPurchases] = useState([]);
   const [tab, setTab]                 = useState('dashboard');
-  const [activeAd, setActiveAd]       = useState(null);
-  const [countdown, setCountdown]     = useState(0);
+  const [activeAd, setActiveAd]       = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
+  const [countdown, setCountdown]     = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
   const [deposit, setDeposit]           = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
@@ -238,37 +238,72 @@ export default function Dashboard() {
   // ── Ad Timer ──
   const [adTabVisible, setAdTabVisible] = useState(true);
   useEffect(()=>{
-    const onVis = () => setAdTabVisible(!document.hidden);
+    const handleElapsedTime = () => {
+      const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
+      if (hiddenAt && !document.hidden) {
+        const elapsed = (Date.now() - hiddenAt) / 1000;
+        setCountdown(prev => {
+          if (prev <= 0) return 0;
+          const newC = Math.max(0, prev - elapsed);
+          sessionStorage.setItem('sgc_ad_countdown', Math.ceil(newC));
+          return Math.ceil(newC);
+        });
+        sessionStorage.removeItem('sgc_hidden_at');
+      }
+    };
+
+    // Run on mount in case user refreshed after being away
+    handleElapsedTime();
+
+    const onVis = () => {
+      const isVisible = !document.hidden;
+      setAdTabVisible(isVisible);
+      if (!isVisible) {
+        // Tab went to background
+        sessionStorage.setItem('sgc_hidden_at', Date.now());
+      } else {
+        // Tab came back
+        handleElapsedTime();
+      }
+    };
     document.addEventListener('visibilitychange', onVis);
     return ()=>document.removeEventListener('visibilitychange', onVis);
   },[]);
 
   const startAd = async (ad) => {
-    if (ad.already_clicked || activeAd) return;
+    if (ad.already_clicked || (activeAd && activeAd.id !== ad.id)) return;
     try {
-      await API.post(`/user/click/start/${ad.id}`);
-      setActiveAd(ad); setCountdown(ad.timer_seconds);
+      if (!activeAd || activeAd.id !== ad.id) {
+        await API.post(`/user/click/start/${ad.id}`);
+      }
+      setActiveAd(ad); 
+      setCountdown(ad.timer_seconds);
+      sessionStorage.setItem('sgc_active_ad', JSON.stringify(ad));
+      sessionStorage.setItem('sgc_ad_countdown', ad.timer_seconds);
       window.open(ad.url,'_blank');
     } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
   };
 
   useEffect(()=>{
     if (!activeAd) return;
-    // The countdown only runs while the advertiser tab is open. Returning to
-    // Smart Grow Chain pauses it until the user opens the ad again.
-    if (adTabVisible) return;
-    if (countdown>0){ const t=setTimeout(()=>setCountdown(c=>c-1),1000); return ()=>clearTimeout(t); }
-    API.post(`/user/click/complete/${activeAd.id}`)
-      .then(r=>{
-        notify(`+Rs. ${r.data.amount.toFixed(2)} earned! 🎉`);
-        setProfile(p=>({...p,balance:r.data.new_balance}));
-        setAds(prev=>prev.map(a=>a.id===activeAd.id?{...a,already_clicked:true}:a));
-        setActiveAd(null);
-        API.get('/user/earnings').then(r=>setEarnings(r.data));
-        API.get('/user/transactions').then(r=>setTransactions(r.data));
-      })
-      .catch(err=>{ notify(err.response?.data?.detail||'Error','error'); setActiveAd(null); });
-  },[countdown,activeAd,adTabVisible]);
+    // When the countdown reaches 0 (or lower), trigger completion.
+    // The visual background timer is removed; we rely on timestamps.
+    if (countdown <= 0){
+      API.post(`/user/click/complete/${activeAd.id}`)
+        .then(r=>{
+          notify(`+Rs. ${r.data.amount.toFixed(2)} earned! 🎉`);
+          setProfile(p=>({...p,balance:r.data.new_balance}));
+          setAds(prev=>prev.map(a=>a.id===activeAd.id?{...a,already_clicked:true}:a));
+          setActiveAd(null);
+          sessionStorage.removeItem('sgc_active_ad');
+          sessionStorage.removeItem('sgc_ad_countdown');
+          sessionStorage.removeItem('sgc_hidden_at');
+          API.get('/user/earnings').then(r=>setEarnings(r.data));
+          API.get('/user/transactions').then(r=>setTransactions(r.data));
+        })
+        .catch(err=>{ notify(err.response?.data?.detail||'Error','error'); setActiveAd(null); sessionStorage.removeItem('sgc_active_ad'); });
+    }
+  },[countdown,activeAd]);
 
   // ── Handlers ──
   const handleWithdraw = async(e)=>{
@@ -722,7 +757,7 @@ export default function Dashboard() {
                           }
                         }} disabled={!!activeAd&&activeAd.id!==ad.id}>
                         {activeAd?.id===ad.id
-                          ? (adTabVisible ? '🔄 Click to Again Start' : `⏳ ${countdown}s`)
+                          ? (adTabVisible ? '▶ Continue Ad' : `⏳ ${countdown}s`)
                           : activeAd?'⏳ Watching...':'▶ Click & Earn'}
                       </button>
                     </div>
