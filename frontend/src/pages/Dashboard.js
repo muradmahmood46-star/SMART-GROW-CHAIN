@@ -164,19 +164,21 @@ export default function Dashboard() {
 
   const setTab = useCallback((newTab) => {
     if (newTab === tab) return;
-    if (tab === 'dashboard' && newTab !== 'dashboard') {
-      window.history.pushState({ internalTab: newTab }, '', window.location.href);
-    } else if (tab !== 'dashboard' && newTab !== 'dashboard') {
-      window.history.replaceState({ internalTab: newTab }, '', window.location.href);
-    } else if (tab !== 'dashboard' && newTab === 'dashboard') {
-      if (window.history.state && window.history.state.internalTab) {
+    if (newTab === 'dashboard') {
+      _setTab('dashboard');
+      if (window.history.state && window.history.state.fromDashboard !== false) {
         window.history.back();
         return;
+      }
+      window.history.replaceState({ fromDashboard: false }, '', window.location.href);
+    } else {
+      _setTab(newTab);
+      if (tab === 'dashboard') {
+        window.history.pushState({ fromDashboard: true }, '', window.location.href);
       } else {
-        window.history.replaceState({}, '', window.location.href);
+        window.history.replaceState({ fromDashboard: true }, '', window.location.href);
       }
     }
-    _setTab(newTab);
   }, [tab]);
   const [activeAd, setActiveAd]       = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
   const [countdown, setCountdown]     = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
@@ -475,12 +477,14 @@ export default function Dashboard() {
         return;
       }
       
-      if (e.state && e.state.internalTab) {
-        _setTab(e.state.internalTab);
-      } else {
-        if (tab !== 'dashboard') {
-          _setTab('dashboard');
+      if (tab !== 'dashboard') {
+        _setTab('dashboard');
+        const state = window.history.state;
+        if (!state || state.fromDashboard !== false) {
+          window.history.back();
         }
+      } else {
+        window.history.back();
       }
     };
     
@@ -559,7 +563,7 @@ export default function Dashboard() {
         <div className="sgc-topbar">
           <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
             <button className="hamburger" onClick={()=>{if(window.innerWidth<=768){setSidebarOpen(true);}setSidebarCollapsed(false);}}>☰</button>
-            <button className="sgc-topbar-login-back" onClick={()=>{ if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); } else if(tab !== 'dashboard') { setTab('dashboard'); } else { navigate(-1); } }} aria-label="Go back" title="Go back">←</button>
+          <button className="sgc-topbar-login-back" onClick={()=>{ if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); } else if(tab !== 'dashboard') { setTab('dashboard'); } else { navigate(-1); } }} aria-label="Go back" title="Go back">←</button>
           </div>
           <span className="sgc-topbar-title">🌱 Smart Grow Chain</span>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>

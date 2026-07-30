@@ -11,7 +11,14 @@ export default function Login() {
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  // ── Back button: login -> home -> exit ──
+  // ── Back button: ensure login can be reached from dashboard ──
+  useEffect(()=>{
+    // When login page loads, replace state so back goes to home, not dashboard
+    if(window.history.state && window.history.state.fromDashboard) {
+      window.history.replaceState({ fromDashboard: false }, '', window.location.href);
+    }
+  },[]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
