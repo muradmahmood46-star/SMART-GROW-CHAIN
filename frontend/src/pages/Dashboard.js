@@ -188,6 +188,12 @@ export default function Dashboard() {
   const [adDepDeposit, setAdDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
   const navigate = useNavigate();
 
+  const parseUTCDate = (d) => {
+    if(!d) return null;
+    const s = String(d);
+    return new Date(s.endsWith('Z') ? s : s + 'Z');
+  };
+
   // Restore ad state on page load
   useEffect(() => {
     const storedAd = sessionStorage.getItem('sgc_active_ad');
@@ -1255,7 +1261,7 @@ export default function Dashboard() {
                 {/* Current Plan Info Card */}
                 {(()=>{
                   const activeExpiry = profile.membership==='free' ? profile.free_plan_expires_at : profile.plan_expires_at;
-                  const expiryDate = activeExpiry ? new Date(activeExpiry) : null;
+                  const expiryDate = parseUTCDate(activeExpiry);
                   const now = new Date();
                   void planTick; // trigger re-render every second
                   const isExpired = expiryDate && expiryDate < now;
@@ -1533,9 +1539,9 @@ export default function Dashboard() {
                             <td className="sgc-td"><span className="sgc-badge" style={{background:r.status==='approved'?'#064e3b':r.status==='rejected'?'#450a0a':'#451a03',color:r.status==='approved'?'#4ade80':r.status==='rejected'?'#fca5a5':'#fbbf24'}}>{r.status}</span></td>
                             <td className="sgc-td" style={{fontSize:12}}>
                               {r.expires_at ? (
-                                <span style={{color:new Date(r.expires_at)<new Date()?'var(--red)':'var(--green)',fontWeight:600}}>
-                                  {new Date(r.expires_at)<new Date()?'❌ ':'✅ '}
-                                  {new Date(r.expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}
+                                <span style={{color:parseUTCDate(r.expires_at)<new Date()?'var(--red)':'var(--green)',fontWeight:600}}>
+                                  {parseUTCDate(r.expires_at)<new Date()?'❌ ':'✅ '}
+                                  {parseUTCDate(r.expires_at).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}
                                 </span>
                               ) : r.status==='pending' ? <span style={{color:'var(--dim)'}}>—</span> : <span style={{color:'var(--dim)'}}>—</span>}
                             </td>
@@ -1642,7 +1648,7 @@ export default function Dashboard() {
                           const kycColor = r.kyc_status==='approved'?'#4ade80':r.kyc_status==='pending'?'#fbbf24':'var(--dim)';
                           const kycBg   = r.kyc_status==='approved'?'#064e3b':r.kyc_status==='pending'?'#451a03':'#334155';
                           const kycLabel = r.kyc_status==='approved'?'✅ Verified':r.kyc_status==='pending'?'⏳ Pending':'❌ Not Verified';
-                          const expiry = r.plan_expires_at ? new Date(r.plan_expires_at) : null;
+                          const expiry = parseUTCDate(r.plan_expires_at);
                           return (
                             <div key={i} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'14px 18px',display:'flex',flexWrap:'wrap',gap:12,alignItems:'center'}}>
                               {/* Avatar + Username */}
@@ -2044,7 +2050,7 @@ export default function Dashboard() {
                                       const kycCol = v.kyc_status==='approved'?'#4ade80':v.kyc_status==='pending'?'#fbbf24':'#94a3b8';
                                       const kycBg  = v.kyc_status==='approved'?'#064e3b':v.kyc_status==='pending'?'#451a03':'#1e293b';
                                       const kycLabel = v.kyc_status==='approved'?'✅ Verified':v.kyc_status==='pending'?'⏳ Pending':'❌ Not Verified';
-                                      const planExp = v.plan_expires_at ? new Date(v.plan_expires_at) : null;
+                                      const planExp = parseUTCDate(v.plan_expires_at);
                                       const planActive = planExp && planExp > new Date();
                                       return (
                                         <div key={vi} style={{padding:'12px 14px',borderBottom:vi<campaignViewers[r.id].length-1?'1px solid var(--border)':'none',background:vi%2===0?'transparent':'rgba(255,255,255,.02)'}}>
