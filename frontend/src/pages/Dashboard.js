@@ -401,6 +401,7 @@ export default function Dashboard() {
   );
 
   const availableAds = ads.filter(a=>!a.already_clicked).length;
+  const totalCost = (parseInt(adForm.members_needed)||0) * adRate;
   const timerPct = activeAd?((activeAd.timer_seconds-countdown)/activeAd.timer_seconds)*100:0;
   const todayEarned = earnings.filter(e=>{ const d=new Date(e.clicked_at); const t=new Date(); return d.toDateString()===t.toDateString(); }).reduce((s,e)=>s+e.amount,0);
   const sidebarBalance = Number(profile.balance ?? 0);
@@ -1324,6 +1325,15 @@ export default function Dashboard() {
                       </div>
                     )}
 
+                    {/* Insufficient balance - show deposit button */}
+                    {selectedPlan.price > 0 && planPayMethod==='wallet' && profile.balance < selectedPlan.price && (
+                      <div style={{background:'#451a03',border:'1.5px solid #f59e0b',borderRadius:12,padding:'18px 20px',marginBottom:16}}>
+                        <p style={{color:'#fbbf24',fontSize:14,fontWeight:700,margin:'0 0 10px'}}>⚠️ Insufficient Wallet Balance</p>
+                        <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 14px'}}>You need Rs. {(selectedPlan.price - profile.balance).toFixed(2)} more to purchase this plan.</p>
+                        <button type="button" onClick={()=>setTab('transfer')} style={{width:'100%',padding:'12px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>💳 Go to Deposit Section</button>
+                      </div>
+                    )}
+
                     {/* Easypaisa */}
                     {selectedPlan.price > 0 && planPayMethod==='easypaisa' && (
                       <>
@@ -1389,7 +1399,7 @@ export default function Dashboard() {
                     <button className="sgc-btn-primary" onClick={async()=>{
                       try{
                         if(selectedPlan.price > 0 && planPayMethod==='wallet' && profile.balance < selectedPlan.price){
-                          notify('Insufficient balance','error'); return;
+                          notify('Insufficient balance. Please deposit first.','error'); return;
                         }
                         if(selectedPlan.price > 0 && planPayMethod!=='wallet' && !planScreenshot){
                           notify('Please upload payment screenshot','error'); return;
@@ -1752,6 +1762,14 @@ export default function Dashboard() {
                           </div>
                         ))}
                       </div>
+                      {adPayMethod==='wallet' && profile.balance < totalCost && (
+                        <div style={{background:'#451a03',border:'1.5px solid #f59e0b',borderRadius:12,padding:'18px 20px',marginBottom:16}}>
+                          <p style={{color:'#fbbf24',fontSize:14,fontWeight:700,margin:'0 0 10px'}}>⚠️ Insufficient Wallet Balance</p>
+                          <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 14px'}}>You need Rs. {(totalCost - profile.balance).toFixed(2)} more to advertise.</p>
+                          <button type="button" onClick={()=>setTab('transfer')} style={{width:'100%',padding:'12px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>💳 Go to Deposit Section</button>
+                        </div>
+                      )}
+
                       {(adPayMethod==='easypaisa'||adPayMethod==='jazzcash') && (
                         <>
                           {epAccounts.filter(a=>a.method_type===adPayMethod).slice(0,1).map(a=>(
@@ -1780,6 +1798,12 @@ export default function Dashboard() {
                           </label>
                         </>
                       )}
+                      {adPayMethod==='wallet' && profile.balance >= totalCost && (
+                        <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:10,padding:'14px 18px',marginBottom:16}}>
+                          <p style={{color:'#4ade80',fontSize:13,fontWeight:600,margin:0}}>✓ Rs. {totalCost} will be deducted from your wallet automatically.</p>
+                        </div>
+                      )}
+
                       {adPayMethod==='bank' && (
                         <>
                           {epAccounts.filter(a=>a.method_type==='bank').slice(0,1).map(a=>(
@@ -1825,7 +1849,7 @@ export default function Dashboard() {
                           <input className="sgc-input" value={adForm.transaction_id||''} onChange={e=>setAdForm({...adForm,transaction_id:e.target.value})} required/>
                         </div>
                       )}
-                      <button className="sgc-btn-primary" type="submit">📢 Submit Ad Request</button>
+                      <button className="sgc-btn-primary" type="submit" disabled={adPayMethod==='wallet' && profile.balance < totalCost} style={{opacity:adPayMethod==='wallet' && profile.balance < totalCost?0.5:1}}>📢 Submit Ad Request</button>
                     </form>
                   </div>
 
