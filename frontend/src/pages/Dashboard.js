@@ -1422,65 +1422,73 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {/* Easypaisa */}
-                    {selectedPlan.price > 0 && planPayMethod==='easypaisa' && (
+                    {/* Manual Payment Methods (Easypaisa, JazzCash, Bank) */}
+                    {selectedPlan.price > 0 && planPayMethod !== 'wallet' && (
                       <>
-                        {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').slice(0,1).map(a=>(
-                          <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                            <p style={{color:'#3cb559',fontSize:11,fontWeight:700,margin:'0 0 10px',letterSpacing:.5}}>📱 SEND PAYMENT TO THIS ACCOUNT</p>
-                            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                              <div style={{width:36,height:36,borderRadius:8,background:'#3cb559',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📱</div>
-                              <div>
-                                <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>{a.account_title}</p>
-                                <p style={{color:'var(--dim)',fontSize:11,margin:0}}>Account Name</p>
+                        {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).slice(0,1).map(a=>{
+                          const isEP=(a.method_type||'easypaisa')==='easypaisa';
+                          const isBank=a.method_type==='bank';
+                          const col=isEP?'#22c55e':isBank?'#3b82f6':'#ef4444';
+                          const bg=isEP?'linear-gradient(135deg,#dcfce7,#86efac)':isBank?'linear-gradient(135deg,#dbeafe,#60a5fa)':'linear-gradient(135deg,#fee2e2,#f87171)';
+                          const methodLabel=isEP?'EASYPAISA':isBank?'BANK TRANSFER':'JAZZCASH';
+                          return (
+                            <div key={a.id} style={{background:bg,border:`2px solid ${col}`,borderRadius:16,padding:'20px 22px',minHeight:210,boxShadow:`0 10px 24px ${col}26`,color:'#0f172a',marginBottom:20}}>
+                              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                                <div style={{width:46,height:46,borderRadius:12,background:'#0f172a',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,flexShrink:0}}>
+                                  {isEP?'EP':isBank?'BK':'JC'}
+                                </div>
+                                <div>
+                                  <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:'0 0 3px',letterSpacing:.6}}>{methodLabel}</p>
+                                  <p style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)',fontWeight:900,fontSize:18,margin:0}}>{a.account_title}</p>
+                                </div>
+                              </div>
+                              <div style={{background:'rgba(15,23,42,.9)',borderRadius:12,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                                <div>
+                                  <p style={{color:'#cbd5e1',fontSize:10,margin:'0 0 3px',fontWeight:700}}>Account Number</p>
+                                  <p style={{color:'#facc15',fontFamily:'monospace',fontSize:17,fontWeight:900,letterSpacing:1,margin:0,wordBreak:'break-all'}}>{a.account_number}</p>
+                                </div>
+                                <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#facc15',border:'none',color:'#111827',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,fontWeight:900,fontFamily:'var(--font)'}}>Copy</button>
+                              </div>
+                              {isBank&&(
+                                <div style={{marginTop:10,color:'#0f172a',fontSize:13,lineHeight:1.7,fontWeight:700}}>
+                                  <div>Bank: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.bank_name||'Bank Transfer'}</b></div>
+                                  <div>Account title: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.account_title}</b></div>
+                                </div>
+                              )}
+                              {a.deposit_message && (
+                                <div style={{marginTop:12,background:'rgba(255,255,255,.72)',border:'1px solid rgba(15,23,42,.15)',borderRadius:10,padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                                  <span style={{fontSize:15,flexShrink:0}}>💬</span>
+                                  <p style={{color:'#0f172a',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap',fontWeight:700}}>{a.deposit_message}</p>
+                                </div>
+                              )}
+                              <div style={{marginTop:16,paddingTop:12,borderTop:`2px dashed ${col}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:0}}>AMOUNT TO SEND:</p>
+                                <p style={{color:'#e11d48',fontSize:19,fontWeight:900,margin:0}}>Rs. {selectedPlan.price}</p>
                               </div>
                             </div>
-                            <div style={{background:'#0b1a30',borderRadius:8,padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                              <div>
-                                <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px'}}>Account Number</p>
-                                <p style={{color:'#3cb559',fontFamily:'monospace',fontSize:16,fontWeight:800,letterSpacing:1,margin:0}}>{a.account_number}</p>
-                              </div>
-                              <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'#3cb55922',border:'1px solid #3cb559',color:'#3cb559',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>
-                            </div>
-                            <p style={{color:'var(--yellow)',fontSize:13,fontWeight:700,margin:0}}>Send exactly: Rs. {selectedPlan.price}</p>
-                          </div>
-                        ))}
-                        {epAccounts.filter(a=>(a.method_type||'easypaisa')==='easypaisa').length===0&&(
+                          );
+                        })}
+                        
+                        {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).length===0 && (
                           <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
-                            <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No Easypaisa account available. Use wallet or contact support.</p>
+                            <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No active {planPayMethod} account available. Please select another method.</p>
                           </div>
                         )}
-                        <label className="sgc-label">Your Name (Account Holder)</label>
-                        <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)}/>
-                        <label className="sgc-label">Your Easypaisa Number</label>
-                        <input className="sgc-input" type="tel" placeholder="03XX-XXXXXXX" value={planSenderPhone} onChange={e=>setPlanSenderPhone(e.target.value)}/>
+
+                        <label className="sgc-label">Your Name (Sender)</label>
+                        <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)} required/>
+                        
+                        <label className="sgc-label">Transaction ID / Sender Number</label>
+                        <input className="sgc-input" type="text" placeholder="Enter TRX ID or Sender Phone" value={planTransactionId || planSenderPhone} onChange={e=>{
+                          setPlanTransactionId(e.target.value);
+                          setPlanSenderPhone(e.target.value);
+                        }} required/>
+                        
                         <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
                         <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
                           <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setPlanScreenshot(e.target.files[0])}/>
                           {planScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {planScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
                         </label>
-                      </>
-                    )}
-
-                    {selectedPlan.price > 0 && ['jazzcash','bank'].includes(planPayMethod) && (
-                      <>
-                        {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).slice(0,1).map(a=>(
-                          <div key={a.id} style={{background:'var(--card)',border:'1px solid var(--accent)',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                            <p style={{color:'var(--accent)',fontSize:11,fontWeight:700,margin:'0 0 10px'}}>SEND PAYMENT TO {planPayMethod==='bank'?'BANK TRANSFER':planPayMethod.toUpperCase()}</p>
-                            {planPayMethod==='bank' && <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 5px'}}>Bank: {a.bank_name||'-'}</p>}
-                            <p style={{color:'var(--text)',fontWeight:700,margin:'0 0 5px'}}>{a.account_title}</p>
-                            <p style={{color:'var(--accent)',fontFamily:'monospace',fontWeight:800,margin:'0 0 8px'}}>{a.account_number}</p>
-                            {a.deposit_message && <p style={{color:'var(--dim)',fontSize:12,margin:0,whiteSpace:'pre-wrap'}}>{a.deposit_message}</p>}
-                            <p style={{color:'var(--yellow)',fontSize:13,fontWeight:700,margin:'10px 0 0'}}>Send exactly: Rs. {selectedPlan.price}</p>
-                          </div>
-                        ))}
-                        {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).length===0 && <p style={{color:'var(--red)',fontSize:12}}>No active {planPayMethod} account is available.</p>}
-                        <label className="sgc-label">Your Name (Sender)</label>
-                        <input className="sgc-input" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)} required/>
-                        <label className="sgc-label">Transaction ID / Sender Number</label>
-                        <input className="sgc-input" value={planTransactionId} onChange={e=>setPlanTransactionId(e.target.value)} required/>
-                        <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
-                        <input className="sgc-input" type="file" accept="image/*" onChange={e=>setPlanScreenshot(e.target.files[0])}/>
                       </>
                     )}
 
