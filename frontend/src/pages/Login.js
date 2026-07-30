@@ -11,6 +11,25 @@ export default function Login() {
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
+  // ── Back button: login -> home -> exit ──
+  useEffect(()=>{
+    const pushState = () => window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+    if(window.history.state?.sgcBack !== 'intercepted'){
+      pushState();
+    }
+    
+    const onBack = (e) => {
+      e.preventDefault();
+      // If on login page, go to home/landing
+      navigate('/');
+      // Push state to intercept next back (which will exit)
+      setTimeout(pushState, 0);
+    };
+    
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  },[navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');

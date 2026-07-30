@@ -355,17 +355,43 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
-  // ── Back button: sidebar -> dashboard -> login ──
+  // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
   useEffect(()=>{
-    if(window.innerWidth > 768) return undefined;
-    const push = () => window.history.pushState(null,'',window.location.href);
-    push();
-    const onBack = () => {
-      push();
-      if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); return; }
-      if(tab !== 'dashboard'){ setTab('dashboard'); return; }
-      logout();
+    const pushState = () => window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+    // Push initial state if not already present
+    if(window.history.state?.sgcBack !== 'intercepted'){
+      pushState();
+    }
+    
+    const onBack = (e) => {
+      // If sidebar is open, close it and stay on dashboard
+      if(sidebarOpen){
+        e.preventDefault();
+        setSidebarOpen(false);
+        setSidebarCollapsed(true);
+        // Push new state to intercept next back press
+        setTimeout(pushState, 0);
+        return;
+      }
+      
+      // If not on dashboard tab, go to dashboard
+      if(tab !== 'dashboard'){
+        e.preventDefault();
+        setTab('dashboard');
+        setTimeout(pushState, 0);
+        return;
+      }
+      
+      // If on dashboard, logout and go to login
+      if(tab === 'dashboard'){
+        e.preventDefault();
+        logout();
+        // After logout, the navigation to /login will happen
+        // The Login page will push its own state
+        return;
+      }
     };
+    
     window.addEventListener('popstate', onBack);
     return () => window.removeEventListener('popstate', onBack);
   },[sidebarOpen, tab, logout]);

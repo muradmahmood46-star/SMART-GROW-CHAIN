@@ -7,6 +7,23 @@ export default function Landing() {
   const [plans, setPlans] = useState([]);
   const [showCookieNotice, setShowCookieNotice] = useState(false);
 
+  // ── Back button: home -> exit ──
+  useEffect(()=>{
+    const pushState = () => window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+    if(window.history.state?.sgcBack !== 'intercepted'){
+      pushState();
+    }
+    
+    const onBack = (e) => {
+      e.preventDefault();
+      // Allow exit - go back in history without pushing new state
+      window.history.back();
+    };
+    
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  },[]);
+
   useEffect(() => {
     API.get('/user/plans').then(r => setPlans(r.data)).catch(() => {});
   }, []);

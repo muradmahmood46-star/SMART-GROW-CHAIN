@@ -220,6 +220,40 @@ export default function AdminPanel() {
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
   const backToLogin=()=>navigate('/login');
 
+  // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
+  useEffect(()=>{
+    const pushState = () => window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+    if(window.history.state?.sgcBack !== 'intercepted'){
+      pushState();
+    }
+    
+    const onBack = (e) => {
+      if(sidebarOpen){
+        e.preventDefault();
+        setSidebarOpen(false);
+        setSidebarCollapsed(true);
+        setTimeout(pushState, 0);
+        return;
+      }
+      
+      if(tab !== 'dashboard'){
+        e.preventDefault();
+        setTab('dashboard');
+        setTimeout(pushState, 0);
+        return;
+      }
+      
+      if(tab === 'dashboard'){
+        e.preventDefault();
+        logout();
+        return;
+      }
+    };
+    
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  },[sidebarOpen, tab, logout]);
+
   const pendingW = withdrawals.filter(w=>w.status==='pending').length;
   const pendingD = deposits.filter(d=>d.status==='pending').length;
   const openT    = tickets.filter(t=>t.status==='open').length;
