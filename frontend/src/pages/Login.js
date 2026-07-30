@@ -30,7 +30,7 @@ export default function Login() {
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('is_admin', String(res.data.is_admin));
         localStorage.setItem('username', res.data.username);
-        navigate(res.data.is_admin ? '/admin' : '/dashboard', { replace: true });
+        navigate(res.data.is_admin ? '/admin' : '/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid username or password');
@@ -45,7 +45,7 @@ export default function Login() {
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
-      navigate(res.data.is_admin ? '/admin' : '/dashboard', { replace: true });
+      navigate(res.data.is_admin ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid 2FA code');
     } finally { setLoading(false); }
