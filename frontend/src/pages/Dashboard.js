@@ -450,27 +450,30 @@ export default function Dashboard() {
 
   // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
   useEffect(()=>{
-    // Push initial state if not already present
     if(!window.history.state || window.history.state.sgcBack !== 'intercepted'){
-      window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+      window.history.replaceState({sgcBack:'intercepted'},'',window.location.href);
     }
     
     const onBack = (e) => {
-      // If sidebar is open, close it and stay on dashboard
       if(sidebarOpen){
         setSidebarOpen(false);
         setSidebarCollapsed(true);
-        // Push new state to intercept next back press
         window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
         return;
       }
-      // Always logout and go to login if sidebar is closed
+      
+      if (tab !== 'dashboard') {
+        setTab('dashboard');
+        window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
+        return;
+      }
+      
       logout();
     };
     
     window.addEventListener('popstate', onBack);
     return () => window.removeEventListener('popstate', onBack);
-  },[sidebarOpen, tab]);
+  },[sidebarOpen, tab, logout]);
 
 
   const loadRefLevel = async (lvl) => {
@@ -543,7 +546,7 @@ export default function Dashboard() {
         <div className="sgc-topbar">
           <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
             <button className="hamburger" onClick={()=>{if(window.innerWidth<=768){setSidebarOpen(true);}setSidebarCollapsed(false);}}>☰</button>
-            <button className="sgc-topbar-login-back" onClick={()=>{ if(sidebarOpen){ setSidebarOpen(false); } else { logout(); } }} aria-label="Go back" title="Go back">←</button>
+            <button className="sgc-topbar-login-back" onClick={()=>{ if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); } else if(tab !== 'dashboard') { setTab('dashboard'); } else { logout(); } }} aria-label="Go back" title="Go back">←</button>
           </div>
           <span className="sgc-topbar-title">🌱 Smart Grow Chain</span>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -702,8 +705,8 @@ export default function Dashboard() {
                       {icon} {label}
                     </button>
                   ))}
-                  <button className="sgc-bottom-action" onClick={()=>setTab('kyc')} style={{padding:'10px 18px',background:kycData?.kyc_status==='approved'?'#064e3b':'#450a0a',border:`1px solid ${kycData?.kyc_status==='approved'?'#22c55e':'#ef4444'}`,borderRadius:10,color:kycData?.kyc_status==='approved'?'#4ade80':'#fca5a5',cursor:'pointer',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
-                    {kycData?.kyc_status==='approved'?'KYC Verified':'Unverified Account'}
+                  <button className="sgc-bottom-action" onClick={()=>setTab('kyc')} style={{padding:'10px 18px',background:kycData?.kyc_status==='approved'?'#16a34a':'#dc2626',border:'none',borderRadius:10,color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
+                    {kycData?.kyc_status==='approved'?'✅ Verified':'❌ KYC Verification Needed'}
                   </button>
                 </div>
 
