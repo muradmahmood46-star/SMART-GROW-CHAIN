@@ -159,6 +159,7 @@ export default function Dashboard() {
   const [planTransactionId, setPlanTransactionId] = useState('');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [myPlanPurchases, setMyPlanPurchases] = useState([]);
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const [tab, setTab]                 = useState(() => { try { return sessionStorage.getItem('sgc_active_ad') ? 'ads' : 'dashboard'; } catch { return 'dashboard'; } });
   const [activeAd, setActiveAd]       = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
   const [countdown, setCountdown]     = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
@@ -1477,28 +1478,43 @@ export default function Dashboard() {
                       </>
                     )}
 
-                    <button className="sgc-btn-primary" onClick={async()=>{
-                      try{
-                        if(selectedPlan.price > 0 && planPayMethod==='wallet' && profile.balance < selectedPlan.price){
-                          notify('Insufficient balance. Please deposit first.','error'); return;
+                    {selectedPlan.price > 0 && planPayMethod === 'wallet' && profile?.balance < selectedPlan.price ? (
+                      <div style={{background:'#450a0a', border:'1px solid #ef4444', borderRadius:10, padding:16, textAlign:'center'}}>
+                        <p style={{color:'#fca5a5', margin:'0 0 12px', fontWeight:600}}>Insufficient balance. Please deposit first.</p>
+                        <button type="button" className="sgc-btn-secondary" style={{background:'#ef4444', color:'#fff', border:'none'}} onClick={()=>setTab('deposit')}>Go to Deposit</button>
+                      </div>
+                    ) : (
+                      <button className="sgc-btn-primary" disabled={isPurchasing} onClick={async()=>{
+                        if(isPurchasing) return;
+                        setIsPurchasing(true);
+                        try{
+                          if(selectedPlan.price > 0 && planPayMethod!=='wallet' && !planScreenshot){
+                            notify('Please upload payment screenshot','error');
+                            setIsPurchasing(false);
+                            return;
+                          }
+                          const fd=new FormData();
+                          fd.append('plan_id', selectedPlan.id);
+                          fd.append('payment_method', selectedPlan.price===0 ? 'wallet' : planPayMethod);
+                          fd.append('sender_name', planSenderName);
+                          fd.append('sender_phone', planSenderPhone);
+                          fd.append('sender_phone', planTransactionId || planSenderPhone);
+                          if(selectedPlan.price > 0 && planPayMethod!=='wallet' && planScreenshot) fd.append('screenshot', planScreenshot);
+                          await API.post('/user/plan/purchase', fd, {headers:{'Content-Type':'multipart/form-data'}});
+                          notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : planPayMethod==='wallet' ? 'Plan activated successfully! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
+                          setSelectedPlan(null);
+                          API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data));
+                          API.get('/user/profile').then(r=>setProfile(r.data));
+                        }catch(err){ 
+                          if(err.response?.data?.detail && String(err.response.data.detail).includes('insufficient_balance')){
+                            notify('Insufficient balance. Please deposit first.','error');
+                          } else {
+                            notify(err.response?.data?.detail||'Error','error');
+                          }
                         }
-                        if(selectedPlan.price > 0 && planPayMethod!=='wallet' && !planScreenshot){
-                          notify('Please upload payment screenshot','error'); return;
-                        }
-                        const fd=new FormData();
-                        fd.append('plan_id', selectedPlan.id);
-                        fd.append('payment_method', selectedPlan.price===0 ? 'wallet' : planPayMethod);
-                        fd.append('sender_name', planSenderName);
-                        fd.append('sender_phone', planSenderPhone);
-                        fd.append('sender_phone', planTransactionId || planSenderPhone);
-                        if(selectedPlan.price > 0 && planPayMethod!=='wallet' && planScreenshot) fd.append('screenshot', planScreenshot);
-                        await API.post('/user/plan/purchase', fd, {headers:{'Content-Type':'multipart/form-data'}});
-                        notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : planPayMethod==='wallet' ? 'Plan activated successfully! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
-                        setSelectedPlan(null);
-                        API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data));
-                        API.get('/user/profile').then(r=>setProfile(r.data));
-                      }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-                    }}>{selectedPlan.price===0 ? '✔ Activate Free Plan' : '📤 Submit Purchase Request'}</button>
+                        setIsPurchasing(false);
+                      }}>{isPurchasing ? 'Processing...' : (selectedPlan.price===0 ? '✔ Activate Free Plan' : '📤 Submit Purchase Request')}</button>
+                    )}
                   </div>
                 )}
 
