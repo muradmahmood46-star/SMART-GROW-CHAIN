@@ -703,7 +703,7 @@ export default function Dashboard() {
                     </button>
                   ))}
                   <button className="sgc-bottom-action" onClick={()=>setTab('kyc')} style={{padding:'10px 18px',background:kycData?.kyc_status==='approved'?'#064e3b':'#450a0a',border:`1px solid ${kycData?.kyc_status==='approved'?'#22c55e':'#ef4444'}`,borderRadius:10,color:kycData?.kyc_status==='approved'?'#4ade80':'#fca5a5',cursor:'pointer',fontSize:13,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
-                    {kycData?.kyc_status==='approved'?'✓ Verified Account':'⚠ Unverified Account'}
+                    {kycData?.kyc_status==='approved'?'KYC Verified':'Unverified Account'}
                   </button>
                 </div>
 
