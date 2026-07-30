@@ -45,10 +45,11 @@ function AppContent() {
         return false;
       }
 
-      // Agar dashboard ya admin par hai to landing page par le jao (logout)
+      // Agar dashboard ya admin par hai to login page par le jao
       if (currentPath === '/dashboard' || currentPath === '/admin') {
-        // Allow back navigation to landing
-        return true;
+        e.preventDefault();
+        navigate('/login', { replace: true });
+        return false;
       }
     };
 
