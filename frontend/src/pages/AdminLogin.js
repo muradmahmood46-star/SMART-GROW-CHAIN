@@ -18,7 +18,7 @@ export default function AdminLogin() {
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
-      navigate('/admin');
+      navigate('/admin', { replace: true });
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed');
     }

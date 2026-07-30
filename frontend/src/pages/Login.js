@@ -12,24 +12,6 @@ export default function Login() {
   const navigate = useNavigate();
 
   // ── Back button: login -> home -> exit ──
-  useEffect(()=>{
-    const pushState = () => window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
-    if(window.history.state?.sgcBack !== 'intercepted'){
-      pushState();
-    }
-    
-    const onBack = (e) => {
-      e.preventDefault();
-      // If on login page, go to home/landing
-      navigate('/');
-      // Push state to intercept next back (which will exit)
-      setTimeout(pushState, 0);
-    };
-    
-    window.addEventListener('popstate', onBack);
-    return () => window.removeEventListener('popstate', onBack);
-  },[navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
@@ -41,7 +23,7 @@ export default function Login() {
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('is_admin', String(res.data.is_admin));
         localStorage.setItem('username', res.data.username);
-        navigate(res.data.is_admin ? '/admin' : '/dashboard');
+        navigate(res.data.is_admin ? '/admin' : '/dashboard', { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid username or password');
@@ -56,7 +38,7 @@ export default function Login() {
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
-      navigate(res.data.is_admin ? '/admin' : '/dashboard');
+      navigate(res.data.is_admin ? '/admin' : '/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid 2FA code');
     } finally { setLoading(false); }

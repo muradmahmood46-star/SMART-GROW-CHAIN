@@ -7,12 +7,12 @@ import Dashboard from './pages/Dashboard';
 import AdminPanel from './pages/AdminPanel';
 
 function PrivateRoute({ children }) {
-  return localStorage.getItem('token') ? children : <Navigate to="/" />;
+  return localStorage.getItem('token') ? children : <Navigate to="/" replace />;
 }
 
 function AdminRoute({ children }) {
   return localStorage.getItem('token') && localStorage.getItem('is_admin') === 'true'
-    ? children : <Navigate to="/login" />;
+    ? children : <Navigate to="/login" replace />;
 }
 
 function HomeRoute() {
@@ -29,8 +29,8 @@ export default function App() {
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
         {/* Redirect old routes */}
-        <Route path="/user/login" element={<Navigate to="/" />} />
-        <Route path="/admin/login" element={<Navigate to="/login" />} />
+        <Route path="/user/login" element={<Navigate to="/" replace />} />
+        <Route path="/admin/login" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

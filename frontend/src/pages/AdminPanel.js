@@ -217,34 +217,30 @@ export default function AdminPanel() {
 
   const saveEditEmail   = async()=>{ try{ await API.put(`/admin/emails/${editEmail.id}`,{email:editEmailVal}); loadAll(); notify('Email updated'); setEditEmail(null); } catch(err){ notify(err.response?.data?.detail||'Error','error'); } };
 
-  const logout=()=>{ localStorage.clear(); navigate('/login'); };
+  const logout=()=>{ localStorage.clear(); navigate('/login', { replace: true }); };
   const backToLogin=()=>navigate('/login');
 
   // ── Back button: sidebar -> dashboard -> login -> home -> exit ──
   useEffect(()=>{
-    const pushState = () => window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
-    if(window.history.state?.sgcBack !== 'intercepted'){
-      pushState();
+    if(!window.history.state || window.history.state.sgcBack !== 'intercepted'){
+      window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
     }
     
     const onBack = (e) => {
       if(sidebarOpen){
-        e.preventDefault();
         setSidebarOpen(false);
         setSidebarCollapsed(true);
-        setTimeout(pushState, 0);
+        window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
         return;
       }
       
       if(tab !== 'dashboard'){
-        e.preventDefault();
         setTab('dashboard');
-        setTimeout(pushState, 0);
+        window.history.pushState({sgcBack:'intercepted'},'',window.location.href);
         return;
       }
       
       if(tab === 'dashboard'){
-        e.preventDefault();
         logout();
         return;
       }
@@ -252,7 +248,7 @@ export default function AdminPanel() {
     
     window.addEventListener('popstate', onBack);
     return () => window.removeEventListener('popstate', onBack);
-  },[sidebarOpen, tab, logout]);
+  },[sidebarOpen, tab]);
 
   const pendingW = withdrawals.filter(w=>w.status==='pending').length;
   const pendingD = deposits.filter(d=>d.status==='pending').length;

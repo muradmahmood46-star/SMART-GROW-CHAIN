@@ -12,13 +12,6 @@ export default function UserLogin() {
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  useEffect(()=>{
-    window.history.pushState(null, '', window.location.href);
-    const onBack = () => { navigate('/'); };
-    window.addEventListener('popstate', onBack);
-    return ()=>window.removeEventListener('popstate', onBack);
-  },[navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true); setError('');
@@ -31,7 +24,7 @@ export default function UserLogin() {
         localStorage.setItem('token', res.data.access_token);
         localStorage.setItem('is_admin', res.data.is_admin);
         localStorage.setItem('username', res.data.username);
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed');
@@ -46,7 +39,7 @@ export default function UserLogin() {
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid OTP code');
     } finally { setLoading(false); }
