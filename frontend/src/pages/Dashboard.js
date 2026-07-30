@@ -355,6 +355,21 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); navigate('/login'); };
 
+  // ── Back button: sidebar -> dashboard -> login ──
+  useEffect(()=>{
+    if(window.innerWidth > 768) return undefined;
+    const push = () => window.history.pushState(null,'',window.location.href);
+    push();
+    const onBack = () => {
+      push();
+      if(sidebarOpen){ setSidebarOpen(false); setSidebarCollapsed(true); return; }
+      if(tab !== 'dashboard'){ setTab('dashboard'); return; }
+      logout();
+    };
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  },[sidebarOpen, tab, logout]);
+
 
   const loadRefLevel = async (lvl) => {
     setSelectedRefLevel(lvl);
