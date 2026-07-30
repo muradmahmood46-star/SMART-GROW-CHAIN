@@ -195,7 +195,7 @@ export default function Dashboard() {
       setActiveAd(JSON.parse(storedAd));
       setCountdown(parseInt(storedCountdown) || 0);
       // Replace the current history entry to avoid looping back to the external ad
-      history.replaceState({ adReturned: true }, '', location.href);
+      window.history.replaceState({ adReturned: true }, '', window.location.href);
     }
   }, []);
 
