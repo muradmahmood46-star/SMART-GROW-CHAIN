@@ -96,7 +96,7 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
 @router.post("/click/start/{ad_id}")
 def start_click(ad_id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not has_active_plan(current_user):
-        raise HTTPException(status_code=403, detail="Please activate a plan first to view ads")
+        raise HTTPException(status_code=403, detail="Please activate a plan first.")
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
@@ -122,7 +122,7 @@ def start_click(ad_id: int, request: Request, current_user: User = Depends(get_c
 @router.post("/click/complete/{ad_id}")
 def complete_click(ad_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not has_active_plan(current_user):
-        raise HTTPException(status_code=403, detail="Your plan has expired. Please activate a plan first")
+        raise HTTPException(status_code=403, detail="Please activate a plan first.")
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")

@@ -750,7 +750,7 @@ export default function Dashboard() {
                   <div style={{background:'linear-gradient(135deg,#450a0a,#7f1d1d)',border:'1px solid #ef4444',borderRadius:16,padding:'32px 24px',textAlign:'center',maxWidth:480,margin:'0 auto'}}>
                     <div style={{fontSize:52,marginBottom:12}}>📺</div>
                     <h3 style={{color:'#fca5a5',fontSize:18,fontWeight:800,margin:'0 0 8px'}}>Plan Required</h3>
-                    <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 20px',lineHeight:1.7}}>Please activate a membership plan first to view and earn from ads.</p>
+                    <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 20px',lineHeight:1.7}}>Please activate a plan first.</p>
                     <button onClick={()=>setTab('plans')} style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#fff',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>🏆 Activate Plan Now</button>
                   </div>
                 )}
