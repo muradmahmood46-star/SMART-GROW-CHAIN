@@ -454,7 +454,16 @@ def get_fund_transfers(db: Session = Depends(get_db), admin=Depends(get_admin_us
     for t in transfers:
         sender = db.query(User).filter(User.id == t.sender_id).first()
         receiver = db.query(User).filter(User.id == t.receiver_id).first()
-        result.append({"id": t.id, "sender": sender.username if sender else "?", "receiver": receiver.username if receiver else "?", "amount": t.amount, "note": t.note, "created_at": t.created_at})
+        result.append({
+            "id": t.id, 
+            "sender": sender.username if sender else "?", 
+            "sender_email": sender.email if sender else "?",
+            "receiver": receiver.username if receiver else "?", 
+            "receiver_email": receiver.email if receiver else "?",
+            "amount": t.amount, 
+            "note": t.note, 
+            "created_at": t.created_at
+        })
     return result
 
 
