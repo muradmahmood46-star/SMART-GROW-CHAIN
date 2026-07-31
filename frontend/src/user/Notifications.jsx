@@ -1,7 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { readAllNotifications, readNotification } from '../services/user/actionService';
 
 export default function Notifications({ notifications, notify, loadData }) {
+  useEffect(() => {
+    const unread = notifications.filter(n => !n.is_read);
+    if (unread.length > 0) {
+      readAllNotifications().then(() => {
+        if (loadData) loadData();
+      }).catch(console.error);
+    }
+  }, [notifications, loadData]);
+
   return (
     <div>
       <div className="sgc-page-header">

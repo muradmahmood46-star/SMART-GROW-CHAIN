@@ -4,7 +4,7 @@ import API from '../api';
 import { useNavigate } from 'react-router-dom';
 import useBackNavigation from '../services/hooks/useBackNavigation';
 import { parseUTCDate } from '../utils/dateUtils';
-import { readNotification } from '../services/user/actionService';
+import { readNotification, readAllNotifications } from '../services/user/actionService';
 import HeroSlider from '../user/HeroSlider';
 import UserSidebar from '../user/UserSidebar';
 import DashboardHome from '../user/DashboardHome';
@@ -170,7 +170,13 @@ export default function Dashboard() {
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
             <div className="sgc-topbar-avatar">{profile.username[0].toUpperCase()}</div>
             <div style={{position:'relative'}}>
-              <button className={`sgc-notification-bell ${notifications.filter(n=>!n.is_read).length>0?'has-unread':''}`} onClick={()=>setShowNotifDropdown(v=>!v)} aria-label="Open notifications"
+              <button className={`sgc-notification-bell ${notifications.filter(n=>!n.is_read).length>0?'has-unread':''}`} onClick={async ()=>{ 
+                setShowNotifDropdown(v=>!v); 
+                if(!showNotifDropdown && notifications.some(n=>!n.is_read)) {
+                  await readAllNotifications();
+                  if(loadData) loadData();
+                }
+              }} aria-label="Open notifications"
                 style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:18,position:'relative'}}>
                 🔔
                 {notifications.filter(n=>!n.is_read).length>0 && (
