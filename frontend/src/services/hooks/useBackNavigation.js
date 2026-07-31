@@ -14,8 +14,8 @@ import { useCallback, useEffect, useRef } from 'react';
  * @param {Object} options
  * @param {string}   options.tab               - Current active tab
  * @param {Function} options.setTab            - Set active tab
- * @param {boolean}  options.sidebarOpen       - Whether sidebar is open
- * @param {Function} options.setSidebarOpen    - Open/close sidebar
+ * @param {boolean}  options.sidebarOpen       - Whether sidebar is open (mobile overlay)
+ * @param {Function} options.setSidebarOpen    - Open/close sidebar overlay
  * @param {Function} [options.setSidebarCollapsed] - Collapse/expand sidebar (optional)
  * @param {Function} options.navigate          - React Router navigate function
  * @returns {{ handleBack: Function }}
@@ -54,6 +54,13 @@ export default function useBackNavigation({
   navigateRef.current = navigate;
 
   /**
+   * Check if the current viewport is mobile width.
+   * On mobile, sidebarOpen controls the overlay behavior.
+   * On desktop, only sidebarCollapsed is used (sidebar is always in normal position).
+   */
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+
+  /**
    * Core back handler – called by all three back methods.
    * Uses refs internally so it always has the latest values.
    * @param {boolean} [fromPopstate=false] - true when called from popstate event
@@ -73,19 +80,32 @@ export default function useBackNavigation({
       const currentSetSidebarOpen = setSidebarOpenRef.current;
       const currentSetSidebarCollapsed = setSidebarCollapsedRef.current;
       const currentNavigate = navigateRef.current;
+      const mobile = window.innerWidth <= 768;
 
       if (currentSidebarOpen) {
-        // Sidebar → Dashboard
-        currentSetSidebarOpen(false);
-        if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
+        // Sidebar overlay is open → Dashboard
+        if (mobile) {
+          currentSetSidebarOpen(false);
+          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
+        } else {
+          // Desktop: just close the overlay (sidebar stays in normal position)
+          currentSetSidebarOpen(false);
+        }
         currentSetTab('dashboard');
         return;
       }
 
       if (currentIsInternal) {
         // Internal page → Sidebar opens
-        currentSetSidebarOpen(true);
-        if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+        if (mobile) {
+          // Mobile: show sidebar as overlay
+          currentSetSidebarOpen(true);
+          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+        } else {
+          // Desktop: sidebar is already in normal position, ensure it's visible
+          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+          // Do NOT set sidebarOpen(true) on desktop – that would trigger the overlay!
+        }
         return;
       }
 
