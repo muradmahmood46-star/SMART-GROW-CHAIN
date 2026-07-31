@@ -655,12 +655,6 @@ def kyc_status(current_user: User = Depends(get_current_user), db: Session = Dep
             expired = datetime.utcnow() > current_user.free_plan_expires_at
             delta = current_user.free_plan_expires_at - datetime.utcnow()
             days_left = max(0, delta.days)
-        else:
-            # set expiry if not set
-            expires = datetime.utcnow() + timedelta(days=free_days)
-            current_user.free_plan_expires_at = expires
-            db.commit()
-            days_left = free_days
     return {
         "kyc_status": current_user.kyc_status,
         "kyc": {"full_name": kyc.full_name, "phone": kyc.phone or kyc.cnic, "cnic": kyc.cnic, "status": kyc.status, "admin_note": kyc.admin_note, "created_at": kyc.created_at} if kyc else None,

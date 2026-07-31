@@ -58,7 +58,7 @@ export default function AdminDashboard({ setTab }) {
       {/* Quick Actions */}
       <h3 className="sgc-subheading" style={{marginBottom:12}}>Quick Actions</h3>
       <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:28}}>
-        {[['➕','Create Ad','create-ad'],['📥','Fund Requests','deposits'],['💸','Payout','withdrawals'],['🎫','Tickets','tickets'],['📱','Easypaisa','easypaisa']].map(([icon,label,key])=>(
+        {[['➕','Create Ad','create-ad'],['📥','Fund Requests','deposits'],['💸','Payout','withdrawals'],['🎫','Tickets','tickets'],['💵','Our Accounts','easypaisa']].map(([icon,label,key])=>(
           <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,transition:'all .2s'}}
             onMouseEnter={e=>e.currentTarget.style.borderColor='var(--yellow)'}
             onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
