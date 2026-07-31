@@ -492,8 +492,18 @@ export default function AdminPanel() {
         advertiserList={advertiserList} advertiserLoading={advertiserLoading}
         onNavigate={(key) => { if (key === 'advertiser-mgmt') loadAdvertisers(); }}
       />
-      <main className="sgc-main">
+      <main className={`sgc-main ${sidebarCollapsed?'sidebar-collapsed':''}`}>
         <div className="sgc-admin-topbar" style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',borderBottom:'1px solid var(--border)',marginBottom:8,flexShrink:0}}>
+          <button className="hamburger" onClick={()=>{
+            if(window.innerWidth<=768){
+              // Mobile: toggle sidebar overlay
+              setSidebarOpen(!sidebarOpen);
+              setSidebarCollapsed(false);
+            } else {
+              // Desktop: toggle sidebar visibility
+              setSidebarCollapsed(!sidebarCollapsed);
+            }
+          }}>☰</button>
           <button className="sgc-topbar-login-back" onClick={handleBack} aria-label="Go back" title="Go back" style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,color:'var(--text)'}}>←</button>
           <span style={{color:'var(--text)',fontWeight:700,fontSize:14,fontFamily:'var(--font)'}}>Admin Panel</span>
         </div>

@@ -279,6 +279,7 @@ body {
 /* PC: hide hamburger when sidebar is visible */
 @media (min-width:769px) {
   .panel-main:not(.sidebar-hidden) .hamburger { display:none; }
+  .sgc-main:not(.sidebar-collapsed) .hamburger { display:none; }
 }
 .sgc-dashboard-topback { display:none; }
 
@@ -299,7 +300,8 @@ body {
 
 /* ── Admin Panel Layout ── */
 .sgc-admin-wrap { display:flex; height:100vh; overflow:hidden; }
-.sgc-main { flex:1; margin-left:256px; overflow-y:auto; display:flex; flex-direction:column; }
+.sgc-main { flex:1; margin-left:256px; overflow-y:auto; display:flex; flex-direction:column; transition: margin-left .3s cubic-bezier(.4,0,.2,1); }
+.sgc-main.sidebar-collapsed { margin-left:0; }
 
 /* ── Overlay ── */
 .sgc-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.6); z-index:40; animation:fadeIn .2s ease; backdrop-filter:blur(2px); }
