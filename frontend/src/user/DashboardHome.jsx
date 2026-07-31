@@ -1,4 +1,5 @@
 import React from 'react';
+import HeroSlider from './HeroSlider';
 
 export default function DashboardHome({
   profile,
@@ -22,6 +23,9 @@ export default function DashboardHome({
 
   return (
     <div>
+      {/* Hero Banner Slider */}
+      <HeroSlider />
+
       {/* Free plan expiry warning */}
       {freePlanExpired && profile?.membership === 'free' && (
         <div style={{background:'linear-gradient(135deg,#450a0a,#7f1d1d)',border:'1px solid #ef4444',borderRadius:14,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12,boxShadow:'0 0 18px rgba(239,68,68,.18)'}}>
