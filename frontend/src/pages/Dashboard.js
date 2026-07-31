@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
+import useBackNavigation from '../services/hooks/useBackNavigation';
 import { parseUTCDate } from '../utils/dateUtils';
 import HeroSlider from '../user/HeroSlider';
 import UserSidebar from '../user/UserSidebar';
@@ -318,30 +319,15 @@ export default function Dashboard() {
 
   const logout=()=>{ localStorage.clear(); window.location.href = '/login'; };
 
-  const handleBack = useCallback(() => {
-    if (sidebarOpen) {
-      setSidebarOpen(false);
-      setSidebarCollapsed(true);
-      return;
-    }
-    if (tab !== 'dashboard') {
-      window.history.back();
-    } else {
-      navigate('/login');
-    }
-  }, [sidebarOpen, tab, navigate]);
-
-  useEffect(()=>{
-    const onPop = (e) => {
-      if(sidebarOpen){
-        setSidebarOpen(false);
-        setSidebarCollapsed(true);
-        return;
-      }
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  },[sidebarOpen]);
+  // ── Centralized Back Navigation (User Panel) ──
+  const { handleBack } = useBackNavigation({
+    tab,
+    setTab,
+    sidebarOpen,
+    setSidebarOpen,
+    setSidebarCollapsed,
+    navigate,
+  });
 
   const loadRefLevel = async (lvl) => {
     setSelectedRefLevel(lvl);

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useBackNavigation from '../services/hooks/useBackNavigation';
 import AdminSidebar from './AdminSidebar';
 import AdminDashboard from './Dashboard/AdminDashboard';
 import Users from './Users/Users';
@@ -22,9 +24,18 @@ import AdvertiserManagement from './AdvertiserManagement/AdvertiserManagement';
 import API from '../api';
 
 export default function AdminPanel() {
-  const [tab, setTab] = useState('dashboard');
+  const [tab, _setTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navigate = useNavigate();
+
+  const setTab = useCallback((newTab) => {
+    if (newTab === tab) return;
+    if (newTab !== 'dashboard') {
+      window.history.pushState({ sgcAdminTab: newTab }, '', window.location.href);
+    }
+    _setTab(newTab);
+  }, [tab]);
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
   const [ads, setAds] = useState([]);
@@ -143,6 +154,16 @@ export default function AdminPanel() {
   }, [adBudgetRate, regBonus, freePlanDays, minCampaignUsers, withdrawalMsg, advertiserMsg, adSectionMsg, dashboardMsg, referralMsg, transferMsg, whatsappLink]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  // ── Centralized Back Navigation (Admin Panel) ──
+  const { handleBack } = useBackNavigation({
+    tab,
+    setTab,
+    sidebarOpen,
+    setSidebarOpen,
+    setSidebarCollapsed,
+    navigate,
+  });
 
   useEffect(() => {
     let active = true;
@@ -472,6 +493,10 @@ export default function AdminPanel() {
         onNavigate={(key) => { if (key === 'advertiser-mgmt') loadAdvertisers(); }}
       />
       <main className="sgc-main">
+        <div className="sgc-admin-topbar" style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',borderBottom:'1px solid var(--border)',marginBottom:8,flexShrink:0}}>
+          <button className="sgc-topbar-login-back" onClick={handleBack} aria-label="Go back" title="Go back" style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,color:'var(--text)'}}>←</button>
+          <span style={{color:'var(--text)',fontWeight:700,fontSize:14,fontFamily:'var(--font)'}}>Admin Panel</span>
+        </div>
         {tab === 'dashboard'    && <AdminDashboard stats={stats} deposits={deposits} setTab={setTab} openT={openT} />}
         {tab === 'users'        && <Users users={users} toggleUser={toggleUser} setBalanceModal={setBalanceModalFn} />}
         {tab === 'ads'          && <Advertisements ads={ads} toggleAd={toggleAd} deleteAd={deleteAd} onCreateAd={()=>setTab('create-ad')} />}

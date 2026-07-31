@@ -10,24 +10,6 @@ function PrivateRoute({ children }) {
   return localStorage.getItem('token') ? children : <Navigate to="/" replace />;
 }
 
-// Global popstate handler: if user presses back on a dashboard internal page,
-// ensure they return to /dashboard rather than /login or /
-function useGlobalBackHandler() {
-  React.useEffect(() => {
-    const onPop = (e) => {
-      const path = window.location.pathname;
-      // If we're on a dashboard internal page and pressing back
-      if (path.startsWith('/dashboard') && path !== '/dashboard') {
-        // Let the history back happen naturally - it will go to /dashboard
-        // because setTab pushes /dashboard as the previous entry
-        return;
-      }
-    };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, []);
-}
-
 function AdminRoute({ children }) {
   return localStorage.getItem('token') && localStorage.getItem('is_admin') === 'true'
     ? children : <Navigate to="/login" replace />;
@@ -38,7 +20,6 @@ function HomeRoute() {
 }
 
 export default function App() {
-  useGlobalBackHandler();
   return (
     <BrowserRouter>
       <Routes>
