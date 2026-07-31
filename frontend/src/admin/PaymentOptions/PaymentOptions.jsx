@@ -1,19 +1,79 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function PaymentOptions({ easypaisa, newEP, setNewEP, toggleEP, deleteEP, showAddForm, setShowAddForm, addEP, showError }) {
-  if (showError) {
-    return (
-      <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:12,padding:'16px 20px',marginBottom:20,color:'#fca5a5',fontWeight:600}}>
-        ⚠️ Something went wrong. Please retry.
-      </div>
-    );
-  }
+export default function PaymentOptions({ notify }) {
+  const [easypaisa, setEasypaisa] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newEP, setNewEP] = useState({ id:null, account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'', bank_name:'' });
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await API.get('/admin/easypaisa');
+      setEasypaisa(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch payment options', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const addEP = async (e) => {
+    e.preventDefault();
+    try {
+      if (newEP.id) {
+        await API.put(`/admin/easypaisa/${newEP.id}`, newEP);
+        if (notify) notify('Account updated ✅');
+      } else {
+        await API.post('/admin/easypaisa', newEP);
+        if (notify) notify('Account added ✅');
+      }
+      setNewEP({ id:null, account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'', bank_name:'' });
+      setShowAddForm(false);
+      fetchAccounts();
+    } catch (err) {
+      if (notify) notify('Error saving account', 'error');
+    }
+  };
+
+  const toggleEP = async (id) => {
+    try {
+      await API.put(`/admin/easypaisa/${id}/toggle`);
+      fetchAccounts();
+      if (notify) notify('Account status updated');
+    } catch (err) {
+      if (notify) notify('Error toggling account', 'error');
+    }
+  };
+
+  const deleteEP = async (id) => {
+    if (!window.confirm('Delete this account?')) return;
+    try {
+      await API.delete(`/admin/easypaisa/${id}`);
+      fetchAccounts();
+      if (notify) notify('Account deleted');
+    } catch (err) {
+      if (notify) notify('Error deleting account', 'error');
+    }
+  };
+
+  const handleEdit = (a) => {
+    setNewEP(a);
+    setShowAddForm(true);
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading payment options...</div>;
 
   return (
     <div>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
         <h2 className="sgc-heading" style={{margin:0}}>📱 Payment Options</h2>
-        <button className="sgc-btn-sm" style={{background:'var(--yellow)',color:'var(--bg)',padding:'8px 16px',fontWeight:700}} onClick={()=>setShowAddForm(s=>!s)}>
+        <button className="sgc-btn-sm" style={{background:'var(--yellow)',color:'var(--bg)',padding:'8px 16px',fontWeight:700}} onClick={()=>{setShowAddForm(s=>!s); if(showAddForm) setNewEP({id:null, account_title:'', account_number:'', method_type:'easypaisa', deposit_message:'', bank_name:''});}}>
           {showAddForm?'Cancel':'+ Add Payment Method'}
         </button>
       </div>
@@ -34,7 +94,7 @@ export default function PaymentOptions({ easypaisa, newEP, setNewEP, toggleEP, d
           <textarea className="sgc-input" rows={3} placeholder="e.g. Send payment and submit the screenshot below. Make sure sender name matches." value={newEP.deposit_message} onChange={e=>setNewEP({...newEP,deposit_message:e.target.value})} style={{resize:'vertical',minHeight:80}}/>
           <div style={{display:'flex',gap:10}}>
             <button className="sgc-btn-yellow" type="submit" style={{flex:1}}>{newEP.id?'Update Account':'Add Account'}</button>
-            {newEP.id&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setNewEP({id:null,account_title:'',account_number:'',method_type:'easypaisa',deposit_message:'',bank_name:''}); }}>Cancel</button>}
+            {newEP.id&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{ setNewEP({id:null,account_title:'',account_number:'',method_type:'easypaisa',deposit_message:'',bank_name:''}); setShowAddForm(false); }}>Cancel</button>}
           </div>
         </form>
       )}
@@ -55,7 +115,7 @@ export default function PaymentOptions({ easypaisa, newEP, setNewEP, toggleEP, d
                 <td className="sgc-td" style={{fontFamily:'monospace',color:col,fontWeight:700,fontSize:15}}>{a.account_number}</td>
                 <td className="sgc-td"><span className="sgc-badge" style={{background:a.is_active?'#064e3b':'#334155'}}>{a.is_active?'Active':'Inactive'}</span></td>
                 <td className="sgc-td" style={{display:'flex',gap:6}}>
-                  <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>{ setNewEP(a); }}>Edit</button>
+                  <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>handleEdit(a)}>Edit</button>
                   <button className="sgc-btn-sm" style={{background:'var(--border)',color:'var(--muted)'}} onClick={()=>toggleEP(a.id)}>{a.is_active?'Disable':'Enable'}</button>
                   <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deleteEP(a.id)}>Delete</button>
                 </td>

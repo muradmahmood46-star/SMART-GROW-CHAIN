@@ -1,16 +1,60 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../api';
 
-export default function Deposit({
-  epAccounts,
-  selectedMethod,
-  setSelectedMethod,
-  deposit,
-  setDeposit,
-  screenshot,
-  setScreenshot,
-  handleDeposit,
-  notify
-}) {
+export default function Deposit({ notify, loadData }) {
+  const [epAccounts, setEpAccounts] = useState([]);
+  const [selectedMethod, setSelectedMethod] = useState('easypaisa');
+  const [deposit, setDeposit] = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
+  const [screenshot, setScreenshot] = useState(null);
+
+  useEffect(() => {
+    API.get('/deposit/easypaisa-accounts').then(r=>setEpAccounts(r.data)).catch(()=>{});
+  }, []);
+
+  const handleDeposit = async(e)=>{
+    e.preventDefault();
+    if(selectedMethod==='bank'){
+      if(!deposit.bank_name||!deposit.bank_account_holder||!deposit.bank_account_number){ notify('Please fill all bank fields','error'); return; }
+      if(!screenshot){ notify('Please upload payment screenshot','error'); return; }
+      const bankAccount = epAccounts.find(a=>a.method_type==='bank');
+      if(!bankAccount){ notify('No bank account available','error'); return; }
+      try{
+        const fd = new FormData();
+        fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
+        fd.append('easypaisa_account_id', bankAccount.id);
+        fd.append('sender_name', deposit.bank_account_holder);
+        fd.append('transaction_id', `BANK|${deposit.bank_name}|${deposit.bank_account_number}`);
+        fd.append('screenshot_note', deposit.screenshot_note||'');
+        fd.append('screenshot', screenshot);
+        await API.post('/deposit/request', fd, { headers:{'Content-Type':'multipart/form-data'} });
+        notify('Fund request submitted! Admin will verify shortly.');
+        if (loadData) loadData();
+        setDeposit({amount_pkr:'',easypaisa_account_id:'',sender_name:'',transaction_id:'',screenshot_note:'',bank_name:'',bank_account_holder:'',bank_account_number:''});
+        setScreenshot(null);
+      }
+      catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+      return;
+    }
+    const acc_id = deposit.easypaisa_account_id || (epAccounts[0]?.id);
+    if (!acc_id){ notify('No payment account available','error'); return; }
+    if (!screenshot){ notify('Please upload payment screenshot','error'); return; }
+    try{
+      const fd = new FormData();
+      fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
+      fd.append('easypaisa_account_id', parseInt(acc_id));
+      fd.append('sender_name', deposit.sender_name);
+      fd.append('transaction_id', deposit.trx_id || deposit.transaction_id);
+      fd.append('screenshot_note', deposit.screenshot_note||'');
+      fd.append('screenshot', screenshot);
+      await API.post('/deposit/request', fd, { headers:{'Content-Type':'multipart/form-data'} });
+      notify('Fund request submitted! Admin will verify shortly.');
+      if (loadData) loadData();
+      setDeposit({amount_pkr:'',easypaisa_account_id:'',sender_name:'',trx_id:'',transaction_id:'',screenshot_note:'',bank_name:'',bank_account_holder:'',bank_account_number:''});
+      setScreenshot(null);
+    }
+    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+  };
+
   return (
     <div>
       <h2 className="sgc-heading">📲 Deposit</h2>

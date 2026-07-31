@@ -1,6 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function FundRequests({ deposits, pendingD, confirmDeposit, rejectDeposit }) {
+export default function FundRequests({ notify, loadData }) {
+  const [deposits, setDeposits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const pendingD = deposits.filter(d => d.status === 'pending').length;
+
+  const fetchDeposits = async () => {
+    try {
+      const res = await API.get('/admin/deposits');
+      setDeposits(res.data);
+    } catch (err) {
+      console.error(err);
+      if (notify) notify('Failed to fetch deposits', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeposits();
+  }, []);
+
+  const confirmDeposit = async (id) => {
+    try {
+      await API.put(`/admin/deposits/${id}/confirm`);
+      fetchDeposits();
+      if (loadData) loadData();
+      if (notify) notify('Deposit confirmed ✅');
+    } catch (e) {
+      if (notify) notify('Error confirming deposit', 'error');
+    }
+  };
+
+  const rejectDeposit = async (id) => {
+    try {
+      await API.put(`/admin/deposits/${id}/reject`);
+      fetchDeposits();
+      if (loadData) loadData();
+      if (notify) notify('Deposit rejected');
+    } catch (e) {
+      if (notify) notify('Error rejecting deposit', 'error');
+    }
+  };
+
+  if (loading) {
+    return <div style={{padding: 20, color: 'var(--dim)'}}>Loading fund requests...</div>;
+  }
+
   return (
     <div>
       <div className="sgc-page-header">

@@ -1,6 +1,69 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function AdminEmails({ adminEmails, newEmail, setNewEmail, addEmail, editEmail, setEditEmail, editEmailVal, setEditEmailVal, saveEditEmail, deleteEmail }) {
+export default function AdminEmails({ notify }) {
+  const [adminEmails, setAdminEmails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newEmail, setNewEmail] = useState('');
+  const [editEmail, setEditEmail] = useState(null);
+  const [editEmailVal, setEditEmailVal] = useState('');
+
+  const fetchEmails = async () => {
+    try {
+      const res = await API.get('/admin/emails');
+      setAdminEmails(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch admin emails', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmails();
+  }, []);
+
+  const addEmail = async (e) => {
+    e.preventDefault();
+    if (adminEmails.length >= 5) {
+      if (notify) notify('Maximum 5 admin emails allowed', 'error');
+      return;
+    }
+    try {
+      await API.post('/admin/emails', { email: newEmail });
+      setNewEmail('');
+      fetchEmails();
+      if (notify) notify('Admin email added ✅');
+    } catch (err) {
+      if (notify) notify('Error adding email', 'error');
+    }
+  };
+
+  const saveEditEmail = async () => {
+    try {
+      await API.put(`/admin/emails/${editEmail.id}`, { email: editEmailVal });
+      setEditEmail(null);
+      fetchEmails();
+      if (notify) notify('Email updated ✅');
+    } catch (err) {
+      if (notify) notify('Error updating email', 'error');
+    }
+  };
+
+  const deleteEmail = async (id) => {
+    if (!window.confirm('Delete this admin email?')) return;
+    try {
+      await API.delete(`/admin/emails/${id}`);
+      fetchEmails();
+      if (notify) notify('Admin email deleted');
+    } catch (err) {
+      if (notify) notify('Error deleting email', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading emails...</div>;
+
   return (
     <div>
       <h2 className="sgc-heading">📧 Admin Emails <span style={{fontSize:13,color:'var(--dim)',fontWeight:400}}>(max 5)</span></h2>

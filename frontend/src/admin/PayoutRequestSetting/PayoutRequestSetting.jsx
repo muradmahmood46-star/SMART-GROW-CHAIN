@@ -1,11 +1,90 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 import { updateWithdrawToggle, updateWithdrawDuration, updateWithdrawSchedule, getWithdrawSettings } from '../../services/admin/adminService';
 
-export default function PayoutRequestSetting({ 
-  withdrawals, pendingW, withdrawSettings, setWithdrawSettings, withdrawHours, schedOnTime, schedOnAmPm, schedOffTime, schedOffAmPm,
-  setWithdrawHours, setSchedOnTime, setSchedOnAmPm, setSchedOffTime, setSchedOffAmPm,
-  approveW, rejectW, markSentW, payoutScreenshots, setPayoutScreenshots, notify, showWithdrawSettingsError 
-}) {
+export default function PayoutRequestSetting({ notify, loadData }) {
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [withdrawSettings, setWithdrawSettings] = useState({ withdraw_enabled: true });
+  const [withdrawHours, setWithdrawHours] = useState(1);
+  const [schedOnTime, setSchedOnTime] = useState('');
+  const [schedOnAmPm, setSchedOnAmPm] = useState('AM');
+  const [schedOffTime, setSchedOffTime] = useState('');
+  const [schedOffAmPm, setSchedOffAmPm] = useState('PM');
+  const [payoutScreenshots, setPayoutScreenshots] = useState({});
+
+  const pendingW = withdrawals.filter(w => w.status === 'pending').length;
+
+  const fetchData = async () => {
+    try {
+      const wRes = await API.get('/admin/withdrawals');
+      setWithdrawals(wRes.data);
+      const sRes = await API.get('/admin/withdraw-settings');
+      setWithdrawSettings(sRes.data);
+      if (sRes.data.withdraw_schedule_time) {
+        const [onPart, offPart] = sRes.data.withdraw_schedule_time.split('|');
+        if (onPart) { setSchedOnTime(onPart.split(' ')[0]); setSchedOnAmPm(onPart.split(' ')[1]); }
+        if (offPart) { setSchedOffTime(offPart.split(' ')[0]); setSchedOffAmPm(offPart.split(' ')[1]); }
+      }
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Error loading payout data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const showWithdrawSettingsError = (err) => {
+    if (notify) notify(err.response?.data?.detail || 'Settings error', 'error');
+  };
+
+  const approveW = async (id) => {
+    try {
+      await API.put(`/admin/withdrawals/${id}/approve`);
+      fetchData();
+      if (loadData) loadData();
+      if (notify) notify('Withdrawal approved ✅');
+    } catch (e) {
+      if (notify) notify('Error approving', 'error');
+    }
+  };
+
+  const rejectW = async (id) => {
+    try {
+      await API.put(`/admin/withdrawals/${id}/reject`);
+      fetchData();
+      if (loadData) loadData();
+      if (notify) notify('Withdrawal rejected');
+    } catch (e) {
+      if (notify) notify('Error rejecting', 'error');
+    }
+  };
+
+  const markSentW = async (id) => {
+    const file = payoutScreenshots[id];
+    if (!file) {
+      if (notify) notify('Please upload payment screenshot first', 'error');
+      return;
+    }
+    try {
+      const form = new FormData();
+      form.append('screenshot', file);
+      await API.post(`/admin/withdrawals/${id}/mark-sent`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setPayoutScreenshots(prev => { const n = {...prev}; delete n[id]; return n; });
+      fetchData();
+      if (loadData) loadData();
+      if (notify) notify('Marked as sent ✅');
+    } catch (e) {
+      if (notify) notify('Error marking sent', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading payouts...</div>;
+
   return (
     <div>
       <div className="sgc-page-header">
@@ -45,7 +124,7 @@ export default function PayoutRequestSetting({
                 try {
                   await updateWithdrawToggle(true);
                   setWithdrawSettings(s=>({...s,withdraw_enabled:true,withdraw_until:''}));
-                  notify('Withdraw ENABLED ✅');
+                  if (notify) notify('Withdraw ENABLED ✅');
                 } catch (error) { showWithdrawSettingsError(error); }
               }} style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)',opacity:withdrawSettings.withdraw_enabled?0.5:1}}>
                 ✓ Turn ON
@@ -54,7 +133,7 @@ export default function PayoutRequestSetting({
                 try {
                   await updateWithdrawToggle(false);
                   setWithdrawSettings(s=>({...s,withdraw_enabled:false,withdraw_until:''}));
-                  notify('Withdraw DISABLED 🔒');
+                  if (notify) notify('Withdraw DISABLED 🔒');
                 } catch (error) { showWithdrawSettingsError(error); }
               }} style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)',opacity:!withdrawSettings.withdraw_enabled?0.5:1}}>
                 ✕ Turn OFF
@@ -84,7 +163,7 @@ export default function PayoutRequestSetting({
                 await updateWithdrawDuration(withdrawHours);
                 const response = await getWithdrawSettings();
                 setWithdrawSettings(response.data);
-                notify(`Withdraw ON for ${withdrawHours} hour(s) ⏱️`);
+                if (notify) notify(`Withdraw ON for ${withdrawHours} hour(s) ⏱️`);
               } catch (error) { showWithdrawSettingsError(error); }
             }} style={{width:'100%',padding:'10px',background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}}>
               ⏱️ Enable for {withdrawHours}h
@@ -115,12 +194,12 @@ export default function PayoutRequestSetting({
                 </select>
               </div>
               <button onClick={async()=>{
-                if(!schedOnTime||!schedOffTime){notify('Please set both ON and OFF time','error');return;}
+                if(!schedOnTime||!schedOffTime){ if (notify) notify('Please set both ON and OFF time','error'); return; }
                 const val=`${schedOnTime} ${schedOnAmPm}|${schedOffTime} ${schedOffAmPm}`;
                 try {
                   await updateWithdrawSchedule(val);
                   setWithdrawSettings(s=>({...s,withdraw_schedule_time:val}));
-                  notify('Schedule saved ✅');
+                  if (notify) notify('Schedule saved ✅');
                 } catch (error) { showWithdrawSettingsError(error); }
               }} style={{padding:'10px',background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}}>
                 💾 Save Schedule
@@ -135,7 +214,7 @@ export default function PayoutRequestSetting({
                       await updateWithdrawSchedule('');
                       setWithdrawSettings(s=>({...s,withdraw_schedule_time:''}));
                       setSchedOnTime(''); setSchedOffTime('');
-                      notify('Schedule cleared');
+                      if (notify) notify('Schedule cleared');
                     } catch (error) { showWithdrawSettingsError(error); }
                   }} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>✕ Clear</button>
                 </div>
@@ -196,7 +275,7 @@ export default function PayoutRequestSetting({
                     <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 4px',fontWeight:600,letterSpacing:.5}}>ACCOUNT NUMBER</p>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
                       <p style={{color:'#38bdf8',fontFamily:'monospace',fontSize:20,fontWeight:800,margin:0,letterSpacing:1}}>{w.wallet_address}</p>
-                      <button onClick={()=>{navigator.clipboard.writeText(w.wallet_address);notify('Copied! 📋');}} style={{background:'#1e4080',border:'1px solid #38bdf8',color:'#38bdf8',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)',whiteSpace:'nowrap',flexShrink:0}}>📋 Copy</button>
+                      <button onClick={()=>{navigator.clipboard.writeText(w.wallet_address);if (notify) notify('Copied! 📋');}} style={{background:'#1e4080',border:'1px solid #38bdf8',color:'#38bdf8',borderRadius:7,padding:'5px 12px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)',whiteSpace:'nowrap',flexShrink:0}}>📋 Copy</button>
                     </div>
                   </div>
                   {/* Actions */}

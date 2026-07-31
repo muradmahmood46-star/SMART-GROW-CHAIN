@@ -1,6 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
+import API from '../api';
 
-export default function TwoFactorSecurity({ profile, twoFA, setup2FA, enable2FA, disable2FA, faCode, setFaCode }) {
+export default function TwoFactorSecurity({ profile, notify, loadData }) {
+  const [twoFA, setTwoFA] = useState(null);
+  const [faCode, setFaCode] = useState('');
+
+  const setup2FA = async()=>{
+    const r = await API.get('/user/2fa/setup');
+    setTwoFA(r.data);
+  };
+
+  const enable2FA = async()=>{
+    try{ 
+      await API.post('/user/2fa/enable',{secret:twoFA.secret,code:faCode}); 
+      notify('2FA Enabled! ✅'); 
+      if(loadData) loadData(); 
+      setTwoFA(null); 
+      setFaCode(''); 
+    }
+    catch(err){ notify(err.response?.data?.detail||'Invalid code','error'); }
+  };
+
+  const disable2FA = async()=>{
+    try{ 
+      await API.post('/user/2fa/disable'); 
+      notify('2FA Disabled'); 
+      if(loadData) loadData(); 
+    }
+    catch(err){ notify('Error','error'); }
+  };
+
   return (
     <div>
       <h2 className="sgc-heading">🔐 2FA Security</h2>

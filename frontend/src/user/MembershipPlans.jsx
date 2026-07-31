@@ -1,36 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { parseUTCDate } from '../utils/dateUtils';
+import API from '../api';
 
 export default function MembershipPlans({
   profile,
-  plans,
-  selectedPlan,
-  setSelectedPlan,
-  planPayMethod,
-  setPlanPayMethod,
-  planScreenshot,
-  setPlanScreenshot,
-  planSenderName,
-  setPlanSenderName,
-  planSenderPhone,
-  setPlanSenderPhone,
-  planTransactionId,
-  setPlanTransactionId,
-  isPurchasing,
-  setIsPurchasing,
-  myPlanPurchases,
-  planTick,
   notify,
   setTab,
-  adRate,
-  epAccounts,
-  minCampaignUsers,
+  loadData
 }) {
+  const [plans, setPlans] = useState([]);
+  const [myPlanPurchases, setMyPlanPurchases] = useState([]);
+  const [epAccounts, setEpAccounts] = useState([]);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [planPayMethod, setPlanPayMethod] = useState('wallet');
+  const [planScreenshot, setPlanScreenshot] = useState(null);
+  const [planSenderName, setPlanSenderName] = useState('');
+  const [planSenderPhone, setPlanSenderPhone] = useState('');
+  const [planTransactionId, setPlanTransactionId] = useState('');
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    API.get('/user/plans').then(r=>setPlans(r.data)).catch(()=>{});
+    API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
+    API.get('/deposit/easypaisa-accounts').then(r=>setEpAccounts(r.data)).catch(()=>{});
+    
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
   const activeExpiry = profile.membership === 'free' ? profile.free_plan_expires_at : profile.plan_expires_at;
   const expiryDate = parseUTCDate(activeExpiry);
   const now = new Date();
-  void planTick; // trigger re-render every second
   const isExpired = expiryDate && expiryDate < now;
   const diffMs = expiryDate && !isExpired ? expiryDate - now : 0;
   const totalSecs = Math.floor(diffMs / 1000);
@@ -289,13 +290,11 @@ export default function MembershipPlans({
                 fd.append('sender_phone', planSenderPhone);
                 fd.append('sender_phone', planTransactionId || planSenderPhone);
                 if(selectedPlan.price > 0 && planPayMethod!=='wallet' && planScreenshot) fd.append('screenshot', planScreenshot);
-                await fetch('/api/user/plan/purchase', { // simplified for extraction
-                  method:'POST',
-                  headers:{'Authorization':`Bearer ${localStorage.getItem('token')}`},
-                  body:fd
-                });
+                await API.post('/user/plan/purchase', fd, { headers:{'Content-Type':'multipart/form-data'} });
                 notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : planPayMethod==='wallet' ? 'Plan activated successfully! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
                 setSelectedPlan(null);
+                if (loadData) loadData();
+                API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
               }catch(err){ 
                 notify(err.response?.data?.detail||'Error','error');
               }

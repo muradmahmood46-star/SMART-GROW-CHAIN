@@ -1,6 +1,73 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function Plans({ plans, newPlan, setNewPlan, addPlan, editPlan, deletePlan }) {
+export default function Plans({ notify, loadData }) {
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editPlan, setEditPlan] = useState(null);
+  const [newPlan, setNewPlan] = useState({ name:'', price:'', description:'', duration_days:'', min_withdraw:'', earning_per_click:'', referral_levels:'' });
+
+  const fetchPlans = async () => {
+    try {
+      const res = await API.get('/admin/plans');
+      setPlans(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch plans', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const addPlan = async (e) => {
+    e.preventDefault();
+    try {
+      if (editPlan) {
+        await API.put(`/admin/plans/${editPlan.id}`, newPlan);
+        setEditPlan(null);
+      } else {
+        await API.post('/admin/plans', newPlan);
+      }
+      setNewPlan({ name:'', price:'', description:'', duration_days:'', min_withdraw:'', earning_per_click:'', referral_levels:'' });
+      fetchPlans();
+      if (loadData) loadData();
+      if (notify) notify(editPlan ? 'Plan updated ✅' : 'Plan added ✅');
+    } catch (err) {
+      if (notify) notify('Error saving plan', 'error');
+    }
+  };
+
+  const handleEdit = (plan) => {
+    setEditPlan(plan);
+    setNewPlan({ 
+      name: plan.name, 
+      price: plan.price, 
+      description: plan.description, 
+      duration_days: plan.duration_days, 
+      min_withdraw: plan.min_withdraw, 
+      earning_per_click: plan.earning_per_click, 
+      referral_levels: plan.referral_levels 
+    });
+  };
+
+  const deletePlan = async (id) => {
+    if (!window.confirm('Delete this plan?')) return;
+    try {
+      await API.delete(`/admin/plans/${id}`);
+      fetchPlans();
+      if (loadData) loadData();
+      if (notify) notify('Plan deleted');
+    } catch (e) {
+      if (notify) notify('Error deleting plan', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading plans...</div>;
+
   return (
     <div>
       <div className="sgc-page-header">
@@ -43,7 +110,7 @@ export default function Plans({ plans, newPlan, setNewPlan, addPlan, editPlan, d
         </div>
         <div style={{display:'flex',gap:10}}>
           <button className="sgc-btn-yellow" type="submit">{editPlan?'Update Plan':'Add Plan'}</button>
-          {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>setNewPlan({name:'',price:'',description:'',duration_days:'',min_withdraw:'',earning_per_click:'',referral_levels:''})}>Cancel</button>}
+          {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{setEditPlan(null);setNewPlan({name:'',price:'',description:'',duration_days:'',min_withdraw:'',earning_per_click:'',referral_levels:''});}}>Cancel</button>}
         </div>
       </form>
 
@@ -63,7 +130,7 @@ export default function Plans({ plans, newPlan, setNewPlan, addPlan, editPlan, d
               <td className="sgc-td" style={{color:'var(--accent)',fontWeight:600}}>Rs. {p.earning_per_click}</td>
               <td className="sgc-td">{p.referral_levels}</td>
               <td className="sgc-td" style={{display:'flex',gap:6}}>
-                <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>editPlan(p)}>Edit</button>
+                <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>handleEdit(p)}>Edit</button>
                 <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deletePlan(p.id)}>Delete</button>
               </td>
             </tr>

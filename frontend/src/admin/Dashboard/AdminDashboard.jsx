@@ -1,7 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function AdminDashboard({ stats, deposits, setTab, openT }) {
-  if (!stats) return null;
+export default function AdminDashboard({ setTab }) {
+  const [stats, setStats] = useState(null);
+  const [pendingD, setPendingD] = useState(0);
+  const [openT, setOpenT] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const loadDashboardData = async () => {
+      try {
+        const [statsRes, depositsRes, ticketsRes] = await Promise.all([
+          API.get('/admin/stats'),
+          API.get('/admin/deposits'),
+          API.get('/admin/tickets'),
+        ]);
+        if (active) {
+          setStats(statsRes.data);
+          setPendingD(depositsRes.data.filter(d => d.status === 'pending').length);
+          setOpenT(ticketsRes.data.filter(t => t.status === 'open').length);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadDashboardData();
+    return () => { active = false; };
+  }, []);
+
+  if (!stats) return <div style={{padding:20, color:'var(--dim)'}}>Loading dashboard...</div>;
 
   return (
     <div>
@@ -15,7 +42,7 @@ export default function AdminDashboard({ stats, deposits, setTab, openT }) {
           ['Today Earnings', `Rs. ${stats.today_earnings}`,        'var(--green)'],
           ['Total Earnings', `Rs. ${stats.total_earnings}`,        'var(--yellow)'],
           ['Pending Payout', stats.pending_withdrawals,            'var(--red)'],
-          ['Pending Funds',  deposits.filter(d=>d.status==='pending').length, 'var(--red)'],
+          ['Pending Funds',  pendingD, 'var(--red)'],
           ['Open Tickets',   openT,                                '#f472b6'],
           ['Total Clicks',   stats.total_clicks,                   'var(--accent)'],
         ].map(([l,v,c],i)=>(

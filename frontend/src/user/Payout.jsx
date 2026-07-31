@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import API from '../api';
 
 export default function Payout({
   siteSettings,
@@ -6,15 +7,31 @@ export default function Payout({
   plans,
   profile,
   withdrawals,
-  withdraw,
-  setWithdraw,
-  withdrawBankName,
-  setWithdrawBankName,
-  withdrawBankHolder,
-  setWithdrawBankHolder,
-  handleWithdraw,
-  withdrawalMsg
+  withdrawalMsg,
+  notify,
+  loadData
 }) {
+  const [withdraw, setWithdraw] = useState({ amount:'', method:'easypaisa', wallet_address:'' });
+  const [withdrawBankName, setWithdrawBankName] = useState('');
+  const [withdrawBankHolder, setWithdrawBankHolder] = useState('');
+
+  const handleWithdraw = async(e)=>{
+    e.preventDefault();
+    let walletAddr = withdraw.wallet_address;
+    if(withdraw.method==='bank'){
+      if(!withdrawBankName||!withdrawBankHolder||!withdraw.wallet_address){ notify('Please fill all bank fields','error'); return; }
+      walletAddr = `${withdrawBankHolder}|${withdraw.wallet_address}|${withdrawBankName}`;
+    }
+    try{ 
+      await API.post('/user/withdraw',{...withdraw,amount:parseFloat(withdraw.amount),wallet_address:walletAddr}); 
+      notify('Payout request submitted!'); 
+      if (loadData) loadData(); 
+      setWithdraw({amount:'',method:'easypaisa',wallet_address:''}); 
+      setWithdrawBankName(''); 
+      setWithdrawBankHolder(''); 
+    }
+    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+  };
   const minW = plans.find(p=>p.name===profile.membership)?.min_withdrawal || 500;
   const maxW = plans.find(p=>p.name===profile.membership)?.max_withdrawal || 0;
   const totalPayout = withdrawals.filter(w=>w.status==='approved'||w.status==='sent').reduce((s,w)=>s+w.amount,0);

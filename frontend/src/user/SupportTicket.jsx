@@ -1,6 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
+import API from '../api';
 
-export default function SupportTicket({ tickets, ticket, setTicket, handleTicket }) {
+export default function SupportTicket({ tickets, notify, loadData }) {
+  const [ticket, setTicket] = useState({ subject:'', message:'' });
+
+  const handleTicket = async(e)=>{
+    e.preventDefault();
+    try{ 
+      await API.post('/user/tickets',ticket); 
+      notify('Ticket submitted!'); 
+      if (loadData) loadData(); 
+      setTicket({subject:'',message:''}); 
+    }
+    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+  };
+
   return (
     <div>
       <h2 className="sgc-heading">🎫 Support Ticket</h2>

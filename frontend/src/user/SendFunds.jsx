@@ -1,6 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
+import API from '../api';
 
-export default function SendFunds({ profile, transfers, transfer, setTransfer, handleTransfer, siteSettings }) {
+export default function SendFunds({ profile, transfers, siteSettings, notify, loadData }) {
+  const [transfer, setTransfer] = useState({ receiver_username:'', amount:'', note:'' });
+
+  const handleTransfer = async(e)=>{
+    e.preventDefault();
+    try{ 
+      await API.post('/user/transfer',{...transfer,amount:parseFloat(transfer.amount)}); 
+      notify('Fund transferred successfully!'); 
+      if (loadData) loadData(); 
+      setTransfer({receiver_username:'',amount:'',note:''}); 
+    }
+    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+  };
+
   return (
     <div>
       <h2 className="sgc-heading">🔄 Send Funds</h2>

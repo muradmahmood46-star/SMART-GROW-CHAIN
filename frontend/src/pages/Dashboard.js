@@ -36,18 +36,12 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [plans, setPlans] = useState([]);
-  const [twoFA, setTwoFA] = useState(null);
-  const [adRate, setAdRate] = useState(1);
   const [kycData, setKycData] = useState(null);
-  const [kycForm, setKycForm] = useState({ first_name:'', last_name:'', phone:'', cnic:'' });
   const [notifications, setNotifications] = useState([]);
-  const [kycFront, setKycFront] = useState(null);
-  const [kycSelfie, setKycSelfie] = useState(null);
   const [freePlanExpired, setFreePlanExpired] = useState(false);
   const [freePlanDaysLeft, setFreePlanDaysLeft] = useState(null);
   const [adWelcomeMsg, setAdWelcomeMsg] = useState('');
   const [showAdWelcome, setShowAdWelcome] = useState(false);
-  const [campaignViewers, setCampaignViewers] = useState({});
   const [siteSettings, setSiteSettings] = useState({});
   const [referralMsg, setReferralMsg] = useState('');
   const [dashboardMsg, setDashboardMsg] = useState('');
@@ -57,45 +51,12 @@ export default function Dashboard() {
   const [selectedRefLevel, setSelectedRefLevel] = useState(null);
   const [refLevelData, setRefLevelData] = useState({});
   const [refLevelLoading, setRefLevelLoading] = useState(false);
-  const [adForm, setAdForm] = useState({ title:'', url:'', members_needed:'', sender_name:'', transaction_id:'' });
-  const [adPayMethod, setAdPayMethod] = useState('wallet');
-  const [adScreenshot, setAdScreenshot] = useState(null);
-  const [myAdRequests, setMyAdRequests] = useState([]);
-  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
-  const [planPayMethod, setPlanPayMethod] = useState('wallet');
-  const [planScreenshot, setPlanScreenshot] = useState(null);
-  const [planSenderName, setPlanSenderName] = useState('');
-  const [planSenderPhone, setPlanSenderPhone] = useState('');
-  const [planTransactionId, setPlanTransactionId] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [myPlanPurchases, setMyPlanPurchases] = useState([]);
-  const [isPurchasing, setIsPurchasing] = useState(false);
   const [tab, _setTab] = useState(() => { try { return sessionStorage.getItem('sgc_active_ad') ? 'ads' : 'dashboard'; } catch { return 'dashboard'; } });
-  const [activeAd, setActiveAd] = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
-  const [countdown, setCountdown] = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
-  const [isWatching, setIsWatching] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
-  const [deposit, setDeposit] = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
-  const [screenshot, setScreenshot] = useState(null);
-  const [selectedMethod, setSelectedMethod] = useState('easypaisa');
-  const [withdraw, setWithdraw] = useState({ amount:'', method:'easypaisa', wallet_address:'' });
-  const [withdrawBankName, setWithdrawBankName] = useState('');
-  const [withdrawBankHolder, setWithdrawBankHolder] = useState('');
-  const [transfer, setTransfer] = useState({ receiver_username:'', amount:'', note:'' });
-  const [ticket, setTicket] = useState({ subject:'', message:'' });
-  const [faCode, setFaCode] = useState('');
   const [showAllTx, setShowAllTx] = useState(false);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const [planTick, setPlanTick] = useState(0);
   const [msg, setMsg] = useState({ text:'', type:'' });
-  const [adPlanRequired, setAdPlanRequired] = useState(false);
-  const [planDepMethod, setPlanDepMethod] = useState('wallet');
-  const [planDepScreenshot, setPlanDepScreenshot] = useState(null);
-  const [planDepDeposit, setPlanDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
-  const [adDepMethod, setAdDepMethod] = useState('wallet');
-  const [adDepScreenshot, setAdDepScreenshot] = useState(null);
-  const [adDepDeposit, setAdDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
   const navigate = useNavigate();
 
   const setTab = useCallback((newTab) => {
@@ -138,10 +99,7 @@ export default function Dashboard() {
 
   useEffect(()=>{ loadData(); },[loadData]);
 
-  useEffect(()=>{
-    const t = setInterval(()=>setPlanTick(x=>x+1), 1000);
-    return ()=>clearInterval(t);
-  },[]);
+
 
   useEffect(()=>{
     const t = setInterval(()=>{
@@ -150,172 +108,6 @@ export default function Dashboard() {
     }, 15000);
     return ()=>clearInterval(t);
   },[]);
-
-  const handleReturnToSite = useCallback(() => {
-    const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
-    if (hiddenAt) {
-      const elapsed = (Date.now() - hiddenAt) / 1000;
-      if (elapsed > 0) {
-        setCountdown(prev => {
-          const newC = Math.max(0, prev - elapsed);
-          sessionStorage.setItem('sgc_ad_countdown', Math.ceil(newC));
-          return Math.ceil(newC);
-        });
-      }
-      sessionStorage.removeItem('sgc_hidden_at');
-    }
-    setIsWatching(false);
-  }, []);
-
-  useEffect(()=>{
-    handleReturnToSite();
-    const onVis = () => { if (!document.hidden) { handleReturnToSite(); } };
-    const onFocus = () => { handleReturnToSite(); };
-    document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('focus', onFocus);
-    return () => {
-      document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('focus', onFocus);
-    };
-  },[handleReturnToSite]);
-
-  useEffect(() => {
-    let t;
-    if (isWatching && activeAd) {
-      t = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 0) return 0;
-          const newC = prev - 1;
-          sessionStorage.setItem('sgc_ad_countdown', newC);
-          return newC;
-        });
-        sessionStorage.setItem('sgc_hidden_at', Date.now());
-      }, 1000);
-    }
-    return () => { if (t) clearInterval(t); };
-  }, [isWatching, activeAd]);
-
-  const startAd = async (ad) => {
-    if (ad.already_clicked) return;
-    if (activeAd && activeAd.id !== ad.id) {
-      notify("You are already watching an ad. Please complete it first.", "error");
-      return;
-    }
-    try {
-      if (!activeAd || activeAd.id !== ad.id) {
-        await API.post(`/user/click/start/${ad.id}`);
-        setActiveAd(ad);
-        setCountdown(ad.timer_seconds);
-        sessionStorage.setItem('sgc_active_ad', JSON.stringify(ad));
-        sessionStorage.setItem('sgc_ad_countdown', ad.timer_seconds);
-      }
-      setIsWatching(true);
-      sessionStorage.setItem('sgc_hidden_at', Date.now());
-      window.location.href = ad.url;
-    } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-  };
-
-  useEffect(()=>{
-    if (!activeAd) return;
-    if (countdown <= 0){
-      API.post(`/user/click/complete/${activeAd.id}`)
-        .then(r=>{
-          notify(`+Rs. ${r.data.amount.toFixed(2)} earned! 🎉`);
-          setProfile(p=>({...p,balance:r.data.new_balance}));
-          setAds(prev=>prev.map(a=>a.id===activeAd.id?{...a,already_clicked:true}:a));
-          setActiveAd(null);
-          setIsWatching(false);
-          sessionStorage.removeItem('sgc_active_ad');
-          sessionStorage.removeItem('sgc_ad_countdown');
-          sessionStorage.removeItem('sgc_hidden_at');
-          API.get('/user/earnings').then(r=>setEarnings(r.data));
-          API.get('/user/transactions').then(r=>setTransactions(r.data));
-        })
-        .catch(err=>{ notify(err.response?.data?.detail||'Error','error'); setActiveAd(null); setIsWatching(false); sessionStorage.removeItem('sgc_active_ad'); sessionStorage.removeItem('sgc_hidden_at'); });
-    }
-  },[countdown,activeAd]);
-
-  const handleWithdraw = async(e)=>{
-    e.preventDefault();
-    let walletAddr = withdraw.wallet_address;
-    if(withdraw.method==='bank'){
-      if(!withdrawBankName||!withdrawBankHolder||!withdraw.wallet_address){ notify('Please fill all bank fields','error'); return; }
-      walletAddr = `${withdrawBankHolder}|${withdraw.wallet_address}|${withdrawBankName}`;
-    }
-    try{ await API.post('/user/withdraw',{...withdraw,amount:parseFloat(withdraw.amount),wallet_address:walletAddr}); notify('Payout request submitted!'); loadData(); setWithdraw({amount:'',method:'easypaisa',wallet_address:''}); setWithdrawBankName(''); setWithdrawBankHolder(''); }
-    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-  };
-
-  const handleDeposit = async(e)=>{
-    e.preventDefault();
-    if(selectedMethod==='bank'){
-      if(!deposit.bank_name||!deposit.bank_account_holder||!deposit.bank_account_number){ notify('Please fill all bank fields','error'); return; }
-      if(!screenshot){ notify('Please upload payment screenshot','error'); return; }
-      const bankAccount = epAccounts.find(a=>a.method_type==='bank');
-      if(!bankAccount){ notify('No bank account available','error'); return; }
-      try{
-        const fd = new FormData();
-        fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
-        fd.append('easypaisa_account_id', bankAccount.id);
-        fd.append('sender_name', deposit.bank_account_holder);
-        fd.append('transaction_id', `BANK|${deposit.bank_name}|${deposit.bank_account_number}`);
-        fd.append('screenshot_note', deposit.screenshot_note||'');
-        fd.append('screenshot', screenshot);
-        await API.post('/deposit/request', fd, { headers:{'Content-Type':'multipart/form-data'} });
-        notify('Fund request submitted! Admin will verify shortly.');
-        loadData();
-        setDeposit({amount_pkr:'',easypaisa_account_id:'',sender_name:'',transaction_id:'',screenshot_note:'',bank_name:'',bank_account_holder:'',bank_account_number:''});
-        setScreenshot(null);
-      }
-      catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-      return;
-    }
-    const acc_id = deposit.easypaisa_account_id || (epAccounts[0]?.id);
-    if (!acc_id){ notify('No payment account available','error'); return; }
-    if (!screenshot){ notify('Please upload payment screenshot','error'); return; }
-    try{
-      const fd = new FormData();
-      fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
-      fd.append('easypaisa_account_id', parseInt(acc_id));
-      fd.append('sender_name', deposit.sender_name);
-      fd.append('transaction_id', deposit.trx_id || deposit.transaction_id);
-      fd.append('screenshot_note', deposit.screenshot_note||'');
-      fd.append('screenshot', screenshot);
-      await API.post('/deposit/request', fd, { headers:{'Content-Type':'multipart/form-data'} });
-      notify('Fund request submitted! Admin will verify shortly.');
-      loadData();
-      setDeposit({amount_pkr:'',easypaisa_account_id:'',sender_name:'',trx_id:'',transaction_id:'',screenshot_note:'',bank_name:'',bank_account_holder:'',bank_account_number:''});
-      setScreenshot(null);
-    }
-    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-  };
-
-  const handleTransfer = async(e)=>{
-    e.preventDefault();
-    try{ await API.post('/user/transfer',{...transfer,amount:parseFloat(transfer.amount)}); notify('Fund transferred successfully!'); loadData(); setTransfer({receiver_username:'',amount:'',note:''}); }
-    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-  };
-
-  const handleTicket = async(e)=>{
-    e.preventDefault();
-    try{ await API.post('/user/tickets',ticket); notify('Ticket submitted!'); loadData(); setTicket({subject:'',message:''}); }
-    catch(err){ notify(err.response?.data?.detail||'Error','error'); }
-  };
-
-  const setup2FA = async()=>{
-    const r = await API.get('/user/2fa/setup');
-    setTwoFA(r.data);
-  };
-
-  const enable2FA = async()=>{
-    try{ await API.post('/user/2fa/enable',{secret:twoFA.secret,code:faCode}); notify('2FA Enabled! ✅'); loadData(); setTwoFA(null); setFaCode(''); }
-    catch(err){ notify(err.response?.data?.detail||'Invalid code','error'); }
-  };
-
-  const disable2FA = async()=>{
-    try{ await API.post('/user/2fa/disable'); notify('2FA Disabled'); loadData(); }
-    catch(err){ notify('Error','error'); }
-  };
 
   const logout=()=>{ localStorage.clear(); window.location.href = '/login'; };
 
@@ -428,21 +220,21 @@ export default function Dashboard() {
           )}
 
           <div className="fade-up" key={tab}>
-            {tab==='dashboard' && <DashboardHome profile={profile} earnings={earnings} referrals={referrals} refBonus={refBonus} availableAds={availableAds} todayEarned={todayEarned} freePlanExpired={freePlanExpired} freePlanDaysLeft={freePlanDaysLeft} siteSettings={siteSettings} dashboardMsg={dashboardMsg} adRate={adRate} transactions={transactions} showAllTx={showAllTx} setShowAllTx={setShowAllTx} setTab={setTab} notify={notify} />}
-            {tab==='ads' && <Advertisement ads={ads} earnings={earnings} activeAd={activeAd} countdown={countdown} isWatching={isWatching} tab={tab} setTab={setTab} notify={notify} startAd={startAd} kycData={kycData} siteSettings={siteSettings} adPlanRequired={adPlanRequired} setAds={setAds} setEarnings={setEarnings} setTransactions={setTransactions} setActiveAd={setActiveAd} setIsWatching={setIsWatching} setReferralMsg={setReferralMsg} setDashboardMsg={setDashboardMsg} setWithdrawalMsg={setWithdrawalMsg} setAdvertiserMsg={setAdvertiserMsg} setAdSectionMsg={setAdSectionMsg} setMinCampaignUsers={setMinCampaignUsers} loadData={loadData} />}
+            {tab==='dashboard' && <DashboardHome profile={profile} earnings={earnings} referrals={referrals} refBonus={refBonus} availableAds={availableAds} todayEarned={todayEarned} freePlanExpired={freePlanExpired} freePlanDaysLeft={freePlanDaysLeft} siteSettings={siteSettings} dashboardMsg={dashboardMsg} transactions={transactions} showAllTx={showAllTx} setShowAllTx={setShowAllTx} setTab={setTab} notify={notify} />}
+            {tab==='ads' && <Advertisement ads={ads} earnings={earnings} tab={tab} setTab={setTab} notify={notify} kycData={kycData} siteSettings={siteSettings} setAds={setAds} loadData={loadData} />}
             {tab==='fund-history' && <FundHistory myDeposits={myDeposits} transfers={transfers} />}
-            {tab==='transfer' && <Deposit epAccounts={epAccounts} selectedMethod={selectedMethod} setSelectedMethod={setSelectedMethod} deposit={deposit} setDeposit={setDeposit} screenshot={screenshot} setScreenshot={setScreenshot} handleDeposit={handleDeposit} notify={notify} />}
-            {tab==='payout' && <Payout siteSettings={siteSettings} kycData={kycData} plans={plans} profile={profile} withdrawals={withdrawals} withdraw={withdraw} setWithdraw={setWithdraw} withdrawBankName={withdrawBankName} setWithdrawBankName={setWithdrawBankName} withdrawBankHolder={withdrawBankHolder} setWithdrawBankHolder={setWithdrawBankHolder} handleWithdraw={handleWithdraw} withdrawalMsg={withdrawalMsg} />}
+            {tab==='transfer' && <Deposit notify={notify} loadData={loadData} />}
+            {tab==='payout' && <Payout siteSettings={siteSettings} kycData={kycData} profile={profile} withdrawals={withdrawals} withdrawalMsg={withdrawalMsg} notify={notify} loadData={loadData} />}
             {tab==='payout-hist' && <PayoutHistory withdrawals={withdrawals} />}
-            {tab==='send-funds' && <SendFunds profile={profile} transfers={transfers} transfer={transfer} setTransfer={setTransfer} handleTransfer={handleTransfer} siteSettings={siteSettings} />}
-            {tab==='plans' && <MembershipPlans profile={profile} plans={plans} selectedPlan={selectedPlan} setSelectedPlan={setSelectedPlan} planPayMethod={planPayMethod} setPlanPayMethod={setPlanPayMethod} planScreenshot={planScreenshot} setPlanScreenshot={setPlanScreenshot} planSenderName={planSenderName} setPlanSenderName={setPlanSenderName} planSenderPhone={planSenderPhone} setPlanSenderPhone={setPlanSenderPhone} planTransactionId={planTransactionId} setPlanTransactionId={setPlanTransactionId} isPurchasing={isPurchasing} setIsPurchasing={setIsPurchasing} myPlanPurchases={myPlanPurchases} parseUTCDate={parseUTCDate} planTick={planTick} notify={notify} setTab={setTab} adRate={adRate} epAccounts={epAccounts} minCampaignUsers={minCampaignUsers} />}
+            {tab==='send-funds' && <SendFunds profile={profile} transfers={transfers} siteSettings={siteSettings} notify={notify} loadData={loadData} />}
+            {tab==='plans' && <MembershipPlans profile={profile} notify={notify} setTab={setTab} loadData={loadData} />}
             {tab==='referral' && <MyReferral referrals={referrals} referralMsg={referralMsg} selectedRefLevel={selectedRefLevel} setSelectedRefLevel={setSelectedRefLevel} refLevelData={refLevelData} setRefLevelData={setRefLevelData} refLevelLoading={refLevelLoading} setRefLevelLoading={setRefLevelLoading} loadRefLevel={loadRefLevel} parseUTCDate={parseUTCDate} notify={notify} />}
             {tab==='transactions' && <AllTransaction transactions={transactions} />}
             {tab==='ref-bonus' && <ReferralBonus />}
-            {tab==='create-ad' && <Advertise profile={profile} adRate={adRate} minCampaignUsers={minCampaignUsers} adForm={adForm} setAdForm={setAdForm} adPayMethod={adPayMethod} setAdPayMethod={setAdPayMethod} adScreenshot={adScreenshot} setAdScreenshot={setAdScreenshot} epAccounts={epAccounts} myAdRequests={myAdRequests} campaignViewers={campaignViewers} setCampaignViewers={setCampaignViewers} notify={notify} setTab={setTab} setSelectedPlan={setSelectedPlan} />}
-            {tab==='support' && <SupportTicket tickets={tickets} ticket={ticket} setTicket={setTicket} handleTicket={handleTicket} />}
-            {tab==='kyc' && <KYCVerification kycData={kycData} kycForm={kycForm} setKycForm={setKycForm} kycFront={kycFront} setKycFront={setKycFront} kycSelfie={kycSelfie} setKycSelfie={setKycSelfie} notify={notify} setTab={setTab} />}
-            {tab==='2fa' && <TwoFactorSecurity profile={profile} twoFA={twoFA} setup2FA={setup2FA} enable2FA={enable2FA} disable2FA={disable2FA} faCode={faCode} setFaCode={setFaCode} />}
+            {tab==='create-ad' && <Advertise profile={profile} notify={notify} setTab={setTab} loadData={loadData} />}
+            {tab==='support' && <SupportTicket tickets={tickets} notify={notify} loadData={loadData} />}
+            {tab==='kyc' && <KYCVerification kycData={kycData} notify={notify} setTab={setTab} loadData={loadData} />}
+            {tab==='2fa' && <TwoFactorSecurity profile={profile} notify={notify} loadData={loadData} />}
             {tab==='notifications' && <Notifications notifications={notifications} notify={notify} />}
           </div>
         </div>

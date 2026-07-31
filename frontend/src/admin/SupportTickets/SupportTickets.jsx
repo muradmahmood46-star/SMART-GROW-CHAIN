@@ -1,6 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function SupportTickets({ tickets, openT, replyTicket, closeTicket }) {
+export default function SupportTickets({ notify, loadData }) {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const openT = tickets.filter(t => t.status === 'open').length;
+
+  const fetchTickets = async () => {
+    try {
+      const res = await API.get('/admin/tickets');
+      setTickets(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch tickets', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const replyTicket = async (id, msg) => {
+    try {
+      await API.post(`/admin/tickets/${id}/reply`, { message: msg });
+      fetchTickets();
+      if (loadData) loadData();
+      if (notify) notify('Reply sent ✅');
+    } catch (e) {
+      if (notify) notify('Error sending reply', 'error');
+    }
+  };
+
+  const closeTicket = async (id) => {
+    try {
+      await API.put(`/admin/tickets/${id}/close`);
+      fetchTickets();
+      if (loadData) loadData();
+      if (notify) notify('Ticket closed');
+    } catch (e) {
+      if (notify) notify('Error closing ticket', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading tickets...</div>;
+
   return (
     <div>
       <div className="sgc-page-header">
@@ -33,8 +78,8 @@ export default function SupportTickets({ tickets, openT, replyTicket, closeTicke
                 <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 16px',lineHeight:1.5}}>{t.message}</p>
                 {isOpen && (
                   <div style={{display:'flex',gap:8}}>
-                    <input className="sgc-input" placeholder="Write reply..." onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){replyTicket(t.id,e.target.value.trim());e.target.value='';}}}/>
-                    <button className="sgc-btn-yellow" style={{whiteSpace:'nowrap'}} onClick={()=>{const input=document.querySelector(`[data-ticket-id="${t.id}"] input`);if(input&&input.value.trim()){replyTicket(t.id,input.value.trim());input.value='';}}}>Reply</button>
+                    <input className="sgc-input" placeholder="Write reply..." id={`ticket-input-${t.id}`} onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){replyTicket(t.id,e.target.value.trim());e.target.value='';}}}/>
+                    <button className="sgc-btn-yellow" style={{whiteSpace:'nowrap'}} onClick={()=>{const input=document.getElementById(`ticket-input-${t.id}`);if(input&&input.value.trim()){replyTicket(t.id,input.value.trim());input.value='';}}}>Reply</button>
                     <button className="sgc-btn-sm" style={{background:'#064e3b',color:'#4ade80',padding:'8px 14px'}} onClick={()=>closeTicket(t.id)}>Close</button>
                   </div>
                 )}

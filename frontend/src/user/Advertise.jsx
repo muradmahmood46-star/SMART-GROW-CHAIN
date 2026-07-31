@@ -1,23 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../api';
 
 export default function Advertise({
   profile,
-  adRate,
-  minCampaignUsers,
-  adForm,
-  setAdForm,
-  adPayMethod,
-  setAdPayMethod,
-  adScreenshot,
-  setAdScreenshot,
-  epAccounts,
-  myAdRequests,
-  campaignViewers,
-  setCampaignViewers,
   notify,
   setTab,
-  setSelectedPlan
+  setSelectedPlan,
+  loadData
 }) {
+  const [adRate, setAdRate] = useState(1);
+  const [minCampaignUsers, setMinCampaignUsers] = useState(50);
+  const [adForm, setAdForm] = useState({ title:'', url:'', members_needed:'', sender_name:'', transaction_id:'' });
+  const [adPayMethod, setAdPayMethod] = useState('wallet');
+  const [adScreenshot, setAdScreenshot] = useState(null);
+  const [myAdRequests, setMyAdRequests] = useState([]);
+  const [campaignViewers, setCampaignViewers] = useState({});
+  const [epAccounts, setEpAccounts] = useState([]);
+
+  useEffect(() => {
+    API.get('/user/ad-request/rate').then(r=>{ setAdRate(r.data.rate_pkr); }).catch(()=>{});
+    API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
+    API.get('/user/settings').then(r=>{ if(r.data.min_campaign_users) setMinCampaignUsers(parseInt(r.data.min_campaign_users)||50); }).catch(()=>{});
+    API.get('/deposit/easypaisa-accounts').then(r=>setEpAccounts(r.data)).catch(()=>{});
+  }, []);
+
+  const fetchRequests = () => {
+    API.get('/user/ad-request/my-requests').then(r=>setMyAdRequests(r.data)).catch(()=>{});
+  };
+
   const totalCost = (parseInt(adForm.members_needed)||0) * adRate;
 
   return (
@@ -45,8 +55,10 @@ export default function Advertise({
               fd.append('sender_name', adForm.sender_name||'');
               fd.append('transaction_id', adForm.transaction_id||'');
               if(adPayMethod==='easypaisa' && adScreenshot) fd.append('screenshot', adScreenshot);
-              // API call would go through parent or service
+              await API.post('/user/ad-request', fd, { headers:{'Content-Type':'multipart/form-data'} });
               notify('Ad request submitted! ✅');
+              fetchRequests();
+              if (loadData) loadData();
               setAdForm({title:'',url:'',members_needed:'',sender_name:'',transaction_id:''});
               setAdScreenshot(null);
             } catch(err){ notify(err.response?.data?.detail||'Error','error'); }

@@ -1,6 +1,70 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function ReferralCommission({ refSettings, toggleBonusType, addRefLevel, updateRefLevel, deleteRefLevel }) {
+export default function ReferralCommission({ notify }) {
+  const [refSettings, setRefSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await API.get('/admin/referral-settings');
+      setRefSettings(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch referral settings', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const toggleBonusType = async (type, val) => {
+    try {
+      await API.put(`/admin/referral-settings/${type}`, { is_active: val });
+      setRefSettings(prev => ({ ...prev, [type]: { ...prev[type], is_active: val } }));
+      if (notify) notify('Commission settings updated ✅');
+    } catch (e) {
+      if (notify) notify('Error updating settings', 'error');
+    }
+  };
+
+  const addRefLevel = async (type) => {
+    try {
+      await API.post(`/admin/referral-settings/${type}/levels`, {});
+      fetchSettings();
+      if (notify) notify('Level added ✅');
+    } catch (e) {
+      if (notify) notify('Error adding level', 'error');
+    }
+  };
+
+  const updateRefLevel = async (id, data) => {
+    try {
+      await API.put(`/admin/referral-levels/${id}`, data);
+      fetchSettings();
+    } catch (e) {
+      if (notify) notify('Error updating level', 'error');
+    }
+  };
+
+  const deleteRefLevel = async (id) => {
+    if (!window.confirm('Delete this level?')) return;
+    try {
+      await API.delete(`/admin/referral-levels/${id}`);
+      fetchSettings();
+      if (notify) notify('Level deleted');
+    } catch (e) {
+      if (notify) notify('Error deleting level', 'error');
+    }
+  };
+
+  if (loading || !refSettings) {
+    return <div style={{padding:20, color:'var(--dim)'}}>Loading referral settings...</div>;
+  }
+
   return (
     <div>
       <h2 className="sgc-heading">⚙️ Referral Commission Settings</h2>

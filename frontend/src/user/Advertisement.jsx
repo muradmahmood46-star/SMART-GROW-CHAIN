@@ -1,33 +1,110 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import API from '../api';
 
 export default function Advertisement({
   ads,
   earnings,
-  activeAd,
-  countdown,
-  isWatching,
   tab,
   setTab,
   notify,
-  startAd,
   kycData,
-  setKycData,
   siteSettings,
-  setAdPlanRequired,
   setAds,
-  setEarnings,
-  setTransactions,
-  setActiveAd,
-  setIsWatching,
-  setReferralMsg,
-  setDashboardMsg,
-  setWithdrawalMsg,
-  setAdvertiserMsg,
-  setAdSectionMsg,
-  setMinCampaignUsers
+  loadData
 }) {
   const availableAds = ads.filter(a=>!a.already_clicked).length;
+  
+  const [activeAd, setActiveAd] = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
+  const [countdown, setCountdown] = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
+  const [isWatching, setIsWatching] = useState(false);
+
+  const handleReturnToSite = useCallback(() => {
+    const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
+    if (hiddenAt) {
+      const elapsed = (Date.now() - hiddenAt) / 1000;
+      if (elapsed > 0) {
+        setCountdown(prev => {
+          const newC = Math.max(0, prev - elapsed);
+          sessionStorage.setItem('sgc_ad_countdown', Math.ceil(newC));
+          return Math.ceil(newC);
+        });
+      }
+      sessionStorage.removeItem('sgc_hidden_at');
+    }
+    setIsWatching(false);
+  }, []);
+
+  useEffect(()=>{
+    handleReturnToSite();
+    const onVis = () => { if (!document.hidden) { handleReturnToSite(); } };
+    const onFocus = () => { handleReturnToSite(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+    };
+  },[handleReturnToSite]);
+
+  useEffect(() => {
+    let t;
+    if (isWatching && activeAd) {
+      t = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 0) return 0;
+          const newC = prev - 1;
+          sessionStorage.setItem('sgc_ad_countdown', newC);
+          return newC;
+        });
+        sessionStorage.setItem('sgc_hidden_at', Date.now());
+      }, 1000);
+    }
+    return () => { if (t) clearInterval(t); };
+  }, [isWatching, activeAd]);
+
+  const startAd = async (ad) => {
+    if (ad.already_clicked) return;
+    if (activeAd && activeAd.id !== ad.id) {
+      notify("You are already watching an ad. Please complete it first.", "error");
+      return;
+    }
+    try {
+      if (!activeAd || activeAd.id !== ad.id) {
+        await API.post(`/user/click/start/${ad.id}`);
+        setActiveAd(ad);
+        setCountdown(ad.timer_seconds);
+        sessionStorage.setItem('sgc_active_ad', JSON.stringify(ad));
+        sessionStorage.setItem('sgc_ad_countdown', ad.timer_seconds);
+      }
+      setIsWatching(true);
+      sessionStorage.setItem('sgc_hidden_at', Date.now());
+      window.location.href = ad.url;
+    } catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+  };
+
+  useEffect(()=>{
+    if (!activeAd) return;
+    if (countdown <= 0){
+      API.post(`/user/click/complete/${activeAd.id}`)
+        .then(r=>{
+          notify(`+Rs. ${r.data.amount.toFixed(2)} earned! 🎉`);
+          setActiveAd(null);
+          setIsWatching(false);
+          sessionStorage.removeItem('sgc_active_ad');
+          sessionStorage.removeItem('sgc_ad_countdown');
+          sessionStorage.removeItem('sgc_hidden_at');
+          if(loadData) loadData(); // Reloads profile, ads, earnings, transactions
+        })
+        .catch(err=>{ 
+          notify(err.response?.data?.detail||'Error','error'); 
+          setActiveAd(null); 
+          setIsWatching(false); 
+          sessionStorage.removeItem('sgc_active_ad'); 
+          sessionStorage.removeItem('sgc_hidden_at'); 
+        });
+    }
+  },[countdown,activeAd,loadData,notify]);
+
   const timerPct = activeAd ? ((activeAd.timer_seconds-countdown)/activeAd.timer_seconds)*100 : 0;
   const adRate = 1;
 

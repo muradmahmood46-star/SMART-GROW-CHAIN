@@ -1,11 +1,69 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 import { updateAdBudgetRate, updateMinCampaignUsers, updateFreePlanDays, approveAdRequest, rejectAdRequest } from '../../services/admin/adminService';
 
-export default function AdRateRequest({ 
-  adRequests, pendingAdReqs, newBudgetRate, setNewBudgetRate, adBudgetRate, setAdBudgetRate, welcomeMsg,
-  setWelcomeMsg, minCampaignUsers, setMinCampaignUsers, freePlanDays, setFreePlanDays,
-  searchAdLog, loadAll, notify 
-}) {
+export default function AdRateRequest({ notify, loadData }) {
+  const [adRequests, setAdRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  const [newBudgetRate, setNewBudgetRate] = useState('');
+  const [adBudgetRate, setAdBudgetRate] = useState(0);
+  const [welcomeMsg, setWelcomeMsg] = useState('');
+  const [minCampaignUsers, setMinCampaignUsers] = useState(1);
+  const [freePlanDays, setFreePlanDays] = useState(3);
+
+  const pendingAdReqs = adRequests.filter(r => r.status === 'pending').length;
+
+  const fetchData = async () => {
+    try {
+      const [reqRes, settingsRes] = await Promise.all([
+        API.get('/admin/ad-requests'),
+        API.get('/admin/settings')
+      ]);
+      setAdRequests(reqRes.data);
+      if (settingsRes.data) {
+        setAdBudgetRate(settingsRes.data.ad_budget_rate || 0);
+        setNewBudgetRate(String(settingsRes.data.ad_budget_rate || 0));
+        setWelcomeMsg(settingsRes.data.welcome_message || '');
+        setMinCampaignUsers(settingsRes.data.min_campaign_users || 1);
+        setFreePlanDays(settingsRes.data.free_plan_days || 3);
+      }
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleApprove = async (id) => {
+    try {
+      await approveAdRequest(id);
+      fetchData();
+      if (loadData) loadData();
+      if (notify) notify('Ad request approved ✅');
+    } catch (e) {
+      if (notify) notify('Error approving request', 'error');
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await rejectAdRequest(id);
+      fetchData();
+      if (loadData) loadData();
+      if (notify) notify('Rejected & refunded');
+    } catch (e) {
+      if (notify) notify('Error rejecting request', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading ad requests...</div>;
+
   return (
     <div>
       <div className="sgc-page-header">
@@ -20,9 +78,13 @@ export default function AdRateRequest({
           <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="0.1" step="0.1" value={newBudgetRate} onChange={e=>setNewBudgetRate(e.target.value)}/>
         </div>
         <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{
-          await updateAdBudgetRate(parseFloat(newBudgetRate), welcomeMsg);
-          setAdBudgetRate(parseFloat(newBudgetRate));
-          notify('Settings updated ✅');
+          try {
+            await updateAdBudgetRate(parseFloat(newBudgetRate), welcomeMsg);
+            setAdBudgetRate(parseFloat(newBudgetRate));
+            if(notify) notify('Settings updated ✅');
+          } catch(e) {
+            if(notify) notify('Error updating rate', 'error');
+          }
         }}>Save</button>
         <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Current rate: <b style={{color:'var(--yellow)'}}>Rs. {adBudgetRate}/member</b></p>
       </div>
@@ -32,7 +94,14 @@ export default function AdRateRequest({
         <h4 style={{color:'var(--purple)',fontSize:13,fontWeight:700,marginBottom:12}}>👥 Minimum Users Per Campaign</h4>
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
           <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="10000" value={minCampaignUsers} onChange={e=>setMinCampaignUsers(parseInt(e.target.value))}/>
-          <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ await updateMinCampaignUsers(minCampaignUsers); notify('Min users updated ✅'); }}>Save</button>
+          <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ 
+            try {
+              await updateMinCampaignUsers(minCampaignUsers); 
+              if(notify) notify('Min users updated ✅'); 
+            } catch(e) {
+              if(notify) notify('Error updating', 'error');
+            }
+          }}>Save</button>
         </div>
         <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Advertisers must target at least <b style={{color:'var(--purple)'}}>{minCampaignUsers} users</b> per campaign.</p>
       </div>
@@ -43,8 +112,12 @@ export default function AdRateRequest({
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
           <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="365" value={freePlanDays} onChange={e=>setFreePlanDays(parseInt(e.target.value))}/>
           <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{
-            await updateFreePlanDays(freePlanDays);
-            notify('Free plan duration updated ✅');
+            try {
+              await updateFreePlanDays(freePlanDays);
+              if(notify) notify('Free plan duration updated ✅');
+            } catch(e) {
+              if(notify) notify('Error updating', 'error');
+            }
           }}>Save</button>
         </div>
         <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>After <b style={{color:'var(--yellow)'}}>{freePlanDays} days</b>, free users must buy a plan to continue.</p>
@@ -85,8 +158,8 @@ export default function AdRateRequest({
                 )}
                 {isPending&&(
                   <div style={{display:'flex',gap:8}}>
-                    <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await approveAdRequest(r.id); loadAll(); notify('Ad request approved ✅'); }}>✓ Approve</button>
-                    <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await rejectAdRequest(r.id); loadAll(); notify('Rejected & refunded'); }}>✗ Reject</button>
+                    <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={()=>handleApprove(r.id)}>✓ Approve</button>
+                    <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={()=>handleReject(r.id)}>✗ Reject</button>
                   </div>
                 )}
               </div>

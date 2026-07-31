@@ -1,7 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 import { approveKyc, rejectKyc } from '../../services/admin/adminService';
 
-export default function KYCRequests({ kycRequests, notify }) {
+export default function KYCRequests({ notify, loadData }) {
+  const [kycRequests, setKycRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchKyc = async () => {
+    try {
+      const res = await API.get('/admin/kyc-requests');
+      setKycRequests(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch KYC requests', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchKyc();
+  }, []);
+
+  const handleApprove = async (id) => {
+    try {
+      await approveKyc(id);
+      fetchKyc();
+      if (loadData) loadData();
+      if (notify) notify('KYC Approved ✅');
+    } catch (e) {
+      if (notify) notify('Error approving KYC', 'error');
+    }
+  };
+
+  const handleReject = async (id) => {
+    const note = prompt('Rejection reason (optional):', '');
+    if (note === null) return;
+    try {
+      await rejectKyc(id, note);
+      fetchKyc();
+      if (loadData) loadData();
+      if (notify) notify('KYC Rejected');
+    } catch (e) {
+      if (notify) notify('Error rejecting KYC', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading KYC requests...</div>;
+
   return (
     <div>
       <div className="sgc-page-header">
@@ -36,8 +82,8 @@ export default function KYCRequests({ kycRequests, notify }) {
                   </div>
                   {isPending&&(
                     <div style={{display:'flex',gap:8}}>
-                      <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await approveKyc(k.id); notify('KYC Approved ✅'); }}>✓ Approve</button>
-                      <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ const note=prompt('Rejection reason (optional):',''); await rejectKyc(k.id, note); notify('KYC Rejected'); }}>✗ Reject</button>
+                      <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={()=>handleApprove(k.id)}>✓ Approve</button>
+                      <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={()=>handleReject(k.id)}>✗ Reject</button>
                     </div>
                   )}
                   {k.status==='rejected' && k.admin_note && <p style={{color:'var(--red)',fontSize:12,marginTop:8}}>Reason: {k.admin_note}</p>}

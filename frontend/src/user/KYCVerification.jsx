@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
+import API from '../api';
 
-export default function KYCVerification({ kycData, kycForm, setKycForm, kycFront, setKycFront, kycSelfie, setKycSelfie, notify, setTab }) {
+export default function KYCVerification({ kycData, notify, setTab, loadData }) {
+  const [kycForm, setKycForm] = useState({ first_name:'', last_name:'', phone:'', cnic:'' });
+  const [kycFront, setKycFront] = useState(null);
+  const [kycSelfie, setKycSelfie] = useState(null);
+
   return (
     <div>
       <h2 className="sgc-heading">🪪 KYC Verification</h2>
@@ -45,8 +50,9 @@ export default function KYCVerification({ kycData, kycForm, setKycForm, kycFront
             fd.append('cnic', kycForm.cnic.trim());
             fd.append('front_photo', kycFront);
             fd.append('selfie_photo', kycSelfie);
-            // API call would go through parent
+            await API.post('/user/kyc/submit', fd, { headers:{'Content-Type':'multipart/form-data'} });
             notify('KYC submitted! Admin will verify shortly. ✅');
+            if (loadData) loadData();
           }catch(err){ notify(err.response?.data?.detail||'Error','error'); }
         }}>
           <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'12px 16px',marginBottom:16}}>

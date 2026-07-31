@@ -1,6 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../../api';
 
-export default function Advertisements({ ads, toggleAd, deleteAd, onCreateAd }) {
+export default function Advertisements({ onCreateAd, notify, loadData }) {
+  const [ads, setAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAds = async () => {
+    try {
+      const res = await API.get('/admin/ads');
+      setAds(res.data);
+    } catch (e) {
+      console.error(e);
+      if (notify) notify('Failed to fetch ads', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAds();
+  }, []);
+
+  const toggleAd = async (id) => {
+    try {
+      await API.put(`/admin/ads/${id}/toggle`);
+      fetchAds();
+      if (loadData) loadData();
+      if (notify) notify('Ad status updated');
+    } catch (e) {
+      if (notify) notify('Error toggling ad', 'error');
+    }
+  };
+
+  const deleteAd = async (id) => {
+    if (!window.confirm('Delete this ad?')) return;
+    try {
+      await API.delete(`/admin/ads/${id}`);
+      fetchAds();
+      if (loadData) loadData();
+      if (notify) notify('Ad deleted');
+    } catch (e) {
+      if (notify) notify('Error deleting ad', 'error');
+    }
+  };
+
+  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading ads...</div>;
+
   return (
     <div>
       <div className="sgc-page-header">

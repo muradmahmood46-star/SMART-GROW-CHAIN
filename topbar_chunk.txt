@@ -1,7 +1,0 @@
-﻿sgc-topbar">
-          <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-            <button className="hamburger" onClick={()=>{setSidebarCollapsed(v=>!v);setSidebarOpen(false);}}>☰</button>
-            <button className="sgc-topbar-login-back" onClick={()=>{localStorage.clear();navigate("/login");}} aria-label="Back to login" title="Back to login">←</button>
-          </div>
-          <span className="sgc-topbar-title">🌱 Smart Grow Chain</span>
-          <div style={{displ
