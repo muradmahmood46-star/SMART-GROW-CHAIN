@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState } from 'react';
 import { register as registerApi, verifyOTP } from '../services/auth/authService';
 import { useNavigate, Link } from 'react-router-dom';

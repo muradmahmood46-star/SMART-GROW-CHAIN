@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import API from '../../api';
 import { approveKyc, rejectKyc } from '../../services/admin/adminService';

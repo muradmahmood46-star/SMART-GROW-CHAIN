@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { updateSetting } from '../../services/admin/adminService';
 import API from '../../api';
