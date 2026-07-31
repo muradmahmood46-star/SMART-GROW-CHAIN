@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../api';
 
 const TABS = [
   { key:'dashboard',   icon:'📊', label:'Dashboard'      },
@@ -23,14 +24,43 @@ const TABS = [
 ];
 
 export default function AdminSidebar({ 
-  tab, setTab, sidebarOpen, setSidebarOpen, sidebarCollapsed, setSidebarCollapsed,
-  pendingW, pendingD, openT, pendingAdReqs, kycRequests, planPurchases,
-  advertiserList, advertiserLoading, onNavigate
+  tab, setTab, sidebarOpen, setSidebarOpen, sidebarCollapsed, setSidebarCollapsed
 }) {
+  const [counts, setCounts] = useState({ pendingW:0, pendingD:0, openT:0, pendingAdReqs:0, pendingKyc:0, pendingPlanPurchases:0 });
+
+  useEffect(() => {
+    let active = true;
+    const fetchCounts = async () => {
+      try {
+        const [w, d, t, a, k, p] = await Promise.all([
+          API.get('/admin/withdrawals').catch(()=>({data:[]})),
+          API.get('/admin/deposits').catch(()=>({data:[]})),
+          API.get('/admin/tickets').catch(()=>({data:[]})),
+          API.get('/admin/ad-requests').catch(()=>({data:[]})),
+          API.get('/admin/kyc').catch(()=>({data:[]})),
+          API.get('/admin/plan-purchases').catch(()=>({data:[]})),
+        ]);
+        if (active) {
+          setCounts({
+            pendingW: (w.data||[]).filter(x=>x.status==='pending').length,
+            pendingD: (d.data||[]).filter(x=>x.status==='pending').length,
+            openT: (t.data||[]).filter(x=>x.status==='open').length,
+            pendingAdReqs: (a.data||[]).filter(x=>x.status==='pending').length,
+            pendingKyc: (k.data||[]).filter(x=>x.status==='pending').length,
+            pendingPlanPurchases: (p.data||[]).filter(x=>x.status==='pending').length,
+          });
+        }
+      } catch (e) {}
+    };
+    fetchCounts();
+    // Refresh counts every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
+
   const handleTab = (key) => {
     setTab(key);
     if(window.innerWidth<=768){setSidebarCollapsed(true);setSidebarOpen(false);}
-    if(key==='advertiser-mgmt' && onNavigate) onNavigate(key);
   };
 
   return (
@@ -56,12 +86,12 @@ export default function AdminSidebar({
             onClick={()=>handleTab(key)}>
             <span className="nav-icon">{icon}</span>
             <span className="nav-label">{label}</span>
-            {key==='withdrawals' && pendingW>0 && <span className="nav-badge">{pendingW}</span>}
-            {key==='deposits'    && pendingD>0 && <span className="nav-badge">{pendingD}</span>}
-            {key==='tickets'     && openT>0    && <span className="nav-badge">{openT}</span>}
-            {key==='ad-requests' && pendingAdReqs>0 && <span className="nav-badge">{pendingAdReqs}</span>}
-            {key==='kyc' && kycRequests.filter(k=>k.status==='pending').length>0 && <span className="nav-badge">{kycRequests.filter(k=>k.status==='pending').length}</span>}
-            {key==='plan-purchases' && planPurchases.filter(r=>r.status==='pending').length>0 && <span className="nav-badge">{planPurchases.filter(r=>r.status==='pending').length}</span>}
+            {key==='withdrawals' && counts.pendingW>0 && <span className="nav-badge">{counts.pendingW}</span>}
+            {key==='deposits'    && counts.pendingD>0 && <span className="nav-badge">{counts.pendingD}</span>}
+            {key==='tickets'     && counts.openT>0    && <span className="nav-badge">{counts.openT}</span>}
+            {key==='ad-requests' && counts.pendingAdReqs>0 && <span className="nav-badge">{counts.pendingAdReqs}</span>}
+            {key==='kyc' && counts.pendingKyc>0 && <span className="nav-badge">{counts.pendingKyc}</span>}
+            {key==='plan-purchases' && counts.pendingPlanPurchases>0 && <span className="nav-badge">{counts.pendingPlanPurchases}</span>}
           </button>
         ))}
       </nav>

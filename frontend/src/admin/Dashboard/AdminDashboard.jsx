@@ -68,8 +68,8 @@ export default function AdminDashboard({ setTab }) {
       {/* 7-day chart */}
       <h3 className="sgc-subheading" style={{marginBottom:12}}>Last 7 Days Clicks</h3>
       <div className="sgc-chart">
-        {stats.daily_data.map((d,i)=>{
-          const max=Math.max(...stats.daily_data.map(x=>x.clicks),1);
+        {(stats.daily_data||[]).map((d,i)=>{
+          const max=Math.max(...(stats.daily_data||[]).map(x=>x.clicks),1);
           const h=(d.clicks/max)*100;
           return (
             <div key={i} className="sgc-bar-wrap">
