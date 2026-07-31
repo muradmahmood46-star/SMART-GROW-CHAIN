@@ -7,12 +7,19 @@ import Dashboard from './pages/Dashboard';
 import AdminPanel from './admin/AdminPanel';
 
 function PrivateRoute({ children }) {
-  return localStorage.getItem('token') ? children : <Navigate to="/" replace />;
+  const token = localStorage.getItem('token');
+  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  if (!token) return <Navigate to="/" replace />;
+  if (isAdmin) return <Navigate to="/admin" replace />;
+  return children;
 }
 
 function AdminRoute({ children }) {
-  return localStorage.getItem('token') && localStorage.getItem('is_admin') === 'true'
-    ? children : <Navigate to="/login" replace />;
+  const token = localStorage.getItem('token');
+  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  if (!token) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  return children;
 }
 
 function HomeRoute() {
