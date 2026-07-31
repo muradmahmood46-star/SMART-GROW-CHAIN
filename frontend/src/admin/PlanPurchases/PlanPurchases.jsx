@@ -1,5 +1,5 @@
 import React from 'react';
-import API from '../../api';
+import { approvePlanPurchase, rejectPlanPurchase } from '../../services/admin/adminService';
 
 export default function PlanPurchases({ planPurchases, notify }) {
   return (
@@ -53,8 +53,8 @@ export default function PlanPurchases({ planPurchases, notify }) {
                   )}
                   {isPending&&(
                     <div style={{display:'flex',gap:8}}>
-                      <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/plan-purchases/${r.id}/approve`,{admin_note:''}); notify('Plan activated ✅'); }}>✓ Approve</button>
-                      <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/plan-purchases/${r.id}/reject`,{admin_note:''}); notify('Rejected & refunded'); }}>✗ Reject</button>
+                      <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await approvePlanPurchase(r.id); notify('Plan activated ✅'); }}>✓ Approve</button>
+                      <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await rejectPlanPurchase(r.id); notify('Rejected & refunded'); }}>✗ Reject</button>
                     </div>
                   )}
                 </div>

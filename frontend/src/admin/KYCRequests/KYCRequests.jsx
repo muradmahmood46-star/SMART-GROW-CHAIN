@@ -1,5 +1,5 @@
 import React from 'react';
-import API from '../../api';
+import { approveKyc, rejectKyc } from '../../services/admin/adminService';
 
 export default function KYCRequests({ kycRequests, notify }) {
   return (
@@ -36,8 +36,8 @@ export default function KYCRequests({ kycRequests, notify }) {
                   </div>
                   {isPending&&(
                     <div style={{display:'flex',gap:8}}>
-                      <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/kyc/${k.id}/approve`,{admin_note:''}); notify('KYC Approved ✅'); }}>✓ Approve</button>
-                      <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ const note=prompt('Rejection reason (optional):',''); await API.put(`/admin/kyc/${k.id}/reject`,{admin_note:note||''}); notify('KYC Rejected'); }}>✗ Reject</button>
+                      <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await approveKyc(k.id); notify('KYC Approved ✅'); }}>✓ Approve</button>
+                      <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ const note=prompt('Rejection reason (optional):',''); await rejectKyc(k.id, note); notify('KYC Rejected'); }}>✗ Reject</button>
                     </div>
                   )}
                   {k.status==='rejected' && k.admin_note && <p style={{color:'var(--red)',fontSize:12,marginTop:8}}>Reason: {k.admin_note}</p>}

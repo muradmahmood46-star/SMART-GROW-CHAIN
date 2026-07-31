@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API from '../api';
+import { login as loginApi, verify2FA } from '../services/auth/authService';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
@@ -23,7 +23,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const res = await API.post('/auth/login', form);
+      const res = await loginApi(form);
       if (res.data.requires_2fa) {
         setPendingData(res.data); setStep('2fa');
       } else {
@@ -43,7 +43,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const res = await API.post('/auth/verify-2fa', { temp_token: pendingData.temp_token, code: faCode });
+      const res = await verify2FA(pendingData.temp_token, faCode);
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('is_admin', res.data.is_admin);
       localStorage.setItem('username', res.data.username);

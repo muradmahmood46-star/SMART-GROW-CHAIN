@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import API from '../api';
+import { register as registerApi, verifyOTP } from '../services/auth/authService';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Register() {
@@ -25,7 +25,7 @@ export default function Register() {
   const handleResend = async () => {
     setLoading(true); setError('');
     try {
-      const res = await API.post('/auth/register', form);
+      const res = await registerApi(form);
       if (res.data.requires_otp) {
         setRegToken(res.data.reg_token);
         setOtp('');
@@ -42,7 +42,7 @@ export default function Register() {
     e.preventDefault();
     setLoading(true); setError(''); setMsg('');
     try {
-      await API.post('/auth/register', form);
+      await registerApi(form);
       setMsg('Registered successfully! Redirecting...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
@@ -54,7 +54,7 @@ export default function Register() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      await API.post('/auth/register/verify-otp', { reg_token: regToken, otp });
+      await verifyOTP(regToken, otp);
       setMsg('Account created! Redirecting to login...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {

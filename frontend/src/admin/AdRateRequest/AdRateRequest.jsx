@@ -1,5 +1,5 @@
 import React from 'react';
-import API from '../../api';
+import { updateAdBudgetRate, updateMinCampaignUsers, updateFreePlanDays, approveAdRequest, rejectAdRequest } from '../../services/admin/adminService';
 
 export default function AdRateRequest({ 
   adRequests, pendingAdReqs, newBudgetRate, setNewBudgetRate, adBudgetRate, setAdBudgetRate, welcomeMsg,
@@ -20,7 +20,7 @@ export default function AdRateRequest({
           <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="0.1" step="0.1" value={newBudgetRate} onChange={e=>setNewBudgetRate(e.target.value)}/>
         </div>
         <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 24px'}} onClick={async()=>{
-          await API.put('/admin/ad-budget-rate',{rate_pkr:parseFloat(newBudgetRate),welcome_message:welcomeMsg});
+          await updateAdBudgetRate(parseFloat(newBudgetRate), welcomeMsg);
           setAdBudgetRate(parseFloat(newBudgetRate));
           notify('Settings updated ✅');
         }}>Save</button>
@@ -32,7 +32,7 @@ export default function AdRateRequest({
         <h4 style={{color:'var(--purple)',fontSize:13,fontWeight:700,marginBottom:12}}>👥 Minimum Users Per Campaign</h4>
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
           <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="10000" value={minCampaignUsers} onChange={e=>setMinCampaignUsers(parseInt(e.target.value))}/>
-          <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ await API.put('/admin/settings/min_campaign_users',{value:String(minCampaignUsers)}); notify('Min users updated ✅'); }}>Save</button>
+          <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{ await updateMinCampaignUsers(minCampaignUsers); notify('Min users updated ✅'); }}>Save</button>
         </div>
         <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Advertisers must target at least <b style={{color:'var(--purple)'}}>{minCampaignUsers} users</b> per campaign.</p>
       </div>
@@ -43,7 +43,7 @@ export default function AdRateRequest({
         <div style={{display:'flex',gap:10,alignItems:'center'}}>
           <input className="sgc-input" style={{margin:0,flex:1}} type="number" min="1" max="365" value={freePlanDays} onChange={e=>setFreePlanDays(parseInt(e.target.value))}/>
           <button className="sgc-btn-yellow" style={{width:'auto',padding:'10px 20px',whiteSpace:'nowrap'}} onClick={async()=>{
-            await API.put('/admin/free-plan-days',{days:freePlanDays});
+            await updateFreePlanDays(freePlanDays);
             notify('Free plan duration updated ✅');
           }}>Save</button>
         </div>
@@ -85,8 +85,8 @@ export default function AdRateRequest({
                 )}
                 {isPending&&(
                   <div style={{display:'flex',gap:8}}>
-                    <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/user-ad-requests/${r.id}/approve`,{admin_note:''}); loadAll(); notify('Ad request approved ✅'); }}>✓ Approve</button>
-                    <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await API.put(`/admin/user-ad-requests/${r.id}/reject`,{admin_note:''}); loadAll(); notify('Rejected & refunded'); }}>✗ Reject</button>
+                    <button style={{flex:1,padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await approveAdRequest(r.id); loadAll(); notify('Ad request approved ✅'); }}>✓ Approve</button>
+                    <button style={{flex:1,padding:'10px',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={async()=>{ await rejectAdRequest(r.id); loadAll(); notify('Rejected & refunded'); }}>✗ Reject</button>
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import API from '../api';
+import { readAllNotifications, readNotification } from '../services/user/actionService';
 
 export default function Notifications({ notifications, notify }) {
   return (
@@ -7,7 +7,7 @@ export default function Notifications({ notifications, notify }) {
       <div className="sgc-page-header">
         <h2 className="sgc-heading">🔔 Notifications</h2>
         {notifications.filter(n=>!n.is_read).length>0 && (
-          <button onClick={async()=>{ await API.post('/user/notifications/read-all'); }}
+          <button onClick={async()=>{ await readAllNotifications(); }}
             style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:600,padding:'6px 14px',cursor:'pointer',fontFamily:'var(--font)'}}>
             ✓ Mark all read
           </button>
@@ -15,7 +15,7 @@ export default function Notifications({ notifications, notify }) {
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:10}}>
         {notifications.map((n,i)=>(
-          <div key={i} onClick={async()=>{ if(!n.is_read){ await API.post(`/user/notifications/${n.id}/read`); } }}
+          <div key={i} onClick={async()=>{ if(!n.is_read){ await readNotification(n.id); } }}
             style={{background:n.is_read?'var(--card)':'#0d1e38',border:`1px solid ${n.is_read?'var(--border)':'#1e4080'}`,borderRadius:12,padding:'14px 18px',cursor:'pointer'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10}}>
               <div style={{flex:1}}>

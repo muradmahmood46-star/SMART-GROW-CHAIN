@@ -1,5 +1,5 @@
 import React from 'react';
-import API from '../../api';
+import { getAdvertiserManagement, getAdvertiserDetail } from '../../services/admin/adminService';
 
 export default function AdvertiserManagement({ 
   advertiserDetail, setAdvertiserDetail, advertiserList, setAdvertiserList, advertiserLoading, setAdvertiserLoading, notify 
@@ -91,7 +91,7 @@ export default function AdvertiserManagement({
             <h2 className="sgc-heading">📊 Advertiser Management</h2>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{advertiserList.length} advertisers</span>
-              <button className="sgc-btn-sm" style={{background:'#1e3a6e',color:'var(--accent)',padding:'6px 14px'}} onClick={()=>{ setAdvertiserLoading(true); API.get('/admin/advertiser-management').then(r=>{ setAdvertiserList(r.data); setAdvertiserLoading(false); }).catch(()=>setAdvertiserLoading(false)); }}>🔄 Refresh</button>
+              <button className="sgc-btn-sm" style={{background:'#1e3a6e',color:'var(--accent)',padding:'6px 14px'}} onClick={()=>{ setAdvertiserLoading(true); getAdvertiserManagement().then(r=>{ setAdvertiserList(r.data); setAdvertiserLoading(false); }).catch(()=>setAdvertiserLoading(false)); }}>🔄 Refresh</button>
             </div>
           </div>
           {advertiserLoading && <div style={{textAlign:'center',padding:40,color:'var(--dim)',fontSize:14}}>⏳ Loading advertisers...</div>}
@@ -123,7 +123,7 @@ export default function AdvertiserManagement({
                           <p style={{color:'var(--dim)',fontSize:11,margin:'2px 0 0'}}>{adv.email} &bull; <span style={{color:'var(--accent)',textTransform:'capitalize'}}>{adv.membership}</span></p>
                         </div>
                       </div>
-                      <button onClick={async()=>{ setAdvertiserLoading(true); try{ const r=await API.get(`/admin/advertiser-management/${adv.user_id}`); setAdvertiserDetail(r.data); }catch{} setAdvertiserLoading(false); }}
+                      <button onClick={async()=>{ setAdvertiserLoading(true); try{ const r=await getAdvertiserDetail(adv.user_id); setAdvertiserDetail(r.data); }catch{} setAdvertiserLoading(false); }}
                         style={{padding:'8px 18px',background:'linear-gradient(135deg,var(--yellow),#d97706)',border:'none',borderRadius:9,color:'var(--bg)',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>
                         View Details →
                       </button>

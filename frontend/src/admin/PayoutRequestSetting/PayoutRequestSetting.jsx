@@ -1,5 +1,5 @@
 import React from 'react';
-import API from '../../api';
+import { updateWithdrawToggle, updateWithdrawDuration, updateWithdrawSchedule, getWithdrawSettings } from '../../services/admin/adminService';
 
 export default function PayoutRequestSetting({ 
   withdrawals, pendingW, withdrawSettings, setWithdrawSettings, withdrawHours, schedOnTime, schedOnAmPm, schedOffTime, schedOffAmPm,
@@ -43,7 +43,7 @@ export default function PayoutRequestSetting({
             <div style={{display:'flex',gap:10}}>
               <button onClick={async()=>{
                 try {
-                  await API.put('/admin/withdraw-settings/toggle',{enabled:true});
+                  await updateWithdrawToggle(true);
                   setWithdrawSettings(s=>({...s,withdraw_enabled:true,withdraw_until:''}));
                   notify('Withdraw ENABLED ✅');
                 } catch (error) { showWithdrawSettingsError(error); }
@@ -52,7 +52,7 @@ export default function PayoutRequestSetting({
               </button>
               <button onClick={async()=>{
                 try {
-                  await API.put('/admin/withdraw-settings/toggle',{enabled:false});
+                  await updateWithdrawToggle(false);
                   setWithdrawSettings(s=>({...s,withdraw_enabled:false,withdraw_until:''}));
                   notify('Withdraw DISABLED 🔒');
                 } catch (error) { showWithdrawSettingsError(error); }
@@ -81,8 +81,8 @@ export default function PayoutRequestSetting({
             </div>
             <button onClick={async()=>{
               try {
-                await API.put('/admin/withdraw-settings/duration',{hours:withdrawHours});
-                const response = await API.get('/admin/withdraw-settings');
+                await updateWithdrawDuration(withdrawHours);
+                const response = await getWithdrawSettings();
                 setWithdrawSettings(response.data);
                 notify(`Withdraw ON for ${withdrawHours} hour(s) ⏱️`);
               } catch (error) { showWithdrawSettingsError(error); }
@@ -118,7 +118,7 @@ export default function PayoutRequestSetting({
                 if(!schedOnTime||!schedOffTime){notify('Please set both ON and OFF time','error');return;}
                 const val=`${schedOnTime} ${schedOnAmPm}|${schedOffTime} ${schedOffAmPm}`;
                 try {
-                  await API.put('/admin/withdraw-settings/schedule',{time_pkt:val});
+                  await updateWithdrawSchedule(val);
                   setWithdrawSettings(s=>({...s,withdraw_schedule_time:val}));
                   notify('Schedule saved ✅');
                 } catch (error) { showWithdrawSettingsError(error); }
@@ -132,7 +132,7 @@ export default function PayoutRequestSetting({
                   </span>
                   <button onClick={async()=>{
                     try {
-                      await API.put('/admin/withdraw-settings/schedule',{time_pkt:''});
+                      await updateWithdrawSchedule('');
                       setWithdrawSettings(s=>({...s,withdraw_schedule_time:''}));
                       setSchedOnTime(''); setSchedOffTime('');
                       notify('Schedule cleared');

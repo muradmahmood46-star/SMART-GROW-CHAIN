@@ -1,0 +1,24 @@
+import API from '../../api';
+
+export const getProfile = () => API.get('/user/profile');
+export const getAds = () => API.get('/user/ads');
+export const getEarnings = () => API.get('/user/earnings');
+export const getWithdrawals = () => API.get('/user/withdrawals');
+export const getReferrals = () => API.get('/user/referrals');
+export const getReferralBonus = () => API.get('/user/referral-bonus');
+export const getEpAccounts = () => API.get('/deposit/easypaisa-accounts');
+export const getMyDeposits = () => API.get('/deposit/my-deposits');
+export const getTransfers = () => API.get('/user/transfers');
+export const getTransactions = () => API.get('/user/transactions');
+export const getTickets = () => API.get('/user/tickets');
+export const getPlans = () => API.get('/user/plans');
+export const getAdRate = () => API.get('/user/ad-request/rate');
+export const getMyAdRequests = () => API.get('/user/ad-request/my-requests');
+export const getUserSettings = () => API.get('/user/settings');
+export const getMyPlanPurchases = () => API.get('/user/plan/my-purchases');
+export const getKycStatus = () => API.get('/user/kyc/status');
+export const getNotifications = () => API.get('/user/notifications');
+export const get2FASetup = () => API.get('/user/2fa/setup');
+export const enable2FA = (secret, code) => API.post('/user/2fa/enable', { secret, code });
+export const disable2FA = () => API.post('/user/2fa/disable');
+export const getRefLevel = (level) => API.get(`/user/referrals/level/${level}`);
