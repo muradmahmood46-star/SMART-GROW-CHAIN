@@ -398,7 +398,7 @@ def reply_ticket(tid: int, data: TicketReply, db: Session = Depends(get_db), adm
     t.reply = data.reply
     t.status = "replied"
     from app.models.models import Notification
-    new_notif = Notification(user_id=t.user_id, title="Support Ticket Replied", message=f"Admin Response on '{t.subject}': {data.reply}", type="info")
+    new_notif = Notification(user_id=t.user_id, title="Support Ticket Replied", message=f"Admin Response on '{t.subject}': {data.reply}")
     db.add(new_notif)
     db.commit()
     return {"message": "Reply sent"}
