@@ -185,7 +185,7 @@ export default function Dashboard() {
                   </div>
                   {notifications.length===0 && <p style={{color:'var(--dim)',fontSize:13,textAlign:'center',padding:16,margin:0}}>No notifications</p>}
                   {notifications.slice(0,3).map((n,i)=>(
-                    <div key={i} style={{padding:'10px 14px',borderBottom:i<2?'1px solid var(--border)':'none',background:n.is_read?'transparent':'rgba(13, 148, 136, 0.1)'}}>
+                    <div key={i} onClick={async()=>{ if(!n.is_read){ import('../services/user/actionService').then(m => m.readNotification(n.id).then(()=>loadData())); } }} style={{padding:'10px 14px',borderBottom:i<2?'1px solid var(--border)':'none',background:n.is_read?'transparent':'rgba(13, 148, 136, 0.1)',cursor:'pointer'}}>
                       <p style={{color:n.is_read?'var(--muted)':'var(--text)',fontWeight:600,fontSize:13,margin:'0 0 2px'}}>{n.title}</p>
                       <p style={{color:n.is_read?'var(--dim)':'var(--muted)',fontSize:12,margin:0}}>{n.message?.substring(0,55)}{n.message?.length>55?'...':''}</p>
                     </div>
@@ -230,7 +230,7 @@ export default function Dashboard() {
             {tab==='support' && <SupportTicket tickets={tickets} notify={notify} loadData={loadData} />}
             {tab==='kyc' && <KYCVerification kycData={kycData} notify={notify} setTab={setTab} loadData={loadData} />}
             {tab==='2fa' && <TwoFactorSecurity profile={profile} notify={notify} loadData={loadData} />}
-            {tab==='notifications' && <Notifications notifications={notifications} notify={notify} />}
+            {tab==='notifications' && <Notifications notifications={notifications} notify={notify} loadData={loadData} />}
           </div>
         </div>
       </div>
