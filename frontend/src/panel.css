@@ -297,6 +297,10 @@ body {
 }
 .sgc-topbar-login-back:hover { background:rgba(255,255,255,.3); transform:translateX(-2px); }
 
+/* ── Admin Panel Layout ── */
+.sgc-admin-wrap { display:flex; height:100vh; overflow:hidden; }
+.sgc-main { flex:1; margin-left:256px; overflow-y:auto; display:flex; flex-direction:column; }
+
 /* ── Overlay ── */
 .sgc-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.6); z-index:40; animation:fadeIn .2s ease; backdrop-filter:blur(2px); }
 .sgc-overlay.open { display:block; }
