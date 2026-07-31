@@ -1,6 +1,8 @@
 import React from 'react';
 
-export default function MyReferral({ referrals, referralMsg, selectedRefLevel, setSelectedRefLevel, refLevelData, setRefLevelData, refLevelLoading, setRefLevelLoading, loadRefLevel, parseUTCDate, notify }) {
+import { parseUTCDate } from '../utils/dateUtils';
+
+export default function MyReferral({ referrals, referralMsg, selectedRefLevel, setSelectedRefLevel, refLevelData, setRefLevelData, refLevelLoading, setRefLevelLoading, loadRefLevel, notify }) {
   return (
     <div>
       <h2 className="sgc-heading">👥 My Referral</h2>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
+import { parseUTCDate } from '../utils/dateUtils';
 import HeroSlider from '../user/HeroSlider';
 import UserSidebar from '../user/UserSidebar';
 import DashboardHome from '../user/DashboardHome';
@@ -95,12 +96,6 @@ export default function Dashboard() {
   const [adDepScreenshot, setAdDepScreenshot] = useState(null);
   const [adDepDeposit, setAdDepDeposit] = useState({ amount_pkr:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'' });
   const navigate = useNavigate();
-
-  const parseUTCDate = (d) => {
-    if(!d) return null;
-    const s = String(d);
-    return new Date(s.endsWith('Z') ? s : s + 'Z');
-  };
 
   const setTab = useCallback((newTab) => {
     if (newTab === tab) return;

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { parseUTCDate } from '../utils/dateUtils';
+
 export default function MembershipPlans({
   profile,
   plans,
@@ -18,13 +20,12 @@ export default function MembershipPlans({
   isPurchasing,
   setIsPurchasing,
   myPlanPurchases,
-  parseUTCDate,
   planTick,
   notify,
   setTab,
   adRate,
   epAccounts,
-  minCampaignUsers
+  minCampaignUsers,
 }) {
   const activeExpiry = profile.membership === 'free' ? profile.free_plan_expires_at : profile.plan_expires_at;
   const expiryDate = parseUTCDate(activeExpiry);
