@@ -25,8 +25,8 @@ import API from '../api';
 
 export default function AdminPanel() {
   const [tab, _setTab] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
 
   const setTab = useCallback((newTab) => {
@@ -483,6 +483,7 @@ export default function AdminPanel() {
 
   return (
     <div className="sgc-admin-wrap">
+      <div className={`sgc-overlay ${sidebarOpen?'open':''}`} onClick={()=>{setSidebarOpen(false);}}/>
       <AdminSidebar
         tab={tab} setTab={setTab}
         sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
@@ -493,25 +494,21 @@ export default function AdminPanel() {
         onNavigate={(key) => { if (key === 'advertiser-mgmt') loadAdvertisers(); }}
       />
       <main className={`sgc-main ${sidebarCollapsed?'sidebar-collapsed':''}`}>
-        {/* Hero Slider - matches user panel */}
-        <div className="sgc-hero-slider" style={{padding:0,background:'transparent',boxShadow:'none',marginBottom:22,aspectRatio:'auto',height:140}}>
-          <div className="sgc-hero-slider-track" style={{gap:0,padding:0}}>
-            <div className="sgc-hero-slide active-slide" style={{aspectRatio:'auto',height:140,border:'none',borderRadius:14,background:'linear-gradient(135deg,#0d9488,#0284c7,#1d4ed8)',boxShadow:'0 4px 12px rgba(2,132,199,.18)',filter:'none',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px'}}>
-              <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <h2 style={{fontSize:18,fontWeight:800,margin:0,color:'#fff',textShadow:'0 1px 4px rgba(0,0,0,.3)'}}>🌱 Smart Grow Chain</h2>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <button className="hamburger" onClick={()=>{
-                  if(window.innerWidth<=768){
-                    setSidebarOpen(!sidebarOpen);
-                    setSidebarCollapsed(false);
-                  } else {
-                    setSidebarCollapsed(!sidebarCollapsed);
-                  }
-                }} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'6px 10px',borderRadius:8,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>☰</button>
-                <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'6px 12px',borderRadius:8,cursor:'pointer',fontWeight:700,fontSize:12,backdropFilter:'blur(4px)',transition:'all .2s',whiteSpace:'nowrap'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
-              </div>
-            </div>
+        <div className="sgc-topbar" style={{ background: 'linear-gradient(105deg, #16a085 0%, #1abc9c 48%, #3498db 100%)', marginBottom: 22, borderRadius: 0 }}>
+          <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+            <button className="hamburger" onClick={()=>{
+              if(window.innerWidth<=768){
+                setSidebarOpen(true);
+                setSidebarCollapsed(false);
+              } else {
+                setSidebarCollapsed(!sidebarCollapsed);
+              }
+            }}>☰</button>
+            <button className="sgc-topbar-login-back" onClick={handleBack} aria-label="Go back" title="Go back">←</button>
+          </div>
+          <span className="sgc-topbar-title">🌱 Smart Grow Chain</span>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'6px 12px',borderRadius:8,cursor:'pointer',fontWeight:700,fontSize:12,backdropFilter:'blur(4px)',transition:'all .2s',whiteSpace:'nowrap'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
           </div>
         </div>
         {tab === 'dashboard'    && <AdminDashboard stats={stats} deposits={deposits} setTab={setTab} openT={openT} />}
