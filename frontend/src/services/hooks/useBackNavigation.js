@@ -31,8 +31,31 @@ export default function useBackNavigation({
   const isInternal = tab !== 'dashboard';
   const processingRef = useRef(false);
 
+  // ── Refs to avoid stale closures in popstate handler ──
+  const sidebarOpenRef = useRef(sidebarOpen);
+  sidebarOpenRef.current = sidebarOpen;
+
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+
+  const isInternalRef = useRef(isInternal);
+  isInternalRef.current = isInternal;
+
+  const setTabRef = useRef(setTab);
+  setTabRef.current = setTab;
+
+  const setSidebarOpenRef = useRef(setSidebarOpen);
+  setSidebarOpenRef.current = setSidebarOpen;
+
+  const setSidebarCollapsedRef = useRef(setSidebarCollapsed);
+  setSidebarCollapsedRef.current = setSidebarCollapsed;
+
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
+
   /**
    * Core back handler – called by all three back methods.
+   * Uses refs internally so it always has the latest values.
    * @param {boolean} [fromPopstate=false] - true when called from popstate event
    */
   const handleBack = useCallback(
@@ -44,33 +67,43 @@ export default function useBackNavigation({
         processingRef.current = false;
       }, 300);
 
-      if (sidebarOpen) {
+      const currentSidebarOpen = sidebarOpenRef.current;
+      const currentIsInternal = isInternalRef.current;
+      const currentSetTab = setTabRef.current;
+      const currentSetSidebarOpen = setSidebarOpenRef.current;
+      const currentSetSidebarCollapsed = setSidebarCollapsedRef.current;
+      const currentNavigate = navigateRef.current;
+
+      if (currentSidebarOpen) {
         // Sidebar → Dashboard
-        setSidebarOpen(false);
-        if (setSidebarCollapsed) setSidebarCollapsed(true);
-        setTab('dashboard');
+        currentSetSidebarOpen(false);
+        if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
+        currentSetTab('dashboard');
         return;
       }
 
-      if (isInternal) {
+      if (currentIsInternal) {
         // Internal page → Sidebar opens
-        setSidebarOpen(true);
-        if (setSidebarCollapsed) setSidebarCollapsed(false);
+        currentSetSidebarOpen(true);
+        if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
         return;
       }
 
       // Dashboard → Login
-      // Use replace when coming from popstate to avoid duplicate history entries
-      navigate('/login', fromPopstate ? { replace: true } : undefined);
+      currentNavigate('/login', fromPopstate ? { replace: true } : undefined);
     },
-    [sidebarOpen, isInternal, setTab, setSidebarOpen, setSidebarCollapsed, navigate]
+    [] // No deps needed – all values come from refs
   );
 
   // ── Popstate handler (browser back + hardware back) ──
+  // Only mounted once – always reads latest values from refs
   useEffect(() => {
     const onPop = (e) => {
+      const currentSidebarOpen = sidebarOpenRef.current;
+      const currentTab = tabRef.current;
+
       // Capture whether we're about to navigate away BEFORE handleBack changes state
-      const goingToLogin = !sidebarOpen && tab === 'dashboard';
+      const goingToLogin = !currentSidebarOpen && currentTab === 'dashboard';
 
       handleBack(true);
 
@@ -84,7 +117,7 @@ export default function useBackNavigation({
 
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [handleBack, sidebarOpen, tab]);
+  }, []); // Empty deps – refs always have latest values
 
   return { handleBack };
 }
