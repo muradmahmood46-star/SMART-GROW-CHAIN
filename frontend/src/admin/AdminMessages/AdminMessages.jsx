@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { updateSetting } from '../../services/admin/adminService';
+import API from '../../../api';
 
 export default function AdminMessages({ 
   whatsappLink, whatsappInput, setWhatsappInput, setWhatsappLink,
@@ -12,9 +13,42 @@ export default function AdminMessages({
   adSectionMsg, adSectionMsgInput, setAdSectionMsgInput, setAdSectionMsg,
   setTab, notify 
 }) {
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [notifSending, setNotifSending] = useState(false);
+
+  const sendNotification = async () => {
+    if(!notifTitle || !notifMessage) {
+      notify('Please enter title and message', 'error');
+      return;
+    }
+    setNotifSending(true);
+    try {
+      await API.post('/admin/notifications/send', { title: notifTitle, message: notifMessage });
+      notify('Notification Sent to all users! 🔔');
+      setNotifTitle('');
+      setNotifMessage('');
+    } catch(err) {
+      notify(err.response?.data?.detail || 'Error sending notification', 'error');
+    } finally {
+      setNotifSending(false);
+    }
+  };
+
   return (
     <div>
       <h2 className="sgc-heading">📣 Notifications & Messages</h2>
+
+      {/* Broadcast Notification */}
+      <div className="sgc-form" style={{maxWidth:480,marginBottom:24,background:'#0f172a',padding:20,borderRadius:12,border:'1px solid #334155',boxShadow:'0 4px 12px rgba(0,0,0,0.2)'}}>
+        <h4 style={{color:'#38bdf8',fontSize:15,fontWeight:800,marginBottom:8}}>🔔 Send Broadcast Notification</h4>
+        <p style={{color:'var(--dim)',fontSize:12,marginBottom:16}}>Yeh notification sab users ko bell icon (🔔) mein show hogi.</p>
+        <input className="sgc-input" placeholder="Notification Title..." value={notifTitle} onChange={e=>setNotifTitle(e.target.value)} style={{marginBottom:10}} />
+        <textarea className="sgc-input" rows={3} placeholder="Notification Message..." value={notifMessage} onChange={e=>setNotifMessage(e.target.value)} style={{resize:'vertical',minHeight:70,marginBottom:10}}/>
+        <button className="sgc-btn-primary" style={{width:'100%',padding:'12px',opacity:notifSending?0.7:1}} onClick={sendNotification} disabled={notifSending}>
+          {notifSending ? 'Sending...' : 'Send to All Users'}
+        </button>
+      </div>
 
       {/* WhatsApp */}
       <div className="sgc-form" style={{maxWidth:480,marginBottom:24}}>

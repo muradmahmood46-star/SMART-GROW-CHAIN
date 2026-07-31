@@ -508,7 +508,7 @@ export default function AdminPanel() {
           </div>
           <span className="sgc-topbar-title">🌱 Smart Grow Chain</span>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-            <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'6px 12px',borderRadius:8,cursor:'pointer',fontWeight:700,fontSize:12,backdropFilter:'blur(4px)',transition:'all .2s',whiteSpace:'nowrap'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
+            <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'4px 8px',borderRadius:6,cursor:'pointer',fontWeight:700,fontSize:11,backdropFilter:'blur(4px)',transition:'all .2s',whiteSpace:'nowrap'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
           </div>
         </div>
         {tab === 'dashboard'    && <AdminDashboard stats={stats} deposits={deposits} setTab={setTab} openT={openT} />}
