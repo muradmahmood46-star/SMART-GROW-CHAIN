@@ -11,7 +11,7 @@ export default function SupportTickets({ notify }) {
 
   const fetchTickets = async () => {
     try {
-      const res = await API.get('/admin/supporttickets');
+      const res = await API.get('/admin/tickets');
       setTickets(res.data);
     } catch (e) {
       console.error(e);
@@ -27,7 +27,7 @@ export default function SupportTickets({ notify }) {
 
   const closeTicket = async (id) => {
     try {
-      await API.put(`/admin/supporttickets/${id}/close`);
+      await API.put(`/admin/tickets/${id}/close`);
       fetchTickets();
       if (notify) notify('Ticket closed');
     } catch (e) {
@@ -41,14 +41,14 @@ export default function SupportTickets({ notify }) {
     if (!replyModal) return;
     setReplyError('');
     try {
-      await API.put(`/admin/supporttickets/${replyModal.id}`, { reply: replyMsg });
+      await API.put(`/admin/tickets/${replyModal.id}/reply`, { reply: replyMsg });
       setReplyModal(null);
       setReplyMsg('');
       fetchTickets();
       if (notify) notify('Reply sent ✅');
     } catch (err) {
       console.error(err);
-      const msg = err?.response?.data?.message || err.message || 'Failed to send reply';
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || err.message || 'Failed to send reply';
       setReplyError(msg);
       if (notify) notify(msg, 'error');
     }
@@ -60,9 +60,12 @@ export default function SupportTickets({ notify }) {
 
   return (
     <div>
+      <h2 className="sgc-heading" style={{marginBottom:16}}>🎫 Support Tickets</h2>
+      <div style={{display:'flex',flexDirection:'column',gap:14}}>
       {tickets.map(t => {
         const isOpen = t.status === 'open';
         const isClosed = t.status === 'closed';
+        const isReplied = t.status === 'replied';
         const borderCol = '#666';
         return (
           <div key={t.id} className="fade-in" style={{ background: 'var(--card)', border: `1.5px solid ${borderCol}40`, borderRadius: 14, overflow: 'hidden' }}>
@@ -92,9 +95,16 @@ export default function SupportTickets({ notify }) {
                   <p style={{ color: 'var(--dim)', fontSize: 13, margin: 0 }}>{t.reply}</p>
                 </div>
               )}
-              {isOpen && (
+              {t.user_responses && t.user_responses.length > 0 && t.user_responses.map((ur, ri) => (
+                <div key={ri} style={{ background: 'rgba(245,158,11,0.05)', padding: 12, borderRadius: 8, marginBottom: 8, borderLeft: '3px solid #f59e0b' }}>
+                  <p style={{ color: '#f59e0b', fontSize: 12, fontWeight: 700, margin: '0 0 4px' }}>User Response:</p>
+                  <p style={{ color: 'var(--dim)', fontSize: 13, margin: 0 }}>{ur.message}</p>
+                  <p style={{ color: 'var(--dim)', fontSize: 10, margin: '4px 0 0' }}>{new Date(ur.created_at).toLocaleString()}</p>
+                </div>
+              ))}
+              {(isOpen || isReplied) && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="sgc-btn-yellow" onClick={() => setReplyModal(t)}>Response</button>
+                  <button className="sgc-btn-yellow" onClick={() => setReplyModal(t)}>{t.reply ? 'Update Response' : 'Response'}</button>
                   <button className="sgc-btn-sm" style={{ background: '#064e3b', color: '#4ade80', padding: '8px 14px' }} onClick={() => closeTicket(t.id)}>Close</button>
                 </div>
               )}
@@ -103,13 +113,14 @@ export default function SupportTickets({ notify }) {
         );
       })}
       {tickets.length === 0 && <div className="sgc-empty">No tickets yet</div>}
+      </div>
 
       {replyModal && (
         <div className="sgc-modal-overlay" onClick={() => setReplyModal(null)}>
           <div className="sgc-modal fade-up" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
             <h3 className="sgc-heading" style={{ marginTop: 0, marginBottom: 16 }}>Reply to @{replyModal.username}</h3>
             <p style={{ color: 'var(--dim)', fontSize: 13, marginBottom: 20 }}><strong style={{ color: 'var(--text)' }}>Subject:</strong> {replyModal.subject}</p>
-            {replyError && <p style={{ color: 'var(--red)', marginBottom: 8 }}>{replyError}</p>}
+            {replyError && <p style={{ color: '#fca5a5', marginBottom: 8 }}>{replyError}</p>}
             <form onSubmit={handleReplySubmit} className="sgc-form">
               <label className="sgc-label">Your Response</label>
               <textarea className="sgc-input" rows={5} placeholder="Type your response to the user here..." value={replyMsg} onChange={e => setReplyMsg(e.target.value)} required />

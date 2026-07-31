@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest, Notification
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, TicketResponse, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest, Notification
 from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
@@ -383,7 +383,8 @@ def get_all_tickets(db: Session = Depends(get_db), admin=Depends(get_admin_user)
         from app.models.models import KYCRequest
         kyc = db.query(KYCRequest).filter(KYCRequest.user_id == t.user_id).first()
         kyc_status = kyc.status if kyc else "unverified"
-        result.append({"id": t.id, "username": user.username if user else "?", "kyc_status": kyc_status, "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at})
+        responses = db.query(TicketResponse).filter(TicketResponse.ticket_id == t.id).order_by(TicketResponse.created_at).all()
+        result.append({"id": t.id, "username": user.username if user else "?", "kyc_status": kyc_status, "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at, "user_responses": [{"message": r.message, "created_at": r.created_at} for r in responses]})
     return result
 
 class TicketReply(BaseModel):
@@ -412,6 +413,17 @@ def close_ticket(tid: int, db: Session = Depends(get_db), admin=Depends(get_admi
     t.status = "closed"
     db.commit()
     return {"message": "Ticket closed"}
+
+@router.put("/tickets/{tid}/read")
+def admin_read_ticket(tid: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    from app.models.models import SupportTicket
+    t = db.query(SupportTicket).filter(SupportTicket.id == tid).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Not found")
+    if t.status == "open":
+        t.status = "viewed"
+        db.commit()
+    return {"message": "Ticket marked as viewed"}
 
 
 # ── MEMBERSHIP PLANS ────────────────────────────────────────────────

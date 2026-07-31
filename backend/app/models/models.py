@@ -171,6 +171,16 @@ class SupportTicket(Base):
     reply    = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
     user = relationship("User", backref="tickets")
+    responses = relationship("TicketResponse", backref="ticket", order_by="TicketResponse.created_at")
+
+
+class TicketResponse(Base):
+    __tablename__ = "ticket_responses"
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("support_tickets.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    message = Column(Text)
+    created_at = Column(DateTime, default=func.now())
 
 
 class ReferralSetting(Base):

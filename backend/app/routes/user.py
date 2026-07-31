@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, Date, cast, or_
 import os, shutil, uuid
 from app.database import get_db
-from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount, KYCRequest, Notification
+from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, TicketResponse, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount, KYCRequest, Notification
 from app.schemas.schemas import WithdrawalCreate, UserOut
 from app.utils import decode_token, hash_password, verify_password
 from fastapi.security import OAuth2PasswordBearer
@@ -435,7 +435,14 @@ def create_ticket(data: TicketCreate, current_user: User = Depends(get_current_u
 @router.get("/tickets")
 def get_tickets(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     tickets = db.query(SupportTicket).filter(SupportTicket.user_id == current_user.id).order_by(SupportTicket.created_at.desc()).all()
-    return [{"id": t.id, "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at} for t in tickets]
+    result = []
+    for t in tickets:
+        responses = db.query(TicketResponse).filter(TicketResponse.ticket_id == t.id).order_by(TicketResponse.created_at).all()
+        result.append({
+            "id": t.id, "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at,
+            "user_responses": [{"message": r.message, "created_at": r.created_at} for r in responses]
+        })
+    return result
 
 # ── PUBLIC SETTINGS ──────────────────────────────────────────────────────────
 @router.get("/settings")
@@ -645,9 +652,28 @@ def my_plan_purchases(current_user: User = Depends(get_current_user), db: Sessio
 def read_support_ticket(tid: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     t = db.query(SupportTicket).filter(SupportTicket.id == tid, SupportTicket.user_id == current_user.id).first()
     if t and t.status == "replied":
-        t.status = "closed"
+        t.status = "read"
         db.commit()
     return {"message": "Ticket marked as read"}
+
+class TicketResponseCreate(BaseModel):
+    message: str
+
+@router.post("/tickets/{tid}/respond")
+def respond_to_ticket(tid: int, data: TicketResponseCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    t = db.query(SupportTicket).filter(SupportTicket.id == tid, SupportTicket.user_id == current_user.id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    response = TicketResponse(ticket_id=t.id, user_id=current_user.id, message=data.message)
+    db.add(response)
+    t.status = "open"
+    # Notify admin (create notification for admin users)
+    admins = db.query(User).filter(User.is_admin == True).all()
+    for admin in admins:
+        notif = Notification(user_id=admin.id, title="Ticket Response", message=f"User @{current_user.username} responded to ticket '{t.subject}': {data.message[:100]}")
+        db.add(notif)
+    db.commit()
+    return {"message": "Response sent"}
 
 # ── KYC ───────────────────────────────────────────────────────────────────────
 @router.get("/kyc/status")
