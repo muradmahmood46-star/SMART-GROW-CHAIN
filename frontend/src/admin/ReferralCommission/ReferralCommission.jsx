@@ -24,7 +24,7 @@ export default function ReferralCommission({ notify }) {
 
   const toggleBonusType = async (type, val) => {
     try {
-      await API.put(`/admin/referral-settings/${type}`, { is_active: val });
+      await API.put(`/admin/referral-settings/toggle/${type}`, { is_active: val });
       setRefSettings(prev => ({ ...prev, [type]: { ...prev[type], is_active: val } }));
       if (notify) notify('Commission settings updated ✅');
     } catch (e) {
@@ -34,7 +34,7 @@ export default function ReferralCommission({ notify }) {
 
   const addRefLevel = async (type) => {
     try {
-      await API.post(`/admin/referral-settings/${type}/levels`, {});
+      await API.post(`/admin/referral-settings/${type}/add-level`, {});
       fetchSettings();
       if (notify) notify('Level added ✅');
     } catch (e) {
@@ -44,7 +44,7 @@ export default function ReferralCommission({ notify }) {
 
   const updateRefLevel = async (id, data) => {
     try {
-      await API.put(`/admin/referral-levels/${id}`, data);
+      await API.put(`/admin/referral-settings/${id}`, data);
       fetchSettings();
     } catch (e) {
       if (notify) notify('Error updating level', 'error');
@@ -54,7 +54,7 @@ export default function ReferralCommission({ notify }) {
   const deleteRefLevel = async (id) => {
     if (!window.confirm('Delete this level?')) return;
     try {
-      await API.delete(`/admin/referral-levels/${id}`);
+      await API.delete(`/admin/referral-settings/${id}`);
       fetchSettings();
       if (notify) notify('Level deleted');
     } catch (e) {

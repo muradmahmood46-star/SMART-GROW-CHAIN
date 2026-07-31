@@ -7,6 +7,18 @@ export default function SupportTicket({ tickets, notify, loadData }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [userReply, setUserReply] = useState('');
 
+  React.useEffect(() => {
+    let changed = false;
+    tickets.forEach(t => {
+      if (t.status === 'replied') {
+        API.post(`/user/tickets/${t.id}/read`).catch(()=>{}).then(() => { changed = true; });
+      }
+    });
+    if (changed && loadData) {
+      setTimeout(() => loadData(), 500);
+    }
+  }, [tickets]);
+
   const handleTicket = async(e)=>{
     e.preventDefault();
     try{ 
@@ -78,12 +90,7 @@ export default function SupportTicket({ tickets, notify, loadData }) {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8}}>
               <p style={{color:'var(--dim)',fontSize:11,margin:0}}>{new Date(t.created_at).toLocaleString()}</p>
               <div style={{display:'flex',gap:8}}>
-                {isReplied && (
-                  <button className="sgc-btn-sm" style={{background:'#064e3b',color:'#4ade80',padding:'5px 12px',fontSize:11}} onClick={()=>markAsRead(t)}>
-                    ✓ Mark Read
-                  </button>
-                )}
-                {(t.status === 'open' || t.status === 'replied') && (
+                {(t.status === 'open' || t.status === 'replied' || t.status === 'read') && (
                   <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)',padding:'5px 12px',fontSize:11}} onClick={()=>{setReplyingTo(t);setUserReply('');}}>
                     💬 Respond
                   </button>
