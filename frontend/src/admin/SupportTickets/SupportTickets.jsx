@@ -46,6 +46,24 @@ export default function SupportTickets({ notify, loadData }) {
 
   
 
+  const [replyModal, setReplyModal] = useState(null);
+  const [replyMsg, setReplyMsg] = useState('');
+
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyMsg.trim() || !replyModal) return;
+    try {
+      await API.put(`/admin/tickets/${replyModal.id}/reply`, { reply: replyMsg });
+      fetchTickets();
+      if (loadData) loadData();
+      if (notify) notify('Reply sent to user! ✅');
+      setReplyModal(null);
+      setReplyMsg('');
+    } catch (e) {
+      if (notify) notify('Error sending reply', 'error');
+    }
+  };
+
   return (
     <div>
       <div className="sgc-page-header">
@@ -54,32 +72,41 @@ export default function SupportTickets({ notify, loadData }) {
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:14}}>
         {tickets.map(t=>{
-          const isOpen=t.status==='open';
-          const isClosed=t.status==='closed';
-          const borderCol=isOpen?'#f59e0b':isClosed?'#3cb559':'#ef4444';
+          const isOpen = t.status === 'open';
+          const isClosed = t.status === 'closed';
+          const isReplied = t.status === 'replied';
+          const borderCol = isOpen ? '#f59e0b' : isClosed ? '#3cb559' : '#3b82f6';
           return (
             <div key={t.id} className="fade-in" style={{background:'var(--card)',border:`1.5px solid ${borderCol}40`,borderRadius:14,overflow:'hidden'}}>
-              <div style={{background:isOpen?'#451a0320':isClosed?'#064e3b20':'#450a0a20',padding:'10px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${borderCol}30`}}>
+              <div style={{background:isOpen?'#451a0320':isClosed?'#064e3b20':'#1e3a8a20',padding:'10px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${borderCol}30`}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   <div style={{width:34,height:34,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:'var(--bg)',flexShrink:0}}>
                     {t.username?.[0]?.toUpperCase()}
                   </div>
                   <div>
-                    <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>@{t.username}</p>
-                    <p style={{color:'var(--dim)',fontSize:11,margin:0}}>{new Date(t.created_at).toLocaleString()}</p>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:0}}>@{t.username}</p>
+                      <span style={{background:t.kyc_status==='approved'?'#064e3b':t.kyc_status==='pending'?'#451a03':'#450a0a',color:t.kyc_status==='approved'?'#4ade80':t.kyc_status==='pending'?'#fbbf24':'#fca5a5',padding:'2px 8px',borderRadius:12,fontSize:10,fontWeight:700}}>KYC: {t.kyc_status?t.kyc_status.toUpperCase():'UNVERIFIED'}</span>
+                    </div>
+                    <p style={{color:'var(--dim)',fontSize:11,margin:'2px 0 0'}}>{new Date(t.created_at).toLocaleString()}</p>
                   </div>
                 </div>
-                <span style={{background:isOpen?'#451a03':isClosed?'#064e3b':'#450a0a',color:isOpen?'#f59e0b':isClosed?'#4ade80':'#fca5a5',padding:'3px 12px',borderRadius:20,fontSize:11,fontWeight:700}}>
+                <span style={{background:isOpen?'#451a03':isClosed?'#064e3b':'#1e3a8a',color:isOpen?'#f59e0b':isClosed?'#4ade80':'#60a5fa',padding:'3px 12px',borderRadius:20,fontSize:11,fontWeight:700}}>
                   {t.status.toUpperCase()}
                 </span>
               </div>
               <div style={{padding:'16px 20px'}}>
                 <p style={{color:'var(--text)',fontWeight:600,fontSize:14,margin:'0 0 8px'}}>{t.subject}</p>
                 <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 16px',lineHeight:1.5}}>{t.message}</p>
+                {t.reply && (
+                  <div style={{background:'var(--bg)',padding:12,borderRadius:8,marginBottom:16,borderLeft:'3px solid var(--accent)'}}>
+                    <p style={{color:'var(--accent)',fontSize:12,fontWeight:700,margin:'0 0 4px'}}>Admin Response:</p>
+                    <p style={{color:'var(--dim)',fontSize:13,margin:0}}>{t.reply}</p>
+                  </div>
+                )}
                 {isOpen && (
                   <div style={{display:'flex',gap:8}}>
-                    <input className="sgc-input" placeholder="Write reply..." id={`ticket-input-${t.id}`} onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){replyTicket(t.id,e.target.value.trim());e.target.value='';}}}/>
-                    <button className="sgc-btn-yellow" style={{whiteSpace:'nowrap'}} onClick={()=>{const input=document.getElementById(`ticket-input-${t.id}`);if(input&&input.value.trim()){replyTicket(t.id,input.value.trim());input.value='';}}}>Reply</button>
+                    <button className="sgc-btn-yellow" onClick={()=>setReplyModal(t)}>Response</button>
                     <button className="sgc-btn-sm" style={{background:'#064e3b',color:'#4ade80',padding:'8px 14px'}} onClick={()=>closeTicket(t.id)}>Close</button>
                   </div>
                 )}
@@ -89,6 +116,23 @@ export default function SupportTickets({ notify, loadData }) {
         })}
         {tickets.length===0&&<div className="sgc-empty">No tickets yet</div>}
       </div>
+
+      {replyModal && (
+        <div className="sgc-modal-overlay" onClick={()=>setReplyModal(null)}>
+          <div className="sgc-modal fade-up" style={{maxWidth:500}} onClick={e=>e.stopPropagation()}>
+            <h3 className="sgc-heading" style={{marginTop:0,marginBottom:16}}>Reply to @{replyModal.username}</h3>
+            <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}><strong style={{color:'var(--text)'}}>Subject:</strong> {replyModal.subject}</p>
+            <form onSubmit={handleReplySubmit} className="sgc-form">
+              <label className="sgc-label">Your Response</label>
+              <textarea className="sgc-input" rows="5" placeholder="Type your response to the user here..." value={replyMsg} onChange={e=>setReplyMsg(e.target.value)} required></textarea>
+              <div style={{display:'flex',gap:10,marginTop:10}}>
+                <button type="submit" className="sgc-btn-primary" style={{flex:1}}>Send response to user</button>
+                <button type="button" className="sgc-btn-sm" style={{padding:'0 20px'}} onClick={()=>setReplyModal(null)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

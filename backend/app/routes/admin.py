@@ -380,7 +380,10 @@ def get_all_tickets(db: Session = Depends(get_db), admin=Depends(get_admin_user)
     result = []
     for t in tickets:
         user = db.query(User).filter(User.id == t.user_id).first()
-        result.append({"id": t.id, "username": user.username if user else "?", "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at})
+        from app.models.models import KYCRequest
+        kyc = db.query(KYCRequest).filter(KYCRequest.user_id == t.user_id).first()
+        kyc_status = kyc.status if kyc else "unverified"
+        result.append({"id": t.id, "username": user.username if user else "?", "kyc_status": kyc_status, "subject": t.subject, "message": t.message, "status": t.status, "reply": t.reply, "created_at": t.created_at})
     return result
 
 class TicketReply(BaseModel):
@@ -394,6 +397,9 @@ def reply_ticket(tid: int, data: TicketReply, db: Session = Depends(get_db), adm
         raise HTTPException(status_code=404, detail="Not found")
     t.reply = data.reply
     t.status = "replied"
+    from app.models.models import Notification
+    new_notif = Notification(user_id=t.user_id, title="Support Ticket Replied", message=f"An admin has replied to your ticket: '{t.subject}'.", type="info")
+    db.add(new_notif)
     db.commit()
     return {"message": "Reply sent"}
 
