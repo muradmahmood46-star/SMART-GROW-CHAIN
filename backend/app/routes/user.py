@@ -641,6 +641,14 @@ def my_plan_purchases(current_user: User = Depends(get_current_user), db: Sessio
     return result
 
 
+@router.post("/tickets/{tid}/read")
+def read_support_ticket(tid: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    t = db.query(SupportTicket).filter(SupportTicket.id == tid, SupportTicket.user_id == current_user.id).first()
+    if t and t.status == "replied":
+        t.status = "closed"
+        db.commit()
+    return {"message": "Ticket marked as read"}
+
 # ── KYC ───────────────────────────────────────────────────────────────────────
 @router.get("/kyc/status")
 def kyc_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

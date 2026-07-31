@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../api';
+import { readTicket } from '../services/user/actionService';
 
 export default function SupportTicket({ tickets, notify, loadData }) {
   const [ticket, setTicket] = useState({ subject:'', message:'' });
+
+  useEffect(() => {
+    const replied = tickets.filter(t => t.status === 'replied');
+    if (replied.length > 0) {
+      Promise.all(replied.map(t => readTicket(t.id))).then(() => {
+        if (loadData) loadData();
+      }).catch(console.error);
+    }
+  }, [tickets, loadData]);
 
   const handleTicket = async(e)=>{
     e.preventDefault();

@@ -8,3 +8,4 @@ export const submitTransfer = (data) => API.post('/user/transfer', data);
 export const submitTicket = (data) => API.post('/user/tickets', data);
 export const readAllNotifications = () => API.post('/user/notifications/read-all');
 export const readNotification = (id) => API.post(`/user/notifications/${id}/read`);
+export const readTicket = (id) => API.post(`/user/tickets/${id}/read`);

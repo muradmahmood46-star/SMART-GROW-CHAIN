@@ -26,25 +26,6 @@ export default function DashboardHome({
       {/* Hero Banner Slider */}
       <HeroSlider />
 
-      {/* Free plan expiry warning */}
-      {freePlanExpired && profile?.membership === 'free' && (
-        <div style={{background:'linear-gradient(135deg,#450a0a,#7f1d1d)',border:'1px solid #ef4444',borderRadius:14,padding:'14px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12,boxShadow:'0 0 18px rgba(239,68,68,.18)'}}>
-          <span style={{fontSize:24,filter:'drop-shadow(0 0 6px rgba(239,68,68,.7))'}}>⚠️</span>
-          <div style={{flex:1}}>
-            <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Free Plan Expired!</p>
-            <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Your free plan has expired. Please purchase a plan to continue earning.</p>
-          </div>
-          <button onClick={()=>setTab('plans')} style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#fff',border:'none',borderRadius:10,padding:'8px 16px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap',boxShadow:'0 4px 14px rgba(245,158,11,.4)',transition:'box-shadow .2s,transform .2s'}} onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 6px 20px rgba(245,158,11,.6)';e.currentTarget.style.transform='translateY(-1px)';}} onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 4px 14px rgba(245,158,11,.4)';e.currentTarget.style.transform='translateY(0)';}}>Buy Plan</button>
-        </div>
-      )}
-      {!freePlanExpired && freePlanDaysLeft !== null && freePlanDaysLeft <= 3 && profile?.membership === 'free' && (
-        <div style={{background:'#451a03',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 18px',marginBottom:16,display:'flex',alignItems:'center',gap:12}}>
-          <span style={{fontSize:20}}></span>
-          <p style={{color:'#fbbf24',fontSize:13,margin:0,fontWeight:600}}>Free plan expires in <b>{freePlanDaysLeft} day(s)</b>. Upgrade to keep earning!</p>
-          <button onClick={()=>setTab('plans')} style={{marginLeft:'auto',background:'var(--yellow)',color:'var(--bg)',border:'none',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap'}}>Upgrade</button>
-        </div>
-      )}
-
       {/* Quick Balance + Deposit/Withdraw Card */}
       <div className="sgc-quick-balance">
         <div className="sgc-quick-balance-row">
