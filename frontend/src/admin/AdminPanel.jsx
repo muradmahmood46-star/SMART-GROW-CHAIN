@@ -494,15 +494,22 @@ export default function AdminPanel() {
       />
       <main className={`sgc-main ${sidebarCollapsed?'sidebar-collapsed':''}`}>
         {/* Hero Slider - matches user panel */}
-        <div className="sgc-hero-slider" style={{padding:0,background:'transparent',boxShadow:'none',marginBottom:22}}>
+        <div className="sgc-hero-slider" style={{padding:0,background:'transparent',boxShadow:'none',marginBottom:22,aspectRatio:'auto',height:140}}>
           <div className="sgc-hero-slider-track" style={{gap:0,padding:0}}>
-            <div className="sgc-hero-slide" style={{aspectRatio:'2 / 1',height:400,border:'1px solid #5bb8f5',borderRadius:22,background:'linear-gradient(135deg,#0d9488,#0284c7,#1d4ed8)',boxShadow:'0 8px 20px rgba(2,132,199,.22)',filter:'none',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <div style={{textAlign:'center',color:'#fff',zIndex:2}}>
-                <h2 style={{fontSize:32,fontWeight:900,margin:'0 0 8px 0',textShadow:'0 2px 8px rgba(0,0,0,.3)'}}>🌱 Smart Grow Chain</h2>
-                <p style={{fontSize:14,color:'rgba(255,255,255,.9)',margin:'0 0 16px 0'}}>Admin Control Panel</p>
-                <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
-                  <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'8px 16px',borderRadius:8,cursor:'pointer',fontWeight:700,fontSize:13,backdropFilter:'blur(4px)',transition:'all .2s'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
-                </div>
+            <div className="sgc-hero-slide active-slide" style={{aspectRatio:'auto',height:140,border:'none',borderRadius:14,background:'linear-gradient(135deg,#0d9488,#0284c7,#1d4ed8)',boxShadow:'0 4px 12px rgba(2,132,199,.18)',filter:'none',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 20px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <h2 style={{fontSize:18,fontWeight:800,margin:0,color:'#fff',textShadow:'0 1px 4px rgba(0,0,0,.3)'}}>🌱 Smart Grow Chain</h2>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <button className="hamburger" onClick={()=>{
+                  if(window.innerWidth<=768){
+                    setSidebarOpen(!sidebarOpen);
+                    setSidebarCollapsed(false);
+                  } else {
+                    setSidebarCollapsed(!sidebarCollapsed);
+                  }
+                }} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'6px 10px',borderRadius:8,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>☰</button>
+                <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'6px 12px',borderRadius:8,cursor:'pointer',fontWeight:700,fontSize:12,backdropFilter:'blur(4px)',transition:'all .2s',whiteSpace:'nowrap'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
               </div>
             </div>
           </div>
