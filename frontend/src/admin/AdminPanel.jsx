@@ -493,19 +493,19 @@ export default function AdminPanel() {
         onNavigate={(key) => { if (key === 'advertiser-mgmt') loadAdvertisers(); }}
       />
       <main className={`sgc-main ${sidebarCollapsed?'sidebar-collapsed':''}`}>
-        <div className="sgc-admin-topbar" style={{display:'flex',alignItems:'center',gap:8,padding:'12px 16px',borderBottom:'1px solid var(--border)',marginBottom:8,flexShrink:0}}>
-          <button className="hamburger" onClick={()=>{
-            if(window.innerWidth<=768){
-              // Mobile: toggle sidebar overlay
-              setSidebarOpen(!sidebarOpen);
-              setSidebarCollapsed(false);
-            } else {
-              // Desktop: toggle sidebar visibility
-              setSidebarCollapsed(!sidebarCollapsed);
-            }
-          }}>☰</button>
-          <button className="sgc-topbar-login-back" onClick={handleBack} aria-label="Go back" title="Go back" style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,color:'var(--text)'}}>←</button>
-          <span style={{color:'var(--text)',fontWeight:700,fontSize:14,fontFamily:'var(--font)'}}>Admin Panel</span>
+        {/* Hero Slider - matches user panel */}
+        <div className="sgc-hero-slider" style={{padding:0,background:'transparent',boxShadow:'none',marginBottom:22}}>
+          <div className="sgc-hero-slider-track" style={{gap:0,padding:0}}>
+            <div className="sgc-hero-slide" style={{aspectRatio:'2 / 1',height:400,border:'1px solid #5bb8f5',borderRadius:22,background:'linear-gradient(135deg,#0d9488,#0284c7,#1d4ed8)',boxShadow:'0 8px 20px rgba(2,132,199,.22)',filter:'none',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <div style={{textAlign:'center',color:'#fff',zIndex:2}}>
+                <h2 style={{fontSize:32,fontWeight:900,margin:'0 0 8px 0',textShadow:'0 2px 8px rgba(0,0,0,.3)'}}>🌱 Smart Grow Chain</h2>
+                <p style={{fontSize:14,color:'rgba(255,255,255,.9)',margin:'0 0 16px 0'}}>Admin Control Panel</p>
+                <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap'}}>
+                  <button onClick={()=>{localStorage.clear();window.location.href='/login';}} style={{background:'rgba(255,255,255,.2)',border:'1px solid rgba(255,255,255,.5)',color:'#fff',padding:'8px 16px',borderRadius:8,cursor:'pointer',fontWeight:700,fontSize:13,backdropFilter:'blur(4px)',transition:'all .2s'}} onMouseEnter={e=>e.target.style.background='rgba(255,255,255,.3)'} onMouseLeave={e=>e.target.style.background='rgba(255,255,255,.2)'}>← Back to Login</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         {tab === 'dashboard'    && <AdminDashboard stats={stats} deposits={deposits} setTab={setTab} openT={openT} />}
         {tab === 'users'        && <Users users={users} toggleUser={toggleUser} setBalanceModal={setBalanceModalFn} />}
