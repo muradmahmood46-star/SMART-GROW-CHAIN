@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { updateSetting } from '../../services/admin/adminService';
-import API from '../../../api';
+import API from '../../api';
 
 export default function AdminMessages({ 
   whatsappLink, whatsappInput, setWhatsappInput, setWhatsappLink,
