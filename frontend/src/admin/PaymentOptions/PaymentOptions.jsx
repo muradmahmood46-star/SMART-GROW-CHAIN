@@ -67,7 +67,7 @@ export default function PaymentOptions({ notify }) {
     setShowAddForm(true);
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading payment options...</div>;
+  
 
   return (
     <div>

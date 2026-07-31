@@ -44,7 +44,7 @@ export default function SupportTickets({ notify, loadData }) {
     }
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading tickets...</div>;
+  
 
   return (
     <div>

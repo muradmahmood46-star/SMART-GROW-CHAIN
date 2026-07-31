@@ -2,7 +2,11 @@ import React, { useState, useEffect } from 'react';
 import API from '../../api';
 
 export default function AdminDashboard({ setTab }) {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    total_users: 0, active_users: 0, total_ads: 0, today_clicks: 0,
+    today_earnings: 0, total_earnings: 0, pending_withdrawals: 0,
+    total_clicks: 0, daily_data: []
+  });
   const [pendingD, setPendingD] = useState(0);
   const [openT, setOpenT] = useState(0);
 
@@ -27,8 +31,6 @@ export default function AdminDashboard({ setTab }) {
     loadDashboardData();
     return () => { active = false; };
   }, []);
-
-  if (!stats) return <div style={{padding:20, color:'var(--dim)'}}>Loading dashboard...</div>;
 
   return (
     <div>

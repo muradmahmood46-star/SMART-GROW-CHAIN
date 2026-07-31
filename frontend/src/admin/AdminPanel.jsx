@@ -81,7 +81,7 @@ export default function AdminPanel() {
         </div>
 
         <div className="panel-body">
-          <div className="fade-in" style={{maxWidth:1100,margin:'0 auto'}}>
+          <div className="fade-in" style={{width:'100%'}}>
             {tab === 'dashboard'    && <AdminDashboard setTab={setTab} notify={notify} />}
             {tab === 'users'        && <Users notify={notify} />}
             {tab === 'ads'          && <Advertisements setTab={setTab} notify={notify} />}

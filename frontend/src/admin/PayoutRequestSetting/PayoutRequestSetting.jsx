@@ -83,7 +83,7 @@ export default function PayoutRequestSetting({ notify, loadData }) {
     }
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading payouts...</div>;
+  
 
   return (
     <div>

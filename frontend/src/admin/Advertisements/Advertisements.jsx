@@ -44,7 +44,7 @@ export default function Advertisements({ onCreateAd, notify, loadData }) {
     }
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading ads...</div>;
+  
 
   return (
     <div>

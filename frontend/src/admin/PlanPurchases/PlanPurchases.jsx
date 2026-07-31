@@ -44,7 +44,7 @@ export default function PlanPurchases({ notify, loadData }) {
     }
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading plan purchases...</div>;
+  
 
   return (
     <div>

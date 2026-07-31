@@ -62,7 +62,7 @@ export default function AdRateRequest({ notify, loadData }) {
     }
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading ad requests...</div>;
+  
 
   return (
     <div>

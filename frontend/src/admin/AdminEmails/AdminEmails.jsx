@@ -62,7 +62,7 @@ export default function AdminEmails({ notify }) {
     }
   };
 
-  if (loading) return <div style={{padding:20, color:'var(--dim)'}}>Loading emails...</div>;
+  
 
   return (
     <div>

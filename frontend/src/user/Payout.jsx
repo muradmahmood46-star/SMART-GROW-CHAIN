@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../api';
 
 export default function Payout({
   siteSettings,
   kycData,
-  plans,
   profile,
   withdrawals,
   withdrawalMsg,
@@ -14,6 +13,11 @@ export default function Payout({
   const [withdraw, setWithdraw] = useState({ amount:'', method:'easypaisa', wallet_address:'' });
   const [withdrawBankName, setWithdrawBankName] = useState('');
   const [withdrawBankHolder, setWithdrawBankHolder] = useState('');
+  const [plans, setPlans] = useState([]);
+
+  useEffect(() => {
+    API.get('/user/plans').then(res => setPlans(res.data)).catch(console.error);
+  }, []);
 
   const handleWithdraw = async(e)=>{
     e.preventDefault();
