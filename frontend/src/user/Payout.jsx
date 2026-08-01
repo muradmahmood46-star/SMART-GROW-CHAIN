@@ -39,6 +39,7 @@ export default function Payout({
   const minW = plans.find(p=>p.name===profile.membership)?.min_withdrawal || 500;
   const maxW = plans.find(p=>p.name===profile.membership)?.max_withdrawal || 0;
   const totalPayout = withdrawals.filter(w=>w.status==='approved'||w.status==='sent').reduce((s,w)=>s+w.amount,0);
+  const isKycVerified = profile?.kyc_status === 'approved' || kycData?.kyc_status === 'approved';
 
   return (
     <div>
@@ -58,7 +59,7 @@ export default function Payout({
           <p style={{color:'#4ade80',fontSize:13,margin:0,fontWeight:600}}>Withdraw open until: {new Date(siteSettings.withdraw_until).toLocaleString('en-PK',{timeZone:'Asia/Karachi'})}</p>
         </div>
       )}
-      {kycData?.kyc_status !== 'approved' ? (
+      {!isKycVerified ? (
         <div style={{background:'#450a0a',border:'1px solid #ef4444',borderRadius:14,padding:'28px 24px',textAlign:'center',maxWidth:480}}>
           <div style={{fontSize:48,marginBottom:12}}>🚪</div>
           <h3 style={{color:'#fca5a5',fontSize:18,fontWeight:800,margin:'0 0 8px'}}>KYC Verification Required</h3>
