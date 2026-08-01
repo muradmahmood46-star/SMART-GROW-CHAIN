@@ -647,6 +647,7 @@ def update_ad_budget_rate(data: BudgetRateUpdate, db: Session = Depends(get_db),
 
 
 # ── USER AD REQUESTS ────────────────────────────────────────────────
+@router.get("/ad-requests")
 @router.get("/user-ad-requests")
 def get_user_ad_requests(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     reqs = db.query(UserAdRequest).order_by(UserAdRequest.created_at.desc()).all()
@@ -657,6 +658,7 @@ def get_user_ad_requests(db: Session = Depends(get_db), admin=Depends(get_admin_
         result.append({
             "id": r.id,
             "username": user.username if user else "?",
+            "email": user.email if user else "-",
             "title": r.title, "url": r.url,
             "members_needed": r.members_needed,
             "rate_pkr": r.rate_pkr,
@@ -674,6 +676,7 @@ def get_user_ad_requests(db: Session = Depends(get_db), admin=Depends(get_admin_
 class AdRequestAction(BaseModel):
     admin_note: Optional[str] = ""
 
+@router.put("/ad-requests/{req_id}/approve")
 @router.put("/user-ad-requests/{req_id}/approve")
 def approve_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id).first()
@@ -696,6 +699,7 @@ def approve_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends
     db.commit()
     return {"message": "Ad request approved and ad published"}
 
+@router.put("/ad-requests/{req_id}/reject")
 @router.put("/user-ad-requests/{req_id}/reject")
 def reject_ad_request(req_id: int, data: AdRequestAction, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id).first()

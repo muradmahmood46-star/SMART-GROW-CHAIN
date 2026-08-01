@@ -567,17 +567,18 @@ export default function Advertise({
                       </span>
                     </div>
 
-                    <a href={req.url} target="_blank" rel="noreferrer" style={{color:'#38bdf8',fontSize:12,wordBreak:'break-all',display:'inline-block',marginBottom:14,fontWeight:600}}>
+                    <a href={req.url} target="_blank" rel="noreferrer" style={{color:'#facc15',fontSize:13,wordBreak:'break-all',display:'inline-block',marginBottom:14,fontWeight:700,textDecoration:'underline'}}>
                       🔗 {req.url}
                     </a>
 
-                    {/* SKY BLUE ANIMATED PROGRESS BAR PATTI */}
-                    <div style={{background:'rgba(2,132,199,0.15)',borderRadius:12,padding:'12px 14px',marginBottom:14,border:'1px solid rgba(56,189,248,0.3)'}}>
+                    {/* HIGH-CONTRAST ANIMATED PROGRESS BAR PATTI */}
+                    <div style={{background:'rgba(3,105,161,0.25)',borderRadius:12,padding:'12px 14px',marginBottom:14,border:'1px solid #0284c7'}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,marginBottom:8}}>
-                        <span style={{color:'#bae6fd',fontWeight:700}}>Campaign Progress:</span>
-                        <span style={{color:'#38bdf8',fontWeight:900,fontFamily:'monospace',fontSize:13}}>
-                          {views_cnt} / {total_cnt} Viewers ({pct}%)
-                        </span>
+                        <span style={{color:'#ffffff',fontWeight:800}}>Campaign Progress:</span>
+                        <div>
+                          <span style={{color:'#38bdf8',fontWeight:900,fontFamily:'monospace',fontSize:14}}>{views_cnt} / {total_cnt} Viewers </span>
+                          <span style={{color:'#4ade80',fontWeight:900,fontFamily:'monospace',fontSize:13}}>({pct}%)</span>
+                        </div>
                       </div>
                       <div style={{width:'100%',height:12,background:'#031526',borderRadius:8,overflow:'hidden',border:'1px solid #0369a1',padding:2}}>
                         <div style={{
@@ -632,22 +633,22 @@ export default function Advertise({
                           const totalViewers = list.length;
 
                           return (
-                            <div style={{background:'#031526',border:'1px solid #0369a1',borderRadius:12,padding:'14px 16px',marginTop:10}}>
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,borderBottom:'1px solid #075985',paddingBottom:8}}>
-                                <p style={{color:'#38bdf8',fontSize:11,fontWeight:800,margin:0,letterSpacing:.5}}>👥 CAMPAIGN VIEWERS HISTORY</p>
-                                <span style={{color:'#93c5fd',fontSize:11,fontWeight:600}}>Showing {Math.min(currentLimit, totalViewers)} of {totalViewers}</span>
+                            <div style={{background:'#021120',border:'1px solid #0284c7',borderRadius:12,padding:'14px 16px',marginTop:10}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,borderBottom:'1px solid #0369a1',paddingBottom:8}}>
+                                <p style={{color:'#38bdf8',fontSize:11,fontWeight:900,margin:0,letterSpacing:1}}>👥 CAMPAIGN VIEWERS HISTORY</p>
+                                <span style={{color:'#f8fafc',fontSize:11,fontWeight:700}}>Showing {Math.min(currentLimit, totalViewers)} of {totalViewers}</span>
                               </div>
 
                               {totalViewers > 0 ? (
                                 <>
                                   <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:260,overflowY:'auto',paddingRight:4}}>
                                     {shownList.map((v, i) => (
-                                      <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,background:'#07213a',border:'1px solid #075985',borderRadius:8,padding:'8px 12px'}}>
+                                      <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,background:'#072a4a',border:'1px solid #075985',borderRadius:8,padding:'8px 12px'}}>
                                         <div>
-                                          <span style={{color:'#f0f9ff',fontWeight:700,display:'block'}}>@{v.username}</span>
-                                          <span style={{color:'#93c5fd',fontSize:10}}>{new Date(v.viewed_at).toLocaleString()}</span>
+                                          <span style={{color:'#38bdf8',fontWeight:800,fontSize:13,display:'block'}}>@{v.username}</span>
+                                          <span style={{color:'#cbd5e1',fontSize:10,fontWeight:600}}>📅 {new Date(v.viewed_at).toLocaleString()}</span>
                                         </div>
-                                        <span style={{background:'#052e16',color:'#4ade80',border:'1px solid #166534',padding:'2px 8px',borderRadius:6,fontSize:11,fontWeight:700}}>
+                                        <span style={{background:'#064e3b',color:'#4ade80',border:'1px solid #166534',padding:'3px 10px',borderRadius:6,fontSize:11,fontWeight:900,boxShadow:'0 2px 6px rgba(6,78,59,0.4)'}}>
                                           +Rs. {(v.earned_amount || 0).toFixed(2)}
                                         </span>
                                       </div>
