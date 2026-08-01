@@ -40,10 +40,10 @@ async def lifespan(app: FastAPI):
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_until', '') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_schedule_time', '') ON CONFLICT (key) DO NOTHING",
         "UPDATE users SET membership = 'none', free_plan_expires_at = NULL, plan_expires_at = NULL WHERE id NOT IN (SELECT user_id FROM plan_purchase_requests WHERE status = 'approved')",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS total_session_seconds INTEGER DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS current_week_session_seconds INTEGER DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_session_week_start DATE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_week_start DATE",
+        "ALTER TABLE users ADD COLUMN total_session_seconds INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN current_week_session_seconds INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN last_session_week_start DATE",
+        "ALTER TABLE users ADD COLUMN registration_week_start DATE",
         "UPDATE users SET registration_week_start = DATE(created_at, 'weekday 1', '-7 days') WHERE created_at IS NOT NULL AND registration_week_start IS NULL",
     ]
     try:
@@ -52,7 +52,8 @@ async def lifespan(app: FastAPI):
                 try:
                     conn.execute(text(sql))
                     conn.commit()
-                except Exception:
+                except Exception as ex:
+                    conn.rollback()
                     pass
     except Exception as e:
         print(f"[STARTUP] Migrations error: {e}")
