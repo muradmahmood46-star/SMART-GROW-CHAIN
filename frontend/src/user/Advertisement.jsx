@@ -20,6 +20,7 @@ export default function Advertisement({
   const [activeAd, setActiveAd] = useState(() => { try { return JSON.parse(sessionStorage.getItem('sgc_active_ad')); } catch { return null; } });
   const [countdown, setCountdown] = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
   const [isWatching, setIsWatching] = useState(false);
+  const [historyLimit, setHistoryLimit] = useState(10);
 
   const handleReturnToSite = useCallback(() => {
     const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
@@ -221,34 +222,40 @@ export default function Advertisement({
         {ads.filter(a=>!a.already_clicked).length===0&&<div className="sgc-empty">No ads available right now.<br/>Check back later!</div>}
       </div>
 
-      {/* Today's Watch History */}
+      {/* Watch History */}
       {(()=>{
-        const todayClicks = earnings.filter(e=>{ const d=new Date(e.clicked_at); return d.toDateString()===new Date().toDateString() && e.type==='click'; });
-        const todayTotal = todayClicks.reduce((s,e)=>s+(e.amount||0),0);
-        if(!todayClicks.length) return null;
+        const watchHistory = earnings.filter(e => e.type === 'click');
+        const shownHistory = watchHistory.slice(0, historyLimit);
+
         return (
-          <div style={{marginTop:24}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,flexWrap:'wrap',gap:8}}>
-              <h3 className="sgc-subheading" style={{margin:0}}>📋 Today's Watch History</h3>
-              <div style={{background:'linear-gradient(135deg,#064e3b,#065f46)',border:'1px solid #166534',borderRadius:10,padding:'6px 16px',display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:14}}>💰</span>
-                <span style={{color:'var(--dim)',fontSize:12,fontWeight:600}}>Total Earned Today:</span>
-                <span style={{color:'#4ade80',fontSize:15,fontWeight:800,fontFamily:'monospace'}}>Rs. {todayTotal.toFixed(2)}</span>
+          <div style={{marginTop:32}}>
+            <h3 className="sgc-subheading" style={{marginBottom:16}}>📋 Watch History</h3>
+            
+            {watchHistory.length === 0 ? (
+              <div className="sgc-empty">No advertisement history available.</div>
+            ) : (
+              <div className="sgc-table-wrap">
+                <table className="sgc-table">
+                  <thead><tr><th className="sgc-th">Advertisement Title</th><th className="sgc-th">Date & Time Watched</th><th className="sgc-th">Reward Earned</th><th className="sgc-th">Status</th></tr></thead>
+                  <tbody>{shownHistory.map((e,i)=>(
+                    <tr key={i} className="sgc-tr">
+                      <td className="sgc-td" style={{color:'var(--text)',fontWeight:700}}>{e.ad_title || `Advertisement #${e.ad_id}`}</td>
+                      <td className="sgc-td" style={{color:'var(--dim)',fontSize:12}}>{new Date(e.clicked_at).toLocaleString()}</td>
+                      <td className="sgc-td" style={{color:'var(--green)',fontWeight:700}}>+Rs. {e.amount?.toFixed(2)}</td>
+                      <td className="sgc-td"><span style={{background:'#064e3b',color:'#4ade80',padding:'3px 10px',borderRadius:6,fontSize:10,fontWeight:800}}>COMPLETED</span></td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+                
+                {watchHistory.length > historyLimit && (
+                  <div style={{textAlign:'center',marginTop:16}}>
+                    <button type="button" onClick={() => setHistoryLimit(20)} style={{background:'linear-gradient(135deg,#1e3a8a,#1e40af)',color:'#fff',border:'none',borderRadius:10,padding:'10px 24px',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 4px 14px rgba(30,58,138,0.4)'}}>
+                      See More
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="sgc-table-wrap">
-              <table className="sgc-table">
-                <thead><tr><th className="sgc-th">#</th><th className="sgc-th">Ad</th><th className="sgc-th">Earned</th><th className="sgc-th">Time</th></tr></thead>
-                <tbody>{todayClicks.map((e,i)=>(
-                  <tr key={i} className="sgc-tr">
-                    <td className="sgc-td" style={{color:'var(--dim)',fontWeight:600}}>{i+1}</td>
-                    <td className="sgc-td" style={{color:'var(--text)',fontWeight:600}}>Ad #{e.ad_id}</td>
-                    <td className="sgc-td" style={{color:'var(--green)',fontWeight:700}}>+Rs. {e.amount?.toFixed(2)}</td>
-                    <td className="sgc-td" style={{color:'var(--dim)',fontSize:12}}>{new Date(e.clicked_at).toLocaleTimeString()}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            </div>
+            )}
           </div>
         );
       })()}

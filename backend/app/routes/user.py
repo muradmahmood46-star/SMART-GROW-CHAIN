@@ -278,8 +278,17 @@ def get_withdrawals(current_user: User = Depends(get_current_user), db: Session 
 # ── EARNINGS ──────────────────────────────────────────────────────────────────
 @router.get("/earnings")
 def get_earnings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.models import Ad
     earnings = db.query(Earning).filter(Earning.user_id == current_user.id).order_by(Earning.clicked_at.desc()).limit(200).all()
-    return [{"ad_id": e.ad_id, "amount": e.amount, "type": e.type, "clicked_at": e.clicked_at} for e in earnings]
+    res = []
+    for e in earnings:
+        title = None
+        if e.type == 'click' and e.ad_id:
+            ad = db.query(Ad).filter(Ad.id == e.ad_id).first()
+            if ad:
+                title = ad.title
+        res.append({"ad_id": e.ad_id, "amount": e.amount, "type": e.type, "clicked_at": e.clicked_at, "ad_title": title})
+    return res
 
 # ── ALL TRANSACTIONS ──────────────────────────────────────────────────────────
 @router.get("/transactions")

@@ -55,31 +55,6 @@ export default function DashboardHome({
             <span className="sgc-quick-btn-icon">💸</span>
             <span>Withdraw</span>
           </button>
-          
-          {/* Quick Balance Header Account Status Badge */}
-          <button
-            onClick={() => setTab('kyc')}
-            style={{
-              padding: '8px 14px',
-              borderRadius: 20,
-              border: `1.5px solid ${isKycVerified ? '#22c55e' : '#ef4444'}`,
-              background: isKycVerified ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-              color: isKycVerified ? '#4ade80' : '#fca5a5',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              transition: 'all .2s',
-              fontFamily: 'var(--font)',
-              boxShadow: isKycVerified ? '0 2px 10px rgba(34,197,94,0.2)' : '0 2px 10px rgba(239,68,68,0.2)'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-            <span>{isKycVerified ? '✅' : '🔴'}</span>
-            <span>{isKycVerified ? 'KYC Verified' : 'Unverified Account'}</span>
-          </button>
         </div>
       </div>
 
@@ -88,7 +63,6 @@ export default function DashboardHome({
       </div>
       <div className="sgc-stats sgc-dashboard-stats">
         {[
-          ['Current Plan', profile?.plan_active ? profile.membership.toUpperCase() : <span onClick={() => setTab('plans')} style={{cursor: 'pointer', textDecoration: 'underline'}} title="Click to activate a plan">No Plan Activated Yet</span>, '#3b82f6', '💎', false],
           ['Ads Available',availableAds,'#7c3aed','📺',false],
           ['Total Clicks',earnings?.filter(e=>e.type==='click').length||0,'#0891b2','👆',false],
           ['Referrals',referrals?.total_referrals||0,'#059669','👥',false],
