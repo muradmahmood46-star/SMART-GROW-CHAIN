@@ -172,13 +172,21 @@ export default function Advertisement({
       )}
       <div className="sgc-ads-grid">
         {ads.filter(a=>!a.already_clicked).map((ad,i)=>(
-          <div key={ad.id} className="sgc-ad-card" style={{animationDelay:`${i*.05}s`,border:ad.is_sponsored?'2px solid #f59e0b':'1px solid var(--border)'}}>
+          <div key={ad.id} className="sgc-ad-card" style={{
+            animationDelay:`${i*.05}s`,
+            border: ad.is_own_ad ? '2px solid #f59e0b' : ad.is_sponsored ? '2px solid #eab308' : '1px solid var(--border)',
+            boxShadow: ad.is_own_ad ? '0 4px 20px rgba(245,158,11,0.25)' : ad.is_sponsored ? '0 4px 20px rgba(234,179,8,0.25)' : 'none'
+          }}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
               <div style={{flex:1,marginRight:8}}>
                 {ad.is_own_ad ? (
-                  <span style={{background:'linear-gradient(135deg,#d97706,#b45309)',color:'#fff',fontSize:10,fontWeight:800,padding:'3px 9px',borderRadius:20,display:'inline-block',marginBottom:4,boxShadow:'0 2px 6px rgba(217,119,6,0.4)',letterSpacing:.5}}>⭐ YOUR AD</span>
+                  <span style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#ffffff',fontSize:11,fontWeight:900,padding:'4px 12px',borderRadius:20,display:'inline-flex',alignItems:'center',gap:4,marginBottom:6,boxShadow:'0 3px 10px rgba(245,158,11,0.5)',letterSpacing:.5,border:'1px solid #fbbf24'}}>
+                    👑⭐ YOUR AD
+                  </span>
                 ) : ad.is_sponsored ? (
-                  <span style={{background:'#451a03',color:'#f59e0b',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,display:'inline-block',marginBottom:4}}>⭐ SPONSORED</span>
+                  <span style={{background:'linear-gradient(135deg,#eab308,#ca8a04)',color:'#000000',fontSize:11,fontWeight:900,padding:'4px 12px',borderRadius:20,display:'inline-flex',alignItems:'center',gap:4,marginBottom:6,boxShadow:'0 3px 10px rgba(234,179,8,0.5)',letterSpacing:.5,border:'1px solid #fef08a'}}>
+                    🚀🔥 SPONSORED CAMPAIGN
+                  </span>
                 ) : null}
                 <h4 style={{color:'var(--text)',fontSize:14,fontWeight:700,margin:0}}>{ad.title}</h4>
               </div>

@@ -156,18 +156,29 @@ def my_requests(current_user: User = Depends(get_current_user), db: Session = De
     return res
 
 @router.post("/reactivate/{req_id}")
-def reactivate_request(req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def reactivate_request(
+    req_id: int,
+    payment_method: str = Form(None),
+    sender_name: str = Form(""),
+    transaction_id: str = Form(""),
+    screenshot: UploadFile = File(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id, UserAdRequest.user_id == current_user.id).first()
     if not req:
         raise HTTPException(status_code=404, detail="Campaign not found")
     if req.status not in ["rejected", "completed"]:
         raise HTTPException(status_code=400, detail="Only completed or rejected campaigns can be reactivated")
     
-    if req.payment_method == "wallet":
+    pay_method = payment_method or req.payment_method or "wallet"
+
+    if pay_method == "wallet":
         if current_user.balance < req.total_cost:
             raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {req.total_cost}, Available: Rs. {round(current_user.balance, 2)}")
         current_user.balance -= req.total_cost
         req.status = "approved"
+        req.payment_method = "wallet"
         req.members_reached = 0
         req.admin_note = None
         db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update({"is_active": False})
@@ -183,8 +194,24 @@ def reactivate_request(req_id: int, current_user: User = Depends(get_current_use
         db.commit()
         return {"message": "Campaign reactivated & live now! 🚀", "status": "approved"}
     else:
+        screenshot_path = req.screenshot_path
+        if screenshot:
+            ext = os.path.splitext(screenshot.filename)[-1].lower()
+            if ext in [".jpg", ".jpeg", ".png", ".webp"]:
+                filename = f"{uuid.uuid4().hex}{ext}"
+                with open(os.path.join(UPLOAD_DIR, filename), "wb") as f:
+                    shutil.copyfileobj(screenshot.file, f)
+                screenshot_path = filename
+
         db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update({"is_active": False})
         req.status = "pending"
+        req.payment_method = pay_method
+        if sender_name.strip():
+            req.sender_name = sender_name.strip()
+        if transaction_id.strip():
+            req.transaction_id = transaction_id.strip()
+        if screenshot_path:
+            req.screenshot_path = screenshot_path
         req.members_reached = 0
         req.admin_note = None
         db.commit()
