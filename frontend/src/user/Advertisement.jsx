@@ -21,6 +21,7 @@ export default function Advertisement({
   const [countdown, setCountdown] = useState(() => parseInt(sessionStorage.getItem('sgc_ad_countdown')) || 0);
   const [isWatching, setIsWatching] = useState(false);
   const [historyLimit, setHistoryLimit] = useState(10);
+  const isCompletingRef = React.useRef(false);
 
   const handleReturnToSite = useCallback(() => {
     const hiddenAt = parseInt(sessionStorage.getItem('sgc_hidden_at'));
@@ -88,12 +89,14 @@ export default function Advertisement({
 
   useEffect(()=>{
     if (!activeAd) return;
-    if (countdown <= 0){
+    if (countdown <= 0 && !isCompletingRef.current){
+      isCompletingRef.current = true;
       API.post(`/user/click/complete/${activeAd.id}`)
         .then(r=>{
           notify(`+Rs. ${r.data.amount.toFixed(2)} earned! 🎉`);
           setActiveAd(null);
           setIsWatching(false);
+          isCompletingRef.current = false;
           sessionStorage.removeItem('sgc_active_ad');
           sessionStorage.removeItem('sgc_ad_countdown');
           sessionStorage.removeItem('sgc_hidden_at');
@@ -103,6 +106,7 @@ export default function Advertisement({
           notify(err.response?.data?.detail||'Error','error'); 
           setActiveAd(null); 
           setIsWatching(false); 
+          isCompletingRef.current = false;
           sessionStorage.removeItem('sgc_active_ad'); 
           sessionStorage.removeItem('sgc_hidden_at'); 
         });

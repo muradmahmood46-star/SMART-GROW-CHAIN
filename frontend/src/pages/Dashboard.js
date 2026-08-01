@@ -70,7 +70,7 @@ export default function Dashboard() {
     _setTab(newTab);
   }, [tab]);
 
-  const notify = (text, type='success') => { setMsg({text,type}); setTimeout(()=>setMsg({text:'',type:''}),3500); };
+  const notify = useCallback((text, type='success') => { setMsg({text,type}); setTimeout(()=>setMsg({text:'',type:''}),3500); }, []);
 
   const [adPlanRequired, setAdPlanRequired] = useState(false);
 
