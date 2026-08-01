@@ -48,30 +48,13 @@ export default function AdminSidebar({
           API.get('/admin/plan-purchases').catch(()=>({data:[]})),
         ]);
         if (active) {
-          const purchases = p.data || [];
-          const lastSeenIdStr = localStorage.getItem('admin_last_seen_plan_purchase_id');
-          
-          let unreadPurchases = 0;
-          if (lastSeenIdStr !== null) {
-            const lastSeenId = Number(lastSeenIdStr) || 0;
-            unreadPurchases = purchases.filter(x => (Number(x.id) || 0) > lastSeenId).length;
-          } else if (purchases.length > 0) {
-            updatePlanPurchasesSeen(purchases);
-            unreadPurchases = 0;
-          }
-
-          if (tab === 'plan-purchases') {
-            updatePlanPurchasesSeen(purchases);
-            unreadPurchases = 0;
-          }
-
           setCounts({
             pendingW: (w.data||[]).filter(x=>x.status==='pending').length,
             pendingD: (d.data||[]).filter(x=>x.status==='pending').length,
             openT: (t.data||[]).filter(x=>x.status==='open').length,
             pendingAdReqs: (a.data||[]).filter(x=>x.status==='pending').length,
             pendingKyc: tab === 'kyc' ? 0 : (k.data||[]).filter(x=>x.status==='pending' && !x.is_seen).length,
-            pendingPlanPurchases: tab === 'plan-purchases' ? 0 : unreadPurchases,
+            pendingPlanPurchases: (p.data||[]).filter(x=>x.status==='pending').length,
           });
         }
       } catch (e) {}
@@ -83,8 +66,7 @@ export default function AdminSidebar({
 
   useEffect(() => {
     if (tab === 'plan-purchases') {
-      API.get('/admin/plan-purchases').then(r => updatePlanPurchasesSeen(r.data)).catch(()=>{});
-      setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
+      // Intentionally left blank, count logic handled above
     }
     if (tab === 'kyc') {
       setCounts(prev => ({ ...prev, pendingKyc: 0 }));
@@ -94,8 +76,7 @@ export default function AdminSidebar({
   const handleTab = (key) => {
     setTab(key);
     if (key === 'plan-purchases') {
-      API.get('/admin/plan-purchases').then(r => updatePlanPurchasesSeen(r.data)).catch(()=>{});
-      setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
+      // Intentionally left blank
     }
     if (key === 'kyc') {
       setCounts(prev => ({ ...prev, pendingKyc: 0 }));

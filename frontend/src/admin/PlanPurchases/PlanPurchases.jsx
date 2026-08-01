@@ -118,7 +118,8 @@ export default function PlanPurchases({ notify, loadData }) {
             </div>
           );
         })}
-        {planPurchases.length===0&&<div className="sgc-empty">No plan purchase requests yet</div>}
+        {!loading&&planPurchases.length===0&&<div className="sgc-empty">No plan purchase requests yet</div>}
+        {loading&&<div className="sgc-empty" style={{color:'var(--dim)'}}>Loading requests...</div>}
       </div>
     </div>
   );
