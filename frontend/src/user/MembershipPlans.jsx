@@ -239,8 +239,13 @@ export default function MembershipPlans({
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16,marginBottom:28}}>
           {plans.map((p,i)=>{
             const isCurrent = hasActivatedPlan && !isExpired && profile.membership === p.name;
-            const colors=['var(--dim)','var(--accent)','var(--yellow)','var(--purple)'];
-            const col=colors[i]||'var(--accent)';
+            const lowerName = (p.name || '').toLowerCase();
+            let col = '#0284c7'; // default
+            if (lowerName.includes('free')) col = '#eab308'; // Yellow
+            else if (lowerName.includes('silver')) col = '#0ea5e9'; // Sky Blue
+            else if (lowerName.includes('gold')) col = '#22c55e'; // Green
+            else if (lowerName.includes('premium') || lowerName.includes('platinum')) col = '#db2777'; // Dark Pink
+            else if (lowerName.includes('diamond') || lowerName.includes('vip')) col = '#a16207'; // Brown
             let lvlMap={};
             let detailMap={};
             try{ lvlMap=JSON.parse(p.level_commissions||'{}'); }catch{}
@@ -271,13 +276,21 @@ export default function MembershipPlans({
                 </div>
                 {!isCurrent && p.price>0 && (
                   <button onClick={()=>handleSelectPlan(p)} disabled={isPurchasing}
-                    style={{width:'100%',padding:'10px',background:col,color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1}}>
+                    style={{width:'100%',padding:'10px',background:col,color:'#ffffff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1,boxShadow:`0 4px 14px ${col}40`,transition:'all .2s'}}
+                    onMouseEnter={(e)=>e.target.style.filter='brightness(1.1)'}
+                    onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
+                    onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
+                    onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
                     Upgrade to {p.name}
                   </button>
                 )}
                 {!isCurrent && p.price===0 && (
                   <button onClick={()=>handleSelectPlan(p)} disabled={isPurchasing}
-                    style={{width:'100%',padding:'10px',background:'var(--accent)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1}}>
+                    style={{width:'100%',padding:'10px',background:col,color:'#ffffff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1,boxShadow:`0 4px 14px ${col}40`,transition:'all .2s'}}
+                    onMouseEnter={(e)=>e.target.style.filter='brightness(1.1)'}
+                    onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
+                    onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
+                    onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
                     Activate Free Plan
                   </button>
                 )}
