@@ -585,24 +585,45 @@ async def purchase_plan(
         db.commit()
         return {"message": "Free plan activated successfully."}
     elif payment_method == "wallet":
-        # Change 4: wallet — check balance, deduct, activate immediately
-        if current_user.balance < plan.price:
-            raise HTTPException(status_code=400, detail=f"insufficient_balance:{plan.price}:{round(current_user.balance, 2)}")
-        current_user.balance -= plan.price
+        # Verify wallet balance
+        user_balance = current_user.balance or 0.0
+        if user_balance < plan.price:
+            raise HTTPException(status_code=400, detail="Insufficient balance. Please deposit first.")
+        
+        # Deduct exact plan price and activate plan atomically
+        current_user.balance = user_balance - plan.price
         current_user.membership = plan.name
         current_user.plan_expires_at = datetime.utcnow() + timedelta(days=plan.period_days or 30)
+        
         req = PlanPurchaseRequest(
-            user_id=current_user.id, plan_id=plan.id, plan_name=plan.name, plan_price=plan.price,
-            payment_method="wallet", status="approved"
+            user_id=current_user.id,
+            plan_id=plan.id,
+            plan_name=plan.name,
+            plan_price=plan.price,
+            payment_method="wallet",
+            status="approved"
         )
         db.add(req)
-        db.add(Notification(user_id=current_user.id, title="Plan Activated ✅", message=f"Your {plan.name} plan has been activated. Rs. {plan.price} deducted from wallet."))
-        # Admin notification
+        
+        # User notification
+        db.add(Notification(
+            user_id=current_user.id,
+            title="Plan Activated ✅",
+            message=f"Your {plan.name} plan has been activated. Rs. {plan.price} deducted from wallet."
+        ))
+        
+        # Admin notification: "[User Name] activated [Plan Name]."
         admins = db.query(User).filter(User.is_admin == True).all()
         for admin in admins:
-            db.add(Notification(user_id=admin.id, title="Plan Purchased 🏆", message=f"{current_user.username} activated {plan.name} plan. Rs. {plan.price} deducted from wallet."))
+            db.add(Notification(
+                user_id=admin.id,
+                title="Plan Activated 🏆",
+                message=f"{current_user.username} activated {plan.name}."
+            ))
+        
         db.commit()
-        return {"message": f"{plan.name} plan activated successfully! Rs. {plan.price} deducted from your wallet.", "activated": True}
+        db.refresh(current_user)
+        return {"message": f"{plan.name} plan activated successfully!", "activated": True}
     else:
         if not screenshot:
             raise HTTPException(status_code=400, detail="Screenshot required for Easypaisa payment")
