@@ -61,6 +61,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Smart Grow Chain API", lifespan=lifespan)
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"detail": str(exc), "traceback": traceback.format_exc()})
+
 origins = [
     "http://localhost:3000",
     "http://localhost:5173",
