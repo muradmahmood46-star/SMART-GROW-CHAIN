@@ -1,6 +1,5 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-
 import { parseUTCDate } from '../utils/dateUtils';
 import API from '../api';
 
@@ -13,23 +12,155 @@ export default function MembershipPlans({
   const [plans, setPlans] = useState([]);
   const [myPlanPurchases, setMyPlanPurchases] = useState([]);
   const [epAccounts, setEpAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  
+  // Payment Form States matching Deposit section exactly
   const [planPayMethod, setPlanPayMethod] = useState('wallet');
-  const [planScreenshot, setPlanScreenshot] = useState(null);
   const [planSenderName, setPlanSenderName] = useState('');
   const [planSenderPhone, setPlanSenderPhone] = useState('');
-  const [planTransactionId, setPlanTransactionId] = useState('');
+  const [planTrxId, setPlanTrxId] = useState('');
+  const [planBankName, setPlanBankName] = useState('');
+  const [planAccountHolder, setPlanAccountHolder] = useState('');
+  const [planAccountNumber, setPlanAccountNumber] = useState('');
+  const [planNote, setPlanNote] = useState('');
+  const [planScreenshot, setPlanScreenshot] = useState(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     API.get('/user/plans').then(r=>setPlans(r.data)).catch(()=>{});
     API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
-    API.get('/deposit/easypaisa-accounts').then(r=>setEpAccounts(r.data)).catch(()=>{});
+    API.get('/deposit/easypaisa-accounts').then(r => {
+      setEpAccounts(r.data);
+      setLoadingAccounts(false);
+    }).catch(() => {
+      setLoadingAccounts(false);
+    });
     
     const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const resetFormState = () => {
+    setPlanPayMethod('wallet');
+    setPlanSenderName('');
+    setPlanSenderPhone('');
+    setPlanTrxId('');
+    setPlanBankName('');
+    setPlanAccountHolder('');
+    setPlanAccountNumber('');
+    setPlanNote('');
+    setPlanScreenshot(null);
+  };
+
+  const handleSelectPlan = (p) => {
+    setSelectedPlan(p);
+    resetFormState();
+    if (p.price > 0 && profile.balance < p.price) {
+      // Default to first available manual deposit method if wallet balance is insufficient
+      const hasEP = epAccounts.some(a => (a.method_type || 'easypaisa') === 'easypaisa');
+      const hasJC = epAccounts.some(a => (a.method_type || 'easypaisa') === 'jazzcash');
+      const hasBank = epAccounts.some(a => a.method_type === 'bank');
+      if (hasEP) setPlanPayMethod('easypaisa');
+      else if (hasJC) setPlanPayMethod('jazzcash');
+      else if (hasBank) setPlanPayMethod('bank');
+    }
+  };
+
+  const handleSubmitPurchase = async (e) => {
+    if (e) e.preventDefault();
+    if (isPurchasing || !selectedPlan) return;
+
+    // Free plan activation
+    if (selectedPlan.price === 0) {
+      setIsPurchasing(true);
+      try {
+        const fd = new FormData();
+        fd.append('plan_id', selectedPlan.id);
+        fd.append('payment_method', 'wallet');
+        await API.post('/user/plan/purchase', fd);
+        notify('Free plan activated successfully! ✅');
+        setSelectedPlan(null);
+        if (loadData) loadData();
+        API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
+      } catch (err) {
+        notify(err.response?.data?.detail || 'Failed to activate plan', 'error');
+      } finally {
+        setIsPurchasing(false);
+      }
+      return;
+    }
+
+    // Wallet activation
+    if (planPayMethod === 'wallet') {
+      if (profile.balance < selectedPlan.price) {
+        notify(`Insufficient balance. Required: Rs. ${selectedPlan.price}`, 'error');
+        return;
+      }
+      setIsPurchasing(true);
+      try {
+        const fd = new FormData();
+        fd.append('plan_id', selectedPlan.id);
+        fd.append('payment_method', 'wallet');
+        await API.post('/user/plan/purchase', fd);
+        notify(`Plan activated successfully! Rs. ${selectedPlan.price} deducted. ✅`);
+        setSelectedPlan(null);
+        if (loadData) loadData();
+        API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
+      } catch (err) {
+        notify(err.response?.data?.detail || 'Failed to activate plan', 'error');
+      } finally {
+        setIsPurchasing(false);
+      }
+      return;
+    }
+
+    // Manual Deposit Payment Methods (Easypaisa, JazzCash, Bank Transfer)
+    if (!planScreenshot) {
+      notify('Please upload payment screenshot', 'error');
+      return;
+    }
+
+    if (planPayMethod === 'bank' && (!planBankName || !planAccountHolder || !planAccountNumber)) {
+      notify('Please fill all bank details', 'error');
+      return;
+    }
+
+    if ((planPayMethod === 'easypaisa' || planPayMethod === 'jazzcash') && (!planSenderName || !planSenderPhone || !planTrxId)) {
+      notify('Please fill sender name, account number and TRX ID', 'error');
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      const fd = new FormData();
+      fd.append('plan_id', selectedPlan.id);
+      fd.append('payment_method', planPayMethod);
+
+      if (planPayMethod === 'bank') {
+        fd.append('sender_name', planAccountHolder.trim());
+        fd.append('sender_phone', `BANK|${planBankName.trim()}|${planAccountNumber.trim()}${planNote ? '|Note:' + planNote.trim() : ''}`);
+      } else {
+        fd.append('sender_name', planSenderName.trim());
+        fd.append('sender_phone', `TRX:${planTrxId.trim()}|Phone:${planSenderPhone.trim()}${planNote ? '|Note:' + planNote.trim() : ''}`);
+      }
+
+      if (planScreenshot) {
+        fd.append('screenshot', planScreenshot);
+      }
+
+      await API.post('/user/plan/purchase', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      notify('Plan purchase & deposit request submitted! Admin will activate shortly. ✅');
+      setSelectedPlan(null);
+      if (loadData) loadData();
+      API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
+    } catch (err) {
+      notify(err.response?.data?.detail || 'Error submitting purchase request', 'error');
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   const hasActivatedPlan = profile?.membership && profile.membership !== 'none' && (profile.plan_expires_at || profile.free_plan_expires_at);
   const activeExpiry = profile?.membership === 'free' ? profile.free_plan_expires_at : profile?.plan_expires_at;
@@ -138,13 +269,13 @@ export default function MembershipPlans({
                   ))}
                 </div>
                 {!isCurrent && p.price>0 && (
-                  <button onClick={()=>{ setSelectedPlan(p); setPlanPayMethod('wallet'); setPlanScreenshot(null); setPlanSenderName(''); setPlanSenderPhone(''); }}
+                  <button onClick={()=>handleSelectPlan(p)}
                     style={{width:'100%',padding:'10px',background:col,color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
                     Upgrade to {p.name}
                   </button>
                 )}
                 {!isCurrent && p.price===0 && (
-                  <button onClick={()=>{ setSelectedPlan(p); setPlanPayMethod('wallet'); }}
+                  <button onClick={()=>handleSelectPlan(p)}
                     style={{width:'100%',padding:'10px',background:'var(--accent)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
                     Activate Free Plan
                   </button>
@@ -156,160 +287,303 @@ export default function MembershipPlans({
         </div>
       )}
 
-      {/* Payment form */}
+      {/* PLAN PURCHASE / DEPOSIT WORKFLOW SECTION */}
       {selectedPlan && (
-        <div style={{maxWidth:520}}>
-          <button onClick={()=>setSelectedPlan(null)} style={{background:'none',border:'none',color:'var(--accent)',cursor:'pointer',fontSize:13,fontWeight:600,marginBottom:16,fontFamily:'var(--font)',padding:0}}>← Back to Plans</button>
-          <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px',marginBottom:20}}>
-            <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 4px',fontWeight:600}}>SELECTED PLAN</p>
-            <p style={{color:'var(--yellow)',fontSize:20,fontWeight:800,margin:0,textTransform:'capitalize'}}>{selectedPlan.name} — Rs. {selectedPlan.price}</p>
+        <div style={{maxWidth:600}}>
+          <button onClick={()=>setSelectedPlan(null)} style={{background:'none',border:'none',color:'var(--accent)',cursor:'pointer',fontSize:13,fontWeight:600,marginBottom:16,fontFamily:'var(--font)',padding:0}}>
+            ← Back to Plans
+          </button>
+          
+          <div style={{background:'linear-gradient(135deg,#072a4a,#03182b)',border:'1.5px solid #0284c7',borderRadius:16,padding:'20px 22px',marginBottom:20,boxShadow:'0 8px 24px rgba(2,132,199,0.2)'}}>
+            <p style={{color:'#38bdf8',fontSize:12,margin:'0 0 4px',fontWeight:800,letterSpacing:1}}>SELECTED PLAN FOR ACTIVATION</p>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+              <p style={{color:'#f8fafc',fontSize:22,fontWeight:900,margin:0,textTransform:'capitalize'}}>🏆 {selectedPlan.name} Plan</p>
+              <span style={{background:'#0284c7',color:'#ffffff',padding:'6px 16px',borderRadius:20,fontSize:16,fontWeight:900,boxShadow:'0 2px 8px rgba(2,132,199,0.4)'}}>
+                Rs. {selectedPlan.price}
+              </span>
+            </div>
           </div>
 
-          {/* Method selector — only for paid plans */}
-          {selectedPlan.price > 0 && (
-            <>
-              <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>PAYMENT METHOD</p>
-              <div style={{display:'flex',gap:10,marginBottom:20}}>
-                {[['wallet','💳 Wallet'],['easypaisa','📱 Easypaisa'],['jazzcash','💳 JazzCash'],['bank','🏦 Bank Transfer']].map(([val,label])=>(
-                  <div key={val} onClick={()=>setPlanPayMethod(val)}
-                    style={{flex:1,padding:'12px',borderRadius:10,border:`2px solid ${planPayMethod===val?'var(--accent)':'var(--border)'}`,background:planPayMethod===val?'#0d1e38':'var(--bg)',cursor:'pointer',textAlign:'center',color:planPayMethod===val?'var(--accent)':'var(--muted)',fontWeight:700,fontSize:13,transition:'all .2s'}}>
-                    {label}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Free plan — just confirm */}
-          {selectedPlan.price === 0 && (
-            <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-              <p style={{color:'#4ade80',fontSize:13,fontWeight:600,margin:0}}>✓ This is a free plan. Click below to activate it.</p>
+          {/* FREE PLAN ACTIVATION */}
+          {selectedPlan.price === 0 ? (
+            <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:14,padding:'20px',marginBottom:20,textAlign:'center'}}>
+              <p style={{color:'#4ade80',fontSize:15,fontWeight:700,margin:'0 0 16px'}}>✓ This is a free plan. Click below to activate it immediately.</p>
+              <button
+                type="button"
+                className="sgc-btn-primary"
+                disabled={isPurchasing}
+                onClick={handleSubmitPurchase}
+                style={{width:'100%',padding:'14px',fontSize:15,fontWeight:800}}>
+                {isPurchasing ? 'Activating...' : '✔ Activate Free Plan Now'}
+              </button>
             </div>
-          )}
-
-          {/* Wallet */}
-          {selectedPlan.price > 0 && planPayMethod==='wallet' && (
-            <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:'16px 18px',marginBottom:16}}>
-              <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 8px',fontWeight:600}}>WALLET BALANCE</p>
-              <p style={{color:profile.balance>=selectedPlan.price?'var(--green)':'var(--red)',fontSize:22,fontWeight:800,margin:'0 0 4px'}}>Rs. {profile.balance.toFixed(2)}</p>
-              {profile.balance < selectedPlan.price
-                ? <p style={{color:'var(--red)',fontSize:12,margin:0}}>⚠️ Insufficient balance. Need Rs. {(selectedPlan.price - profile.balance).toFixed(2)} more. Please deposit first.</p>
-                : <p style={{color:'var(--green)',fontSize:12,margin:0}}>✓ Sufficient balance. Rs. {selectedPlan.price} will be deducted.</p>
-              }
-            </div>
-          )}
-
-          {/* Insufficient balance - show deposit button */}
-          {selectedPlan.price > 0 && planPayMethod==='wallet' && profile.balance < selectedPlan.price && (
-            <div style={{background:'#451a03',border:'1.5px solid #f59e0b',borderRadius:12,padding:'18px 20px',marginBottom:16}}>
-              <p style={{color:'#fbbf24',fontSize:14,fontWeight:700,margin:'0 0 10px'}}>⚠️ Insufficient Wallet Balance</p>
-              <p style={{color:'var(--dim)',fontSize:13,margin:'0 0 14px'}}>You need Rs. {(selectedPlan.price - profile.balance).toFixed(2)} more to purchase this plan.</p>
-              <button type="button" onClick={()=>setTab('transfer')} style={{width:'100%',padding:'12px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)'}}>💳 Go to Deposit Section</button>
-            </div>
-          )}
-
-          {/* Manual Payment Methods (Easypaisa, JazzCash, Bank) */}
-          {selectedPlan.price > 0 && planPayMethod !== 'wallet' && (
-            <>
-              {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).slice(0,1).map(a=>{
-                const isEP=(a.method_type||'easypaisa')==='easypaisa';
-                const isBank=a.method_type==='bank';
-                const col=isEP?'#22c55e':isBank?'#3b82f6':'#ef4444';
-                const bg=isEP?'linear-gradient(135deg,#dcfce7,#86efac)':isBank?'linear-gradient(135deg,#dbeafe,#60a5fa)':'linear-gradient(135deg,#fee2e2,#f87171)';
-                const methodLabel=isEP?'EASYPAISA':isBank?'BANK TRANSFER':'JAZZCASH';
-                return (
-                  <div key={a.id} style={{background:bg,border:`2px solid ${col}`,borderRadius:16,padding:'20px 22px',minHeight:210,boxShadow:`0 10px 24px ${col}26`,color:'#0f172a',marginBottom:20}}>
-                    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-                      <div style={{width:46,height:46,borderRadius:12,background:'#0f172a',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,flexShrink:0}}>
-                        {isEP?'EP':isBank?'BK':'JC'}
-                      </div>
-                      <div>
-                        <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:'0 0 3px',letterSpacing:.6}}>{methodLabel}</p>
-                        <p style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)',fontWeight:900,fontSize:18,margin:0}}>{a.account_title}</p>
-                      </div>
-                    </div>
-                    <div style={{background:'rgba(15,23,42,.9)',borderRadius:12,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-                      <div>
-                        <p style={{color:'#cbd5e1',fontSize:10,margin:'0 0 3px',fontWeight:700}}>Account Number</p>
-                        <p style={{color:'#facc15',fontFamily:'monospace',fontSize:17,fontWeight:900,letterSpacing:1,margin:0,wordBreak:'break-all'}}>{a.account_number}</p>
-                      </div>
-                      <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#facc15',border:'none',color:'#111827',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,fontWeight:900,fontFamily:'var(--font)'}}>Copy</button>
-                    </div>
-                    {isBank&&(
-                      <div style={{marginTop:10,color:'#0f172a',fontSize:13,lineHeight:1.7,fontWeight:700}}>
-                        <div>Bank: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.bank_name||'Bank Transfer'}</b></div>
-                        <div>Account title: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.account_title}</b></div>
-                      </div>
-                    )}
-                    {a.deposit_message && (
-                      <div style={{marginTop:12,background:'rgba(255,255,255,.72)',border:'1px solid rgba(15,23,42,.15)',borderRadius:10,padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
-                        <span style={{fontSize:15,flexShrink:0}}>💬</span>
-                        <p style={{color:'#0f172a',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap',fontWeight:700}}>{a.deposit_message}</p>
-                      </div>
-                    )}
-                    <div style={{marginTop:16,paddingTop:12,borderTop:`2px dashed ${col}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:0}}>AMOUNT TO SEND:</p>
-                      <p style={{color:'#e11d48',fontSize:19,fontWeight:900,margin:0}}>Rs. {selectedPlan.price}</p>
-                    </div>
-                  </div>
-                );
-              })}
+          ) : (
+            /* PAID PLAN — PAYMENT METHOD SELECTOR & SYNCHRONIZED DEPOSIT CARDS */
+            <div>
+              <p style={{color:'var(--muted)',fontSize:12,fontWeight:800,letterSpacing:1,marginBottom:12}}>SELECT PAYMENT METHOD</p>
               
-              {epAccounts.filter(a=>(a.method_type||'easypaisa')===planPayMethod).length===0 && (
-                <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:14,marginBottom:16}}>
-                  <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No active {planPayMethod} account available. Please select another method.</p>
+              {/* Payment Method Selector Grid matching Deposit section */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(130px,1fr))',gap:12,marginBottom:24}}>
+                
+                {/* 1. WALLET METHOD */}
+                <div
+                  onClick={() => setPlanPayMethod('wallet')}
+                  style={{
+                    padding:'14px 10px',
+                    borderRadius:14,
+                    border: `2px solid ${planPayMethod === 'wallet' ? '#38bdf8' : 'var(--border)'}`,
+                    background: planPayMethod === 'wallet' ? '#0c2847' : 'var(--card)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all .2s',
+                    boxShadow: planPayMethod === 'wallet' ? '0 6px 18px rgba(56,189,248,0.25)' : 'none'
+                  }}>
+                  <div style={{fontSize:20,marginBottom:4}}>💳</div>
+                  <div style={{color: planPayMethod === 'wallet' ? '#38bdf8' : 'var(--text)', fontWeight: 800, fontSize: 13}}>Wallet</div>
+                  <div style={{color:'var(--dim)',fontSize:10,fontWeight:600,marginTop:2}}>Rs. {profile.balance.toFixed(2)}</div>
+                </div>
+
+                {/* 2. EASYPAISA METHOD */}
+                {(() => {
+                  const hasEP = epAccounts.some(a => (a.method_type || 'easypaisa') === 'easypaisa');
+                  return (
+                    <div
+                      onClick={() => hasEP && setPlanPayMethod('easypaisa')}
+                      style={{
+                        padding:'14px 10px',
+                        borderRadius:14,
+                        border: `2px solid ${planPayMethod === 'easypaisa' ? '#22c55e' : 'var(--border)'}`,
+                        background: planPayMethod === 'easypaisa' ? '#072713' : 'var(--card)',
+                        cursor: hasEP ? 'pointer' : 'not-allowed',
+                        opacity: hasEP ? 1 : 0.5,
+                        textAlign: 'center',
+                        transition: 'all .2s',
+                        boxShadow: planPayMethod === 'easypaisa' ? '0 6px 18px rgba(34,197,94,0.25)' : 'none'
+                      }}>
+                      <div style={{fontSize:20,marginBottom:4}}>📱</div>
+                      <div style={{color: planPayMethod === 'easypaisa' ? '#22c55e' : 'var(--text)', fontWeight: 800, fontSize: 13}}>Easypaisa</div>
+                      <div style={{color:'var(--dim)',fontSize:10,fontWeight:600,marginTop:2}}>{hasEP ? 'Available' : 'N/A'}</div>
+                    </div>
+                  );
+                })()}
+
+                {/* 3. JAZZCASH METHOD */}
+                {(() => {
+                  const hasJC = epAccounts.some(a => (a.method_type || 'easypaisa') === 'jazzcash');
+                  return (
+                    <div
+                      onClick={() => hasJC && setPlanPayMethod('jazzcash')}
+                      style={{
+                        padding:'14px 10px',
+                        borderRadius:14,
+                        border: `2px solid ${planPayMethod === 'jazzcash' ? '#ef4444' : 'var(--border)'}`,
+                        background: planPayMethod === 'jazzcash' ? '#3b0a0a' : 'var(--card)',
+                        cursor: hasJC ? 'pointer' : 'not-allowed',
+                        opacity: hasJC ? 1 : 0.5,
+                        textAlign: 'center',
+                        transition: 'all .2s',
+                        boxShadow: planPayMethod === 'jazzcash' ? '0 6px 18px rgba(239,68,68,0.25)' : 'none'
+                      }}>
+                      <div style={{fontSize:20,marginBottom:4}}>💳</div>
+                      <div style={{color: planPayMethod === 'jazzcash' ? '#ef4444' : 'var(--text)', fontWeight: 800, fontSize: 13}}>JazzCash</div>
+                      <div style={{color:'var(--dim)',fontSize:10,fontWeight:600,marginTop:2}}>{hasJC ? 'Available' : 'N/A'}</div>
+                    </div>
+                  );
+                })()}
+
+                {/* 4. BANK TRANSFER METHOD */}
+                {(() => {
+                  const hasBank = epAccounts.some(a => a.method_type === 'bank');
+                  return (
+                    <div
+                      onClick={() => hasBank && setPlanPayMethod('bank')}
+                      style={{
+                        padding:'14px 10px',
+                        borderRadius:14,
+                        border: `2px solid ${planPayMethod === 'bank' ? '#3b82f6' : 'var(--border)'}`,
+                        background: planPayMethod === 'bank' ? '#0c192e' : 'var(--card)',
+                        cursor: hasBank ? 'pointer' : 'not-allowed',
+                        opacity: hasBank ? 1 : 0.5,
+                        textAlign: 'center',
+                        transition: 'all .2s',
+                        boxShadow: planPayMethod === 'bank' ? '0 6px 18px rgba(59,130,246,0.25)' : 'none'
+                      }}>
+                      <div style={{fontSize:20,marginBottom:4}}>🏦</div>
+                      <div style={{color: planPayMethod === 'bank' ? '#3b82f6' : 'var(--text)', fontWeight: 800, fontSize: 13}}>Bank Transfer</div>
+                      <div style={{color:'var(--dim)',fontSize:10,fontWeight:600,marginTop:2}}>{hasBank ? 'Available' : 'N/A'}</div>
+                    </div>
+                  );
+                })()}
+
+              </div>
+
+              {/* METHOD 1: WALLET PAYMENT */}
+              {planPayMethod === 'wallet' && (
+                <div>
+                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px',marginBottom:20}}>
+                    <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 6px',fontWeight:700,letterSpacing:.5}}>YOUR WALLET BALANCE</p>
+                    <p style={{color: profile.balance >= selectedPlan.price ? 'var(--green)' : 'var(--red)', fontSize:24, fontWeight:900, margin:'0 0 8px'}}>
+                      Rs. {profile.balance.toFixed(2)}
+                    </p>
+                    {profile.balance >= selectedPlan.price ? (
+                      <p style={{color:'#4ade80',fontSize:13,margin:0,fontWeight:600}}>
+                        ✓ Sufficient wallet balance! Rs. {selectedPlan.price} will be deducted automatically and your plan activated immediately.
+                      </p>
+                    ) : (
+                      <p style={{color:'#fca5a5',fontSize:13,margin:0,fontWeight:600}}>
+                        ⚠️ Your wallet balance (Rs. {profile.balance.toFixed(2)}) is less than plan price (Rs. {selectedPlan.price}). Needed: Rs. {(selectedPlan.price - profile.balance).toFixed(2)} more. Please select a deposit method above or deposit first.
+                      </p>
+                    )}
+                  </div>
+
+                  {profile.balance >= selectedPlan.price ? (
+                    <button
+                      type="button"
+                      className="sgc-btn-primary"
+                      disabled={isPurchasing}
+                      onClick={handleSubmitPurchase}
+                      style={{width:'100%',padding:'14px',fontSize:15,fontWeight:800}}>
+                      {isPurchasing ? 'Activating...' : `🚀 Activate Plan via Wallet (Rs. ${selectedPlan.price})`}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setTab('transfer')}
+                      style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'var(--bg)',border:'none',borderRadius:12,fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 4px 14px rgba(245,158,11,0.4)'}}>
+                      💳 Go to Deposit Section
+                    </button>
+                  )}
                 </div>
               )}
 
-              <label className="sgc-label">Your Name (Sender)</label>
-              <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)} required/>
-              
-              <label className="sgc-label">Transaction ID / Sender Number</label>
-              <input className="sgc-input" type="text" placeholder="Enter TRX ID or Sender Phone" value={planTransactionId || planSenderPhone} onChange={e=>{
-                setPlanTransactionId(e.target.value);
-                setPlanSenderPhone(e.target.value);
-              }} required/>
-              
-              <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
-              <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'16px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
-                <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setPlanScreenshot(e.target.files[0])}/>
-                {planScreenshot?<p style={{color:'var(--green)',margin:0}}>✓ {planScreenshot.name}</p>:<p style={{color:'var(--dim)',margin:0}}>📸 Click to upload screenshot</p>}
-              </label>
-            </>
-          )}
+              {/* METHOD 2: MANUAL DEPOSIT METHODS (Easypaisa, JazzCash, Bank Transfer) EXACT MATCH WITH DEPOSIT SECTION */}
+              {planPayMethod !== 'wallet' && (
+                <div>
+                  {/* Account Information Cards - Synchronized with Deposit Section */}
+                  {loadingAccounts && epAccounts.length === 0 ? (
+                    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:'24px 20px',textAlign:'center',marginBottom:24}}>
+                      <p style={{color:'var(--dim)',fontSize:13,margin:0,fontWeight:600}}>Loading deposit accounts...</p>
+                    </div>
+                  ) : (
+                    epAccounts.filter(a => (a.method_type || 'easypaisa') === planPayMethod).map(a => {
+                      const isEP = (a.method_type || 'easypaisa') === 'easypaisa';
+                      const isBank = a.method_type === 'bank';
+                      const col = isEP ? '#22c55e' : isBank ? '#3b82f6' : '#ef4444';
+                      const bg = isEP ? 'linear-gradient(135deg,#dcfce7,#86efac)' : isBank ? 'linear-gradient(135deg,#dbeafe,#60a5fa)' : 'linear-gradient(135deg,#fee2e2,#f87171)';
+                      const methodLabel = isEP ? 'EASYPAISA' : isBank ? 'BANK TRANSFER' : 'JAZZCASH';
 
-          {selectedPlan.price > 0 && planPayMethod === 'wallet' && profile?.balance < selectedPlan.price ? (
-            <div style={{background:'#450a0a', border:'1px solid #ef4444', borderRadius:10, padding:16, textAlign:'center'}}>
-              <p style={{color:'#fca5a5', margin:'0 0 12px', fontWeight:600}}>Insufficient balance. Please deposit first.</p>
-              <button type="button" className="sgc-btn-secondary" style={{background:'#ef4444', color:'#fff', border:'none'}} onClick={()=>setTab('deposit')}>Go to Deposit</button>
+                      return (
+                        <div key={a.id} style={{background:bg,border:`2px solid ${col}`,borderRadius:16,padding:'20px 22px',marginBottom:20,boxShadow:`0 10px 24px ${col}26`,color:'#0f172a'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                            <div style={{width:46,height:46,borderRadius:12,background:'#0f172a',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,flexShrink:0}}>
+                              {isEP ? 'EP' : isBank ? 'BK' : 'JC'}
+                            </div>
+                            <div>
+                              <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:'0 0 3px',letterSpacing:.6}}>{methodLabel}</p>
+                              <p style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)',fontWeight:900,fontSize:18,margin:0}}>{a.account_title}</p>
+                            </div>
+                          </div>
+
+                          <div style={{background:'rgba(15,23,42,.9)',borderRadius:12,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                            <div>
+                              <p style={{color:'#cbd5e1',fontSize:10,margin:'0 0 3px',fontWeight:700}}>Account / IBAN Number</p>
+                              <p style={{color:'#facc15',fontFamily:'monospace',fontSize:17,fontWeight:900,letterSpacing:1,margin:0,wordBreak:'break-all'}}>{a.account_number}</p>
+                            </div>
+                            <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'#facc15',border:'none',color:'#111827',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,fontWeight:900,fontFamily:'var(--font)'}}>Copy</button>
+                          </div>
+
+                          {isBank && (
+                            <div style={{marginTop:10,color:'#0f172a',fontSize:13,lineHeight:1.7,fontWeight:700}}>
+                              <div>Bank Name: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.bank_name || 'Bank Transfer'}</b></div>
+                              <div>Account Holder: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.account_title}</b></div>
+                            </div>
+                          )}
+
+                          {a.deposit_message && (
+                            <div style={{marginTop:12,background:'rgba(255,255,255,.72)',border:'1px solid rgba(15,23,42,.15)',borderRadius:10,padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                              <span style={{fontSize:15,flexShrink:0}}>💬</span>
+                              <p style={{color:'#0f172a',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap',fontWeight:700}}>{a.deposit_message}</p>
+                            </div>
+                          )}
+
+                          <div style={{marginTop:16,paddingTop:12,borderTop:`2px dashed ${col}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                            <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:0}}>EXACT AMOUNT TO SEND:</p>
+                            <p style={{color:'#e11d48',fontSize:20,fontWeight:900,margin:0}}>Rs. {selectedPlan.price}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {epAccounts.filter(a => (a.method_type || 'easypaisa') === planPayMethod).length === 0 && !loadingAccounts && (
+                    <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:12,padding:16,marginBottom:20}}>
+                      <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No active {planPayMethod} deposit account available. Please contact support.</p>
+                    </div>
+                  )}
+
+                  {/* Complete Deposit Form — Matching Deposit Section Workflow */}
+                  <form onSubmit={handleSubmitPurchase} className="sgc-form" style={{background: planPayMethod==='bank'?'#0a1628':'#0d1e38', border:'1px solid #1e4080', borderRadius:16, padding:'22px 24px'}}>
+                    
+                    {/* Amount Field (Locked to exact plan price) */}
+                    <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:12,padding:'12px 16px',marginBottom:16}}>
+                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 2px',fontWeight:700,letterSpacing:.5}}>AMOUNT SENT (RS.)</p>
+                      <p style={{color:'var(--yellow)',fontSize:20,fontWeight:900,margin:0}}>Rs. {selectedPlan.price}</p>
+                    </div>
+
+                    {planPayMethod === 'bank' ? (
+                      <>
+                        <label className="sgc-label">Bank Name</label>
+                        <input className="sgc-input" placeholder="e.g. HBL, UBL, Meezan Bank" value={planBankName} onChange={e=>setPlanBankName(e.target.value)} required/>
+
+                        <label className="sgc-label">Account Holder Name</label>
+                        <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planAccountHolder} onChange={e=>setPlanAccountHolder(e.target.value)} required/>
+
+                        <label className="sgc-label">Account Number / IBAN</label>
+                        <input className="sgc-input" placeholder="e.g. PK36HABB0000123456789012" value={planAccountNumber} onChange={e=>setPlanAccountNumber(e.target.value)} required/>
+                      </>
+                    ) : (
+                      <>
+                        <label className="sgc-label">Send By (Your Account Name)</label>
+                        <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planSenderName} onChange={e=>setPlanSenderName(e.target.value)} required/>
+
+                        <label className="sgc-label">Your {planPayMethod==='easypaisa'?'Easypaisa':'JazzCash'} Number</label>
+                        <input className="sgc-input" type="tel" placeholder="03XX-XXXXXXX" value={planSenderPhone} onChange={e=>setPlanSenderPhone(e.target.value)} required/>
+
+                        <label className="sgc-label">TRX ID (Transaction ID)</label>
+                        <input className="sgc-input" placeholder="Enter transaction ID" value={planTrxId} onChange={e=>setPlanTrxId(e.target.value)} required/>
+                      </>
+                    )}
+
+                    <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
+                    <div style={{marginBottom:16}}>
+                      <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:12,padding:'20px',textAlign:'center',cursor:'pointer',background:'var(--bg)',transition:'border-color .2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
+                        <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>setPlanScreenshot(e.target.files[0])}/>
+                        {planScreenshot ? (
+                          <div>
+                            <img src={URL.createObjectURL(planScreenshot)} alt="preview" style={{maxHeight:120,borderRadius:8,marginBottom:6}}/>
+                            <p style={{color:'var(--green)',fontSize:12,margin:0,fontWeight:700}}>✓ {planScreenshot.name}</p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p style={{fontSize:28,margin:'0 0 6px'}}>📸</p>
+                            <p style={{color:'var(--text)',fontSize:13,margin:'0 0 2px',fontWeight:700}}>Click to upload screenshot</p>
+                            <p style={{color:'var(--dim)',fontSize:11,margin:0}}>JPG, PNG supported</p>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+
+                    <label className="sgc-label">Note (optional)</label>
+                    <input className="sgc-input" placeholder="Any note for admin" value={planNote} onChange={e=>setPlanNote(e.target.value)}/>
+
+                    <button type="submit" className="sgc-btn-primary" disabled={isPurchasing} style={{width:'100%',marginTop:12,padding:'14px',fontSize:15,fontWeight:800}}>
+                      {isPurchasing ? 'Submitting Request...' : `📤 Submit Plan Purchase Request (Rs. ${selectedPlan.price})`}
+                    </button>
+                  </form>
+                </div>
+              )}
+
             </div>
-          ) : (
-            <button className="sgc-btn-primary" disabled={isPurchasing} onClick={async()=>{
-              if(isPurchasing) return;
-              setIsPurchasing(true);
-              try{
-                if(selectedPlan.price > 0 && planPayMethod!=='wallet' && !planScreenshot){
-                  notify('Please upload payment screenshot','error');
-                  setIsPurchasing(false);
-                  return;
-                }
-                const fd=new FormData();
-                fd.append('plan_id', selectedPlan.id);
-                fd.append('payment_method', selectedPlan.price===0 ? 'wallet' : planPayMethod);
-                fd.append('sender_name', planSenderName);
-                fd.append('sender_phone', planSenderPhone);
-                fd.append('sender_phone', planTransactionId || planSenderPhone);
-                if(selectedPlan.price > 0 && planPayMethod!=='wallet' && planScreenshot) fd.append('screenshot', planScreenshot);
-                await API.post('/user/plan/purchase', fd, { headers:{'Content-Type':'multipart/form-data'} });
-                notify(selectedPlan.price===0 ? 'Free plan activated! ✅' : planPayMethod==='wallet' ? 'Plan activated successfully! ✅' : 'Plan purchase request submitted! Admin will activate shortly. ✅');
-                setSelectedPlan(null);
-                if (loadData) loadData();
-                API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
-              }catch(err){ 
-                notify(err.response?.data?.detail||'Error','error');
-              }
-              setIsPurchasing(false);
-            }}>{isPurchasing ? 'Processing...' : (selectedPlan.price===0 ? '✔ Activate Free Plan' : '📤 Submit Purchase Request')}</button>
           )}
         </div>
       )}
