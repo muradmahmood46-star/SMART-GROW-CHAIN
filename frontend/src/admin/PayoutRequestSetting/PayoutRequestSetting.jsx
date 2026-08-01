@@ -265,7 +265,7 @@ export default function PayoutRequestSetting({ notify, loadData }) {
                       <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600,letterSpacing:.5}}>USER TOTAL BALANCE</p>
                       <p style={{color:'var(--yellow)',fontWeight:700,fontSize:15,margin:0}}>Rs. {(w.user_balance||0).toFixed(2)}</p>
                     </div>
-                    <span className="sgc-badge" style={{background:'#1e3a6e',color:'var(--accent)',fontSize:10}}>{w.user_membership||'free'}</span>
+                    <span className="sgc-badge" style={{background:'#1e3a6e',color:'var(--accent)',fontSize:10}}>{w.user_membership||'none'}</span>
                   </div>
                   {/* Method */}
                   <div style={{background:'var(--bg)',borderRadius:9,padding:'8px 14px',marginBottom:10}}>

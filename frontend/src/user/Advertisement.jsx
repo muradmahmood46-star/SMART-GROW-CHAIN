@@ -138,7 +138,7 @@ export default function Advertisement({
         <div style={{background:'linear-gradient(135deg,#450a0a,#7f1d1d)',border:'1px solid #ef4444',borderRadius:16,padding:'32px 24px',textAlign:'center',maxWidth:480,margin:'40px auto'}}>
           <div style={{fontSize:52,marginBottom:12}}>📺</div>
           <h3 style={{color:'#fca5a5',fontSize:20,fontWeight:800,margin:'0 0 8px'}}>Plan Required</h3>
-          <p style={{color:'#fecaca',fontSize:14,margin:'0 0 20px',lineHeight:1.7,fontWeight:600}}>Please activate a plan first.</p>
+          <p style={{color:'#fecaca',fontSize:14,margin:'0 0 20px',lineHeight:1.7,fontWeight:600}}>Please activate a membership plan first.</p>
           <button onClick={()=>setTab('plans')} style={{background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#fff',border:'none',borderRadius:10,padding:'12px 28px',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 4px 14px rgba(245,158,11,0.4)'}}>🏆 Activate Plan Now</button>
         </div>
       </div>

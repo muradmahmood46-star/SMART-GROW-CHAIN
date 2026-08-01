@@ -298,7 +298,7 @@ def get_referrals(current_user: User = Depends(get_current_user), db: Session = 
     for r in refs:
         # plan active check
         plan_active = False
-        plan_name = r.membership or "free"
+        plan_name = r.membership or "none"
         if r.membership and r.membership != "free":
             plan_active = bool(r.plan_expires_at and r.plan_expires_at > now)
         else:
@@ -350,7 +350,7 @@ def get_referrals_by_level(level: int, current_user: User = Depends(get_current_
             result.append({
                 "username": u.username,
                 "kyc_status": u.kyc_status,
-                "membership": u.membership or "free",
+                "membership": u.membership or "none",
                 "plan_active": plan_active,
                 "joined": u.created_at,
                 "plan_expires_at": expiry
