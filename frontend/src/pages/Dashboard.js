@@ -227,7 +227,7 @@ export default function Dashboard() {
           )}
 
           <div className="fade-up" key={tab}>
-            {tab==='dashboard' && <DashboardHome profile={profile} earnings={earnings} referrals={referrals} refBonus={refBonus} availableAds={availableAds} todayEarned={todayEarned} freePlanExpired={freePlanExpired} freePlanDaysLeft={freePlanDaysLeft} siteSettings={siteSettings} dashboardMsg={dashboardMsg} transactions={transactions} showAllTx={showAllTx} setShowAllTx={setShowAllTx} setTab={setTab} notify={notify} />}
+            {tab==='dashboard' && <DashboardHome profile={profile} kycData={kycData} earnings={earnings} referrals={referrals} refBonus={refBonus} availableAds={availableAds} todayEarned={todayEarned} freePlanExpired={freePlanExpired} freePlanDaysLeft={freePlanDaysLeft} siteSettings={siteSettings} dashboardMsg={dashboardMsg} transactions={transactions} showAllTx={showAllTx} setShowAllTx={setShowAllTx} setTab={setTab} notify={notify} />}
             {tab==='ads' && <Advertisement profile={profile} adPlanRequired={adPlanRequired} ads={ads} earnings={earnings} tab={tab} setTab={setTab} notify={notify} kycData={kycData} siteSettings={siteSettings} setAds={setAds} loadData={loadData} />}
             {tab==='fund-history' && <FundHistory myDeposits={myDeposits} transfers={transfers} />}
             {tab==='transfer' && <Deposit epAccounts={epAccounts} notify={notify} loadData={loadData} />}

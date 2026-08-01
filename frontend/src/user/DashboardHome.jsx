@@ -3,6 +3,7 @@ import HeroSlider from './HeroSlider';
 
 export default function DashboardHome({
   profile,
+  kycData,
   earnings,
   referrals,
   refBonus,
@@ -20,6 +21,9 @@ export default function DashboardHome({
   notify
 }) {
   if (!profile) return null;
+
+  // Determine dynamic KYC Status from backend profile or kycData
+  const isKycVerified = profile?.kyc_status === 'approved' || kycData?.kyc_status === 'approved';
 
   return (
     <div>
@@ -42,9 +46,40 @@ export default function DashboardHome({
             <div className="sgc-quick-bal-val" style={{color:'#d97706'}}>Rs. {todayEarned.toFixed(2)}</div>
           </div>
         </div>
-        <div className="sgc-quick-actions">
-          <button className="sgc-quick-btn sgc-quick-btn-deposit" onClick={()=>setTab('transfer')}><span className="sgc-quick-btn-icon">📲</span><span>Deposit</span></button>
-          <button className="sgc-quick-btn sgc-quick-btn-withdraw" onClick={()=>setTab('payout')}><span className="sgc-quick-btn-icon">💸</span><span>Withdraw</span></button>
+        <div className="sgc-quick-actions" style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          <button className="sgc-quick-btn sgc-quick-btn-deposit" onClick={()=>setTab('transfer')}>
+            <span className="sgc-quick-btn-icon">📲</span>
+            <span>Deposit</span>
+          </button>
+          <button className="sgc-quick-btn sgc-quick-btn-withdraw" onClick={()=>setTab('payout')}>
+            <span className="sgc-quick-btn-icon">💸</span>
+            <span>Withdraw</span>
+          </button>
+          
+          {/* Quick Balance Header Account Status Badge */}
+          <button
+            onClick={() => setTab('kyc')}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 20,
+              border: `1.5px solid ${isKycVerified ? '#22c55e' : '#ef4444'}`,
+              background: isKycVerified ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: isKycVerified ? '#4ade80' : '#fca5a5',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all .2s',
+              fontFamily: 'var(--font)',
+              boxShadow: isKycVerified ? '0 2px 10px rgba(34,197,94,0.2)' : '0 2px 10px rgba(239,68,68,0.2)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+            <span>{isKycVerified ? '✅' : '🔴'}</span>
+            <span>{isKycVerified ? 'KYC Verified' : 'Unverified Account'}</span>
+          </button>
         </div>
       </div>
 
@@ -68,7 +103,7 @@ export default function DashboardHome({
             {growth && <span className="sgc-growth-badge">📈</span>}
           </div>
         ))}
-        {siteSettings.whatsapp_link && (
+        {siteSettings?.whatsapp_link && (
           <a href={siteSettings.whatsapp_link} target="_blank" rel="noreferrer" className="sgc-stat-card sgc-dashboard-stat-card sgc-whatsapp-stat-card">
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
               <span className="sgc-stat-card-icon sgc-whatsapp-icon" aria-label="WhatsApp">☎</span>
@@ -83,7 +118,7 @@ export default function DashboardHome({
       <h3 className="sgc-subheading" style={{marginBottom:12}}>Quick Actions</h3>
 
       {/* Advertise Big Button */}
-      <button className="sgc-advertise-banner" onClick={()=>{ setTab('create-ad'); notify('ad-welcome'); }} // Note: original also calls setShowAdWelcome(true) which is handled in parent or removed if not critical
+      <button className="sgc-advertise-banner" onClick={()=>{ setTab('create-ad'); notify('ad-welcome'); }}
         style={{width:'100%',padding:'18px 20px',marginBottom:12,background:'linear-gradient(135deg,#f97316,#ea580c,#dc2626)',border:'none',borderRadius:16,color:'#fff',cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:14,boxShadow:'0 4px 20px rgba(249,115,22,.4)',transition:'transform .2s,box-shadow .2s',animation:'fadeUp .3s ease both'}}
         onMouseEnter={e=>{e.currentTarget.style.transform='scale(1.02)';e.currentTarget.style.boxShadow='0 8px 28px rgba(249,115,22,.5)';}}
         onMouseLeave={e=>{e.currentTarget.style.transform='scale(1)';e.currentTarget.style.boxShadow='0 4px 20px rgba(249,115,22,.4)';}}>
@@ -95,16 +130,51 @@ export default function DashboardHome({
         <span style={{marginLeft:'auto',fontSize:22,opacity:.8}}>→</span>
       </button>
 
-      {/* Other Actions */}
+      {/* Action Buttons Grid including Dynamic Account Status (KYC) Button */}
       <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:28}}>
-        {[['📺','View Ads','ads'],['📲','Deposit','transfer'],['💸','Payout','payout'],['🎫','Support','support']].map(([icon,label,key])=>(
+        {[
+          ['📺','View Ads','ads'],
+          ['📲','Deposit','transfer'],
+          ['💸','Payout','payout'],
+          ['🎫','Support','support']
+        ].map(([icon,label,key])=>(
           <button className="sgc-bottom-action" key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,color:'var(--text)',cursor:'pointer',fontSize:13,fontWeight:600,display:'flex',alignItems:'center',gap:6,transition:'all .2s'}}
             onMouseEnter={e=>e.currentTarget.style.borderColor='var(--accent)'}
             onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
             {icon} {label}
           </button>
         ))}
-        {/* KYC status button - we'll need kycData passed or handle differently. For now keep minimal. */}
+
+        {/* 5th Option: Dynamic "Account Status" (KYC) Button */}
+        <button
+          className="sgc-bottom-action sgc-kyc-status-btn"
+          onClick={() => setTab('kyc')}
+          style={{
+            padding: '10px 18px',
+            background: isKycVerified ? 'linear-gradient(135deg, #052e16, #064e3b)' : 'linear-gradient(135deg, #450a0a, #7f1d1d)',
+            border: `1.5px solid ${isKycVerified ? '#22c55e' : '#ef4444'}`,
+            borderRadius: 10,
+            color: isKycVerified ? '#4ade80' : '#fca5a5',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            boxShadow: isKycVerified ? '0 4px 14px rgba(34,197,94,0.3)' : '0 4px 14px rgba(239,68,68,0.3)',
+            transition: 'all .2s'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = isKycVerified ? '0 6px 18px rgba(34,197,94,0.45)' : '0 6px 18px rgba(239,68,68,0.45)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = isKycVerified ? '0 4px 14px rgba(34,197,94,0.3)' : '0 4px 14px rgba(239,68,68,0.3)';
+          }}>
+          <span style={{fontSize:15}}>{isKycVerified ? '✅' : '🛡️'}</span>
+          <span>Account Status: <b>{isKycVerified ? 'KYC Verified' : 'Unverified Account'}</b></span>
+        </button>
       </div>
 
       {/* Recent Transactions */}
