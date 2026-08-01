@@ -1,18 +1,15 @@
 /* eslint-disable */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-// Direct imports — React bundles these into build/static/media/
-// This is the most reliable method, guaranteed to work on Vercel
-import heroMain from '../assets/hero/hero-pic-main.png';
-import hero1    from '../assets/hero/hero-pic1.jpg';
-import hero2    from '../assets/hero/hero-pic-2.jpg';
-import hero3    from '../assets/hero/hero-pic-3.jpg';
+// Using PUBLIC_URL so images are served from Vercel's static root
+// Images must exist in frontend/public/ folder (they do: hero-pic-main.png, hero-pic1.jpg, hero-pic-2.jpg, hero-pic-3.jpg)
+const PUB = process.env.PUBLIC_URL ?? '';
 
 const HERO_SLIDES = [
-  { src: heroMain, alt: 'Smart Grow Chain' },
-  { src: hero1,    alt: 'Smart Grow Chain 1' },
-  { src: hero2,    alt: 'Smart Grow Chain 2' },
-  { src: hero3,    alt: 'Smart Grow Chain 3' },
+  { src: PUB + '/hero-pic-main.png', alt: 'Smart Grow Chain' },
+  { src: PUB + '/hero-pic1.jpg',     alt: 'Smart Grow Chain 1' },
+  { src: PUB + '/hero-pic-2.jpg',    alt: 'Smart Grow Chain 2' },
+  { src: PUB + '/hero-pic-3.jpg',    alt: 'Smart Grow Chain 3' },
 ];
 
 export default function HeroSlider() {
@@ -88,14 +85,10 @@ export default function HeroSlider() {
       >
         {loopSlides.map((s, i) => (
           <div
-            key={`${s.src}-${i}`}
+            key={`slide-${i}`}
             className={`sgc-hero-slide${activeSlide === i % slideCount ? ' active-slide' : ''}`}
           >
-            <img
-              src={s.src}
-              alt={s.alt}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: 18 }}
-            />
+            <img src={s.src} alt={s.alt} />
           </div>
         ))}
       </div>

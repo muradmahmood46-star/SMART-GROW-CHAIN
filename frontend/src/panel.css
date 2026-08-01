@@ -476,7 +476,7 @@ body {
   overflow:hidden;
   position:relative;
   border:none;
-  background:#0f172a;
+  background:transparent;
   transition:flex-basis .32s ease, transform .32s ease, opacity .32s ease, filter .32s ease;
   opacity:1;
   filter:none;
@@ -780,7 +780,7 @@ body {
 .sgc-user-dashboard .sgc-topbar { background:linear-gradient(105deg,#16a085 0%,#1abc9c 48%,#3498db 100%); box-shadow:0 3px 14px rgba(26,188,156,.22); }
 .sgc-user-dashboard .sgc-hero-slider { padding:0; background:transparent; box-shadow:none; margin-bottom:22px; }
 .sgc-user-dashboard .sgc-hero-slider-track { gap:0; padding:0; }
-.sgc-user-dashboard .sgc-hero-slide { aspect-ratio:2.2 / 1; position:relative; border:none; border-radius:18px; background:#0f172a; box-shadow:none; filter:none; overflow:hidden; }
+.sgc-user-dashboard .sgc-hero-slide { aspect-ratio:2.2 / 1; position:relative; border:none; border-radius:18px; background:transparent; box-shadow:none; filter:none; overflow:hidden; }
 @media (max-width:768px) {
   .sgc-user-dashboard .sgc-hero-slide { aspect-ratio:2 / 1; }
 }
