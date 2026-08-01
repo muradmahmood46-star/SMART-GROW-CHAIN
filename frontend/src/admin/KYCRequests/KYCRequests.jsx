@@ -1,7 +1,7 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import API from '../../api';
-import { approveKyc, rejectKyc } from '../../services/admin/adminService';
+import { approveKyc, rejectKyc, markKycAsSeen } from '../../services/admin/adminService';
 
 export default function KYCRequests({ notify, loadData }) {
   const [kycRequests, setKycRequests] = useState([]);
@@ -9,7 +9,7 @@ export default function KYCRequests({ notify, loadData }) {
 
   const fetchKyc = async () => {
     try {
-      const res = await API.get('/admin/kyc-requests');
+      const res = await API.get('/admin/kyc');
       setKycRequests(res.data);
     } catch (e) {
       console.error(e);
@@ -21,6 +21,9 @@ export default function KYCRequests({ notify, loadData }) {
 
   useEffect(() => {
     fetchKyc();
+    markKycAsSeen().then(() => {
+      if (loadData) loadData();
+    }).catch(console.error);
   }, []);
 
   const handleApprove = async (id) => {

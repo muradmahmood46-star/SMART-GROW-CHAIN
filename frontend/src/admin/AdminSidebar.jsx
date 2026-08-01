@@ -70,7 +70,7 @@ export default function AdminSidebar({
             pendingD: (d.data||[]).filter(x=>x.status==='pending').length,
             openT: (t.data||[]).filter(x=>x.status==='open').length,
             pendingAdReqs: (a.data||[]).filter(x=>x.status==='pending').length,
-            pendingKyc: (k.data||[]).filter(x=>x.status==='pending').length,
+            pendingKyc: tab === 'kyc' ? 0 : (k.data||[]).filter(x=>x.status==='pending' && !x.is_seen).length,
             pendingPlanPurchases: tab === 'plan-purchases' ? 0 : unreadPurchases,
           });
         }
@@ -86,6 +86,9 @@ export default function AdminSidebar({
       API.get('/admin/plan-purchases').then(r => updatePlanPurchasesSeen(r.data)).catch(()=>{});
       setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
     }
+    if (tab === 'kyc') {
+      setCounts(prev => ({ ...prev, pendingKyc: 0 }));
+    }
   }, [tab]);
 
   const handleTab = (key) => {
@@ -93,6 +96,9 @@ export default function AdminSidebar({
     if (key === 'plan-purchases') {
       API.get('/admin/plan-purchases').then(r => updatePlanPurchasesSeen(r.data)).catch(()=>{});
       setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
+    }
+    if (key === 'kyc') {
+      setCounts(prev => ({ ...prev, pendingKyc: 0 }));
     }
     if(window.innerWidth<=768){setSidebarCollapsed(true);setSidebarOpen(false);}
   };

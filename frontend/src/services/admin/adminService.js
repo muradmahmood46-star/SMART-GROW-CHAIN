@@ -57,6 +57,7 @@ export const approveAdRequest = (id) => API.put(`/admin/user-ad-requests/${id}/a
 export const rejectAdRequest = (id) => API.put(`/admin/user-ad-requests/${id}/reject`, { admin_note: '' });
 export const approveKyc = (id) => API.put(`/admin/kyc/${id}/approve`, { admin_note: '' });
 export const rejectKyc = (id, note) => API.put(`/admin/kyc/${id}/reject`, { admin_note: note || '' });
+export const markKycAsSeen = () => API.post('/admin/kyc/mark-seen');
 export const approvePlanPurchase = (id) => API.put(`/admin/plan-purchases/${id}/approve`, { admin_note: '' });
 export const rejectPlanPurchase = (id) => API.put(`/admin/plan-purchases/${id}/reject`, { admin_note: '' });
 

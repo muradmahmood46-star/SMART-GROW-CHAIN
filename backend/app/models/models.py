@@ -267,6 +267,7 @@ class KYCRequest(Base):
     front_photo  = Column(String(255), nullable=True)
     selfie_photo = Column(String(255), nullable=True)
     status       = Column(String(20), default="pending")  # pending, approved, rejected
+    is_seen      = Column(Boolean, default=False)
     admin_note   = Column(String(255), nullable=True)
     created_at   = Column(DateTime, default=func.now())
     updated_at   = Column(DateTime, default=func.now(), onupdate=func.now())

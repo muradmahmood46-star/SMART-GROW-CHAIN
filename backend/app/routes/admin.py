@@ -905,9 +905,16 @@ def get_all_kyc(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
             "full_name": k.full_name, "phone": k.phone or k.cnic, "cnic": k.cnic,
             "front_photo_url": f"{os.getenv('BACKEND_URL','https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{k.front_photo}" if k.front_photo else None,
             "selfie_photo_url": f"{os.getenv('BACKEND_URL','https://muradmahmood-smart-grow-chain.hf.space')}/uploads/screenshots/{k.selfie_photo}" if k.selfie_photo else None,
-            "status": k.status, "admin_note": k.admin_note, "created_at": k.created_at
+            "status": k.status, "admin_note": k.admin_note, "created_at": k.created_at, "is_seen": getattr(k, 'is_seen', False)
         })
     return result
+
+@router.post("/kyc/mark-seen")
+def mark_kyc_as_seen(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    from app.models.models import KYCRequest
+    db.query(KYCRequest).filter(KYCRequest.status == "pending", KYCRequest.is_seen == False).update({"is_seen": True})
+    db.commit()
+    return {"message": "Marked as seen"}
 
 class KYCAction(BaseModel):
     admin_note: Optional[str] = ""
