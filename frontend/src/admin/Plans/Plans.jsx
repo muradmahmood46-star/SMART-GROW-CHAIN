@@ -6,7 +6,7 @@ export default function Plans({ notify, loadData }) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editPlan, setEditPlan] = useState(null);
-  const [newPlan, setNewPlan] = useState({ name:'', price:'', description:'', duration_days:'', min_withdraw:'', earning_per_click:'', referral_levels:'' });
+  const [newPlan, setNewPlan] = useState({ name:'', price:'', period_days:'', daily_ads:'', earning_per_click:'', referral_levels:'', referral_commission:'', min_withdrawal:'' });
 
   const fetchPlans = async () => {
     try {
@@ -33,7 +33,7 @@ export default function Plans({ notify, loadData }) {
       } else {
         await API.post('/admin/plans', newPlan);
       }
-      setNewPlan({ name:'', price:'', description:'', duration_days:'', min_withdraw:'', earning_per_click:'', referral_levels:'' });
+      setNewPlan({ name:'', price:'', period_days:'', daily_ads:'', earning_per_click:'', referral_levels:'', referral_commission:'', min_withdrawal:'' });
       fetchPlans();
       if (loadData) loadData();
       if (notify) notify(editPlan ? 'Plan updated ✅' : 'Plan added ✅');
@@ -47,11 +47,12 @@ export default function Plans({ notify, loadData }) {
     setNewPlan({ 
       name: plan.name, 
       price: plan.price, 
-      description: plan.description, 
-      duration_days: plan.duration_days, 
-      min_withdraw: plan.min_withdraw, 
+      period_days: plan.period_days,
+      daily_ads: plan.daily_ads,
       earning_per_click: plan.earning_per_click, 
-      referral_levels: plan.referral_levels 
+      referral_levels: plan.referral_levels,
+      referral_commission: plan.referral_commission,
+      min_withdrawal: plan.min_withdrawal
     });
   };
 
@@ -87,16 +88,24 @@ export default function Plans({ notify, loadData }) {
             <input className="sgc-input" type="number" step="0.01" value={newPlan.price} onChange={e=>setNewPlan({...newPlan,price:e.target.value})} required/>
           </div>
         </div>
-        <label className="sgc-label">Description</label>
-        <textarea className="sgc-input" rows={2} value={newPlan.description} onChange={e=>setNewPlan({...newPlan,description:e.target.value})}/>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
           <div>
             <label className="sgc-label">Duration (days)</label>
-            <input className="sgc-input" type="number" value={newPlan.duration_days} onChange={e=>setNewPlan({...newPlan,duration_days:e.target.value})} required/>
+            <input className="sgc-input" type="number" value={newPlan.period_days} onChange={e=>setNewPlan({...newPlan,period_days:e.target.value})} required/>
           </div>
           <div>
             <label className="sgc-label">Min Withdraw (Rs.)</label>
-            <input className="sgc-input" type="number" step="0.01" value={newPlan.min_withdraw} onChange={e=>setNewPlan({...newPlan,min_withdraw:e.target.value})} required/>
+            <input className="sgc-input" type="number" step="0.01" value={newPlan.min_withdrawal} onChange={e=>setNewPlan({...newPlan,min_withdrawal:e.target.value})} required/>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div>
+            <label className="sgc-label">Daily Ads</label>
+            <input className="sgc-input" type="number" value={newPlan.daily_ads} onChange={e=>setNewPlan({...newPlan,daily_ads:e.target.value})} required/>
+          </div>
+          <div>
+            <label className="sgc-label">Referral Comm. (Fixed)</label>
+            <input className="sgc-input" type="number" step="0.01" value={newPlan.referral_commission} onChange={e=>setNewPlan({...newPlan,referral_commission:e.target.value})} required/>
           </div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
@@ -111,7 +120,7 @@ export default function Plans({ notify, loadData }) {
         </div>
         <div style={{display:'flex',gap:10}}>
           <button className="sgc-btn-yellow" type="submit">{editPlan?'Update Plan':'Add Plan'}</button>
-          {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{setEditPlan(null);setNewPlan({name:'',price:'',description:'',duration_days:'',min_withdraw:'',earning_per_click:'',referral_levels:''});}}>Cancel</button>}
+          {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{setEditPlan(null);setNewPlan({name:'',price:'',period_days:'',daily_ads:'',earning_per_click:'',referral_levels:'',referral_commission:'',min_withdrawal:''});}}>Cancel</button>}
         </div>
       </form>
 
@@ -120,16 +129,16 @@ export default function Plans({ notify, loadData }) {
         <table className="sgc-table">
           <thead><tr>
             <th className="sgc-th">Name</th><th className="sgc-th">Price</th><th className="sgc-th">Duration</th>
-            <th className="sgc-th">Min Withdraw</th><th className="sgc-th">Earning/Click</th><th className="sgc-th">Ref Levels</th><th className="sgc-th">Actions</th>
+            <th className="sgc-th">Daily Ads</th><th className="sgc-th">Earning/Click</th><th className="sgc-th">Ref Comm.</th><th className="sgc-th">Actions</th>
           </tr></thead>
           <tbody>{plans.map(p=>(
             <tr key={p.id} className="sgc-tr">
               <td className="sgc-td" style={{color:'var(--text)',fontWeight:600}}>{p.name}</td>
               <td className="sgc-td" style={{color:'var(--green)',fontWeight:700}}>Rs. {p.price}</td>
-              <td className="sgc-td">{p.duration_days} days</td>
-              <td className="sgc-td" style={{color:'var(--yellow)',fontWeight:600}}>Rs. {p.min_withdraw}</td>
+              <td className="sgc-td">{p.period_days} days</td>
+              <td className="sgc-td" style={{color:'var(--accent)'}}>{p.daily_ads}</td>
               <td className="sgc-td" style={{color:'var(--accent)',fontWeight:600}}>Rs. {p.earning_per_click}</td>
-              <td className="sgc-td">{p.referral_levels}</td>
+              <td className="sgc-td" style={{color:'var(--yellow)',fontWeight:600}}>Rs. {p.referral_commission}</td>
               <td className="sgc-td" style={{display:'flex',gap:6}}>
                 <button className="sgc-btn-sm" style={{background:'#451a03',color:'var(--yellow)'}} onClick={()=>handleEdit(p)}>Edit</button>
                 <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deletePlan(p.id)}>Delete</button>
