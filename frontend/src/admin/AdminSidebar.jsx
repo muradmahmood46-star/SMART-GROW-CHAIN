@@ -18,7 +18,7 @@ const TABS = [
   { key:'kyc',         icon:'🪪', label:'KYC Requests'    },
   { key:'plan-purchases', icon:'🏆', label:'Plan Purchases'   },
   { key:'easypaisa',   icon:'📱', label:'Payment Options'  },
-  { key:'emails',      icon:'📧', label:'Admin Emails'    },
+
   { key:'messages',    icon:'📣', label:'Admin Messages'  },
   { key:'advertiser-mgmt', icon:'📊', label:'Advertiser Mgmt' },
 ];

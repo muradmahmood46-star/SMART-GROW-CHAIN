@@ -242,7 +242,7 @@ class PlanPurchaseRequest(Base):
     payment_method  = Column(String(20), default="wallet")  # wallet or easypaisa
     screenshot_path = Column(String(255), nullable=True)
     sender_name     = Column(String(100), nullable=True)
-    sender_phone    = Column(String(20), nullable=True)
+    sender_phone    = Column(String(100), nullable=True)
     status          = Column(String(20), default="pending")  # pending, approved, rejected
     admin_note      = Column(String(255), nullable=True)
     created_at      = Column(DateTime, default=func.now())

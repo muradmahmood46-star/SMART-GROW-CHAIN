@@ -45,6 +45,7 @@ async def lifespan(app: FastAPI):
         "ALTER TABLE users ADD COLUMN last_session_week_start DATE",
         "ALTER TABLE users ADD COLUMN registration_week_start DATE",
         "UPDATE users SET registration_week_start = DATE(created_at, 'weekday 1', '-7 days') WHERE created_at IS NOT NULL AND registration_week_start IS NULL",
+        "ALTER TABLE plan_purchase_requests ALTER COLUMN sender_phone TYPE VARCHAR(100)",
     ]
     try:
         with engine.connect() as conn:
