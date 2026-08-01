@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-// Images served from public/ folder — no import needed, always works on Vercel
+const BASE = process.env.PUBLIC_URL || '';
+
 const HERO_SLIDES = [
-  { src: '/hero-pic-main.png', alt: 'Smart Grow Chain' },
-  { src: '/hero-pic1.jpg',     alt: 'Smart Grow Chain 1' },
-  { src: '/hero-pic-2.jpg',    alt: 'Smart Grow Chain 2' },
-  { src: '/hero-pic-3.jpg',    alt: 'Smart Grow Chain 3' },
+  { src: `${BASE}/hero-pic-main.png`, alt: 'Smart Grow Chain' },
+  { src: `${BASE}/hero-pic1.jpg`,     alt: 'Smart Grow Chain 1' },
+  { src: `${BASE}/hero-pic-2.jpg`,    alt: 'Smart Grow Chain 2' },
+  { src: `${BASE}/hero-pic-3.jpg`,    alt: 'Smart Grow Chain 3' },
 ];
 
 export default function HeroSlider() {
@@ -45,7 +46,6 @@ export default function HeroSlider() {
   const handleScroll = () => {
     const track = trackRef.current;
     if (!track) return;
-
     const trackCenter = track.scrollLeft + track.clientWidth / 2;
     let closestIndex = 0;
     let closestDistance = Infinity;
@@ -57,7 +57,6 @@ export default function HeroSlider() {
       }
     });
     setActiveSlide(closestIndex % slideCount);
-
     if (closestIndex <= slideCount - 1) {
       requestAnimationFrame(() => centerSlide(closestIndex + slideCount, 'auto'));
     } else if (closestIndex >= slideCount * 2) {
@@ -74,10 +73,11 @@ export default function HeroSlider() {
     <div className="sgc-hero-slider">
       <div className="sgc-hero-slider-track" ref={trackRef} onScroll={handleScroll}
         onPointerDown={()=>setIsInteracting(true)} onPointerUp={()=>setIsInteracting(false)}
-        onPointerCancel={()=>setIsInteracting(false)} onPointerLeave={e=>{ if(e.pointerType==='mouse') setIsInteracting(false); }}>
+        onPointerCancel={()=>setIsInteracting(false)}
+        onPointerLeave={e=>{ if(e.pointerType==='mouse') setIsInteracting(false); }}>
         {loopSlides.map((s,i)=>(
           <div key={`${s.src}-${i}`} className={`sgc-hero-slide${activeSlide===i%slideCount?' active-slide':''}`}>
-            <img src={s.src} alt={s.alt}/>
+            <img src={s.src} alt={s.alt} onError={e=>{ e.target.style.display='none'; }}/>
           </div>
         ))}
       </div>
