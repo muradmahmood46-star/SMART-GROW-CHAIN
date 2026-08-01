@@ -30,10 +30,12 @@ export default function MembershipPlans({
     const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, []);
-  const activeExpiry = profile.membership === 'free' ? profile.free_plan_expires_at : profile.plan_expires_at;
-  const expiryDate = parseUTCDate(activeExpiry);
+
+  const hasActivatedPlan = profile?.membership && profile.membership !== 'none' && (profile.plan_expires_at || profile.free_plan_expires_at);
+  const activeExpiry = profile?.membership === 'free' ? profile.free_plan_expires_at : profile?.plan_expires_at;
+  const expiryDate = hasActivatedPlan ? parseUTCDate(activeExpiry) : null;
   const now = new Date();
-  const isExpired = expiryDate && expiryDate < now;
+  const isExpired = hasActivatedPlan && expiryDate && expiryDate < now;
   const diffMs = expiryDate && !isExpired ? expiryDate - now : 0;
   const totalSecs = Math.floor(diffMs / 1000);
   const dd = Math.floor(totalSecs / 86400);
@@ -44,13 +46,21 @@ export default function MembershipPlans({
   return (
     <div>
       <h2 className="sgc-heading">🏆 Membership Plans</h2>
-      <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{profile.membership}</span></p>
+      <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{hasActivatedPlan ? profile.membership : 'No Active Plan'}</span></p>
 
       {/* Current Plan Info Card */}
-      {(()=>{
-        return (
-          <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px',marginBottom:16,maxWidth:480}}>
-            <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>CURRENT PLAN</p>
+      <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px',marginBottom:16,maxWidth:480}}>
+        <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>CURRENT PLAN</p>
+        {!hasActivatedPlan ? (
+          <div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <p style={{color:'var(--yellow)',fontSize:20,fontWeight:800,margin:0}}>No Active Plan</p>
+              <span style={{background:'#334155',color:'var(--muted)',padding:'4px 14px',borderRadius:20,fontSize:11,fontWeight:700}}>NO PLAN</span>
+            </div>
+            <p style={{color:'var(--dim)',fontSize:13,margin:0,lineHeight:1.6}}>You currently do not have an active membership plan. Please select and activate a plan below to start earning.</p>
+          </div>
+        ) : (
+          <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,marginBottom:expiryDate?14:0}}>
               <div>
                 <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0,textTransform:'capitalize'}}>🏆 {profile.membership}</p>
@@ -59,10 +69,9 @@ export default function MembershipPlans({
                     {isExpired?'Expired on':'Expires'}: <b>{expiryDate.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</b>
                   </p>
                 )}
-                {!expiryDate && <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>No expiry set</p>}
               </div>
-              <span style={{background:isExpired?'#450a0a':profile.membership==='free'&&!expiryDate?'#334155':'#064e3b',color:isExpired?'#fca5a5':profile.membership==='free'&&!expiryDate?'var(--muted)':'#4ade80',padding:'4px 16px',borderRadius:20,fontSize:12,fontWeight:700,textTransform:'uppercase'}}>
-                {isExpired?'EXPIRED':profile.membership==='free'&&!expiryDate?'FREE':'ACTIVE'}
+              <span style={{background:isExpired?'#450a0a':'#064e3b',color:isExpired?'#fca5a5':'#4ade80',padding:'4px 16px',borderRadius:20,fontSize:12,fontWeight:700,textTransform:'uppercase'}}>
+                {isExpired?'EXPIRED':'ACTIVE'}
               </span>
             </div>
             {expiryDate && !isExpired && (
@@ -83,9 +92,9 @@ export default function MembershipPlans({
                 <p style={{color:'#fca5a5',fontSize:13,margin:0,fontWeight:600}}>⚠️ Your plan has expired. Please purchase a new plan to continue earning.</p>
               </div>
             )}
-          </div>
-        );
-      })()}
+          </>
+        )}
+      </div>
 
       {/* Upsell message */}
       <div style={{background:'linear-gradient(135deg,#451a03,#92400e20)',border:'1px solid #92400e',borderRadius:10,padding:'10px 16px',marginBottom:24,maxWidth:480,display:'flex',alignItems:'center',gap:10}}>
@@ -97,7 +106,7 @@ export default function MembershipPlans({
       {!selectedPlan && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16,marginBottom:28}}>
           {plans.map((p,i)=>{
-            const isCurrent=profile.membership===p.name;
+            const isCurrent = hasActivatedPlan && !isExpired && profile.membership === p.name;
             const colors=['var(--dim)','var(--accent)','var(--yellow)','var(--purple)'];
             const col=colors[i]||'var(--accent)';
             let lvlMap={};
@@ -136,7 +145,7 @@ export default function MembershipPlans({
                 )}
                 {!isCurrent && p.price===0 && (
                   <button onClick={()=>{ setSelectedPlan(p); setPlanPayMethod('wallet'); }}
-                    style={{width:'100%',padding:'10px',background:'var(--border)',color:'var(--muted)',border:'1px solid var(--border)',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
+                    style={{width:'100%',padding:'10px',background:'var(--accent)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
                     Activate Free Plan
                   </button>
                 )}

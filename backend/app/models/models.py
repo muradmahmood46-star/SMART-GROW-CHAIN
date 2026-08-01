@@ -13,7 +13,7 @@ class User(Base):
     total_earned = Column(Float, default=0.0)
     referral_code = Column(String(20), unique=True)
     referred_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    membership = Column(String(20), default="free")
+    membership = Column(String(20), default="none")
     plan_expires_at = Column(DateTime, nullable=True)  # paid plan expiry
     free_plan_expires_at = Column(DateTime, nullable=True)  # free plan expiry
     kyc_status = Column(String(20), default="none")  # none, pending, approved, rejected

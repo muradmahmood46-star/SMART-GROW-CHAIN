@@ -99,6 +99,7 @@ def _create_user(data, db: Session):
         password=hash_password(d["password"]),
         referral_code=ref_code,
         referred_by=referred_by,
+        membership="none",
         balance=reg_bonus,
         total_earned=reg_bonus
     )

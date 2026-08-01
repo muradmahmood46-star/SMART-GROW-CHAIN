@@ -18,9 +18,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 def has_active_plan(user: User) -> bool:
     """A plan is usable only until its actual expiry time."""
     now = datetime.utcnow()
-    if user.membership and user.membership != "free":
-        return bool(user.plan_expires_at and user.plan_expires_at > now)
-    return bool(user.free_plan_expires_at and user.free_plan_expires_at > now)
+    if not user.membership or user.membership == "none":
+        return False
+    if user.membership == "free":
+        return bool(user.free_plan_expires_at and user.free_plan_expires_at > now)
+    return bool(user.plan_expires_at and user.plan_expires_at > now)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
