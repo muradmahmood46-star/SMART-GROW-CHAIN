@@ -113,37 +113,82 @@ async def submit_ad_request(
 @router.get("/my-requests")
 def my_requests(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     reqs = db.query(UserAdRequest).filter(UserAdRequest.user_id == current_user.id).order_by(UserAdRequest.created_at.desc()).all()
-    return [{
-        "id": r.id, "title": r.title, "url": r.url,
-        "members_needed": r.members_needed,
-        "members_reached": r.members_reached or 0,
-        "total_cost": r.total_cost, "payment_method": r.payment_method,
-        "status": r.status,
-        "can_reactivate": r.status in ["rejected", "completed"],
-        "reactivate_message": "Reactivate this same campaign" if r.status in ["rejected", "completed"] else "Campaign is already active or waiting for admin approval",
-        "admin_note": r.admin_note, "created_at": r.created_at
-    } for r in reqs]
+    res = []
+    for r in reqs:
+        req_url_clean = (r.url or "").strip()
+        req_title_clean = (r.title or "").strip()
+        
+        ads = db.query(Ad).filter(
+            (Ad.url == r.url) | (Ad.url == req_url_clean) | (Ad.title == r.title) | (Ad.title == req_title_clean)
+        ).all()
+        ad_ids = [a.id for a in ads]
+
+        views = 0
+        if ad_ids:
+            views = db.query(Earning).filter(
+                Earning.type == "click",
+                Earning.ad_id.in_(ad_ids)
+            ).count()
+        
+        views_cnt = max(views, r.members_reached or 0)
+        status = r.status
+
+        if views_cnt >= r.members_needed and status == "approved":
+            status = "completed"
+            r.status = "completed"
+            db.commit()
+
+        res.append({
+            "id": r.id,
+            "title": r.title,
+            "url": r.url,
+            "members_needed": r.members_needed,
+            "views_count": views_cnt,
+            "members_reached": views_cnt,
+            "total_cost": r.total_cost,
+            "payment_method": r.payment_method,
+            "status": status,
+            "can_reactivate": status in ["completed", "rejected"],
+            "reactivate_message": "Reactivate this campaign" if status in ["completed", "rejected"] else "Campaign is active or pending",
+            "admin_note": r.admin_note,
+            "created_at": r.created_at
+        })
+    return res
 
 @router.post("/reactivate/{req_id}")
 def reactivate_request(req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id, UserAdRequest.user_id == current_user.id).first()
     if not req:
-        raise HTTPException(status_code=404, detail="Request not found")
+        raise HTTPException(status_code=404, detail="Campaign not found")
     if req.status not in ["rejected", "completed"]:
-        raise HTTPException(status_code=400, detail="Only rejected or completed requests can be reactivated")
-    # Wallet payment: deduct balance again
+        raise HTTPException(status_code=400, detail="Only completed or rejected campaigns can be reactivated")
+    
     if req.payment_method == "wallet":
         if current_user.balance < req.total_cost:
-            raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {req.total_cost}")
+            raise HTTPException(status_code=400, detail=f"Insufficient balance. Required: Rs. {req.total_cost}, Available: Rs. {round(current_user.balance, 2)}")
         current_user.balance -= req.total_cost
-    # Disable the old published ad so admin approval creates a fresh ad id.
-    # This lets users who watched the previous run watch the reactivated run again.
-    db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update({"is_active": False})
-    req.status = "pending"
-    req.members_reached = 0
-    req.admin_note = None
-    db.commit()
-    return {"message": "Request reactivated successfully"}
+        req.status = "approved"
+        req.members_reached = 0
+        req.admin_note = None
+        db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update({"is_active": False})
+        db.add(Ad(
+            title=req.title.strip(),
+            url=req.url.strip(),
+            description="Sponsored campaign",
+            earning_amount=0.5,
+            timer_seconds=15,
+            daily_limit=req.members_needed,
+            is_active=True
+        ))
+        db.commit()
+        return {"message": "Campaign reactivated & live now! 🚀", "status": "approved"}
+    else:
+        db.query(Ad).filter(Ad.url == req.url, Ad.is_active == True).update({"is_active": False})
+        req.status = "pending"
+        req.members_reached = 0
+        req.admin_note = None
+        db.commit()
+        return {"message": "Reactivation request submitted! Admin will verify shortly. ⌛", "status": "pending"}
 
 @router.get("/viewers/{req_id}")
 def get_campaign_viewers(req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
