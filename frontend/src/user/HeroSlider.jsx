@@ -1,14 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import heroMain from '../assets/hero/hero-pic-main.png';
-import hero1 from '../assets/hero/hero-pic1.jpg';
-import hero2 from '../assets/hero/hero-pic-2.jpg';
-import hero3 from '../assets/hero/hero-pic-3.jpg';
 
+// Images served from public/ folder — no import needed, always works on Vercel
 const HERO_SLIDES = [
-  { src: heroMain, alt: 'Smart Grow Chain' },
-  { src: hero1,    alt: 'Smart Grow Chain 1' },
-  { src: hero2,    alt: 'Smart Grow Chain 2' },
-  { src: hero3,    alt: 'Smart Grow Chain 3' },
+  { src: '/hero-pic-main.png', alt: 'Smart Grow Chain' },
+  { src: '/hero-pic1.jpg',     alt: 'Smart Grow Chain 1' },
+  { src: '/hero-pic-2.jpg',    alt: 'Smart Grow Chain 2' },
+  { src: '/hero-pic-3.jpg',    alt: 'Smart Grow Chain 3' },
 ];
 
 export default function HeroSlider() {
@@ -67,6 +64,7 @@ export default function HeroSlider() {
       requestAnimationFrame(() => centerSlide(closestIndex - slideCount, 'auto'));
     }
   };
+
   const goTo = (i) => {
     centerSlide(slideCount + i);
     setActiveSlide(i);
