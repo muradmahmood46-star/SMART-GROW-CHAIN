@@ -80,22 +80,34 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
         ).first()
         if already_clicked:
             continue
+
+        # Check if this ad originates from a UserAdRequest (User Advertise section)
         sponsored = db.query(UserAdRequest).filter(
             UserAdRequest.url == ad.url,
+            UserAdRequest.title == ad.title,
             UserAdRequest.status == "approved"
         ).first()
-        is_own = sponsored is not None and sponsored.user_id == current_user.id
+
+        is_sponsored = sponsored is not None
+        is_own = is_sponsored and sponsored.user_id == current_user.id
+
         result.append({
-            "id": ad.id, "title": ad.title, "url": ad.url,
+            "id": ad.id,
+            "title": ad.title,
+            "url": ad.url,
             "description": ad.description,
             "earning_amount": ad.earning_amount,
             "timer_seconds": ad.timer_seconds,
             "total_clicks": ad.total_clicks,
             "already_clicked": False,
-            "is_sponsored": sponsored is not None,
+            "is_sponsored": is_sponsored,
             "is_own_ad": is_own
         })
-    result.sort(key=lambda x: (0 if x["is_sponsored"] else 1, -x["earning_amount"]))
+
+    # Sort logic:
+    # 1) Sponsored Ads (User Advertise section) at the VERY TOP (0), Admin Simple Ads below (1)
+    # 2) Within each group, newest ad ID first (-x["id"])
+    result.sort(key=lambda x: (0 if x["is_sponsored"] else 1, -x["id"]))
     return {"plan_required": False, "ads": result}
 
 @router.post("/click/start/{ad_id}")
