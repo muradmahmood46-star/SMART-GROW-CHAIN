@@ -20,6 +20,7 @@ export default function PlanPurchases({ notify, loadData }) {
   };
 
   useEffect(() => {
+    localStorage.setItem('admin_plan_purchases_viewed_at', new Date().toISOString());
     fetchPurchases();
   }, []);
 
@@ -44,8 +45,6 @@ export default function PlanPurchases({ notify, loadData }) {
       if (notify) notify('Error rejecting plan', 'error');
     }
   };
-
-  
 
   return (
     <div>
@@ -89,7 +88,7 @@ export default function PlanPurchases({ notify, loadData }) {
                   )}
                   {r.sender_phone&&(
                     <div style={{background:'#0d1e38',border:'1px solid #1e4080',borderRadius:8,padding:'8px 14px',marginBottom:12}}>
-                      <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600,letterSpacing:.5}}>SENDER PHONE</p>
+                      <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 2px',fontWeight:600,letterSpacing:.5}}>SENDER PHONE / TRX ID</p>
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
                         <p style={{color:'#38bdf8',fontFamily:'monospace',fontSize:16,fontWeight:800,margin:0}}>{r.sender_phone}</p>
                         <button onClick={()=>{navigator.clipboard.writeText(r.sender_phone);if(notify) notify('Copied! 📋');}} style={{background:'#1e4080',border:'1px solid #38bdf8',color:'#38bdf8',borderRadius:7,padding:'4px 10px',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'var(--font)'}}>Copy</button>

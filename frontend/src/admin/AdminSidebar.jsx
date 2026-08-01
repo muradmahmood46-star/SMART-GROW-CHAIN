@@ -41,25 +41,43 @@ export default function AdminSidebar({
           API.get('/admin/plan-purchases').catch(()=>({data:[]})),
         ]);
         if (active) {
+          const lastViewedStr = localStorage.getItem('admin_plan_purchases_viewed_at');
+          const lastViewed = lastViewedStr ? new Date(lastViewedStr) : new Date(0);
+
+          const unreadPurchases = (p.data||[]).filter(x => {
+            const created = new Date(x.created_at);
+            return created > lastViewed;
+          }).length;
+
           setCounts({
             pendingW: (w.data||[]).filter(x=>x.status==='pending').length,
             pendingD: (d.data||[]).filter(x=>x.status==='pending').length,
             openT: (t.data||[]).filter(x=>x.status==='open').length,
             pendingAdReqs: (a.data||[]).filter(x=>x.status==='pending').length,
             pendingKyc: (k.data||[]).filter(x=>x.status==='pending').length,
-            pendingPlanPurchases: (p.data||[]).filter(x=>x.status==='pending').length,
+            pendingPlanPurchases: tab === 'plan-purchases' ? 0 : unreadPurchases,
           });
         }
       } catch (e) {}
     };
     fetchCounts();
-    // Refresh counts every 30 seconds
     const interval = setInterval(fetchCounts, 30000);
     return () => { active = false; clearInterval(interval); };
-  }, []);
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab === 'plan-purchases') {
+      localStorage.setItem('admin_plan_purchases_viewed_at', new Date().toISOString());
+      setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
+    }
+  }, [tab]);
 
   const handleTab = (key) => {
     setTab(key);
+    if (key === 'plan-purchases') {
+      localStorage.setItem('admin_plan_purchases_viewed_at', new Date().toISOString());
+      setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
+    }
     if(window.innerWidth<=768){setSidebarCollapsed(true);setSidebarOpen(false);}
   };
 
