@@ -8,16 +8,18 @@ export default function SupportTicket({ tickets, notify, loadData }) {
   const [userReply, setUserReply] = useState('');
 
   React.useEffect(() => {
-    let changed = false;
+    const markReadPromises = [];
     tickets.forEach(t => {
       if (t.status === 'replied') {
-        API.post(`/user/tickets/${t.id}/read`).catch(()=>{}).then(() => { changed = true; });
+        markReadPromises.push(API.post(`/user/tickets/${t.id}/read`).catch(()=>{}));
       }
     });
-    if (changed && loadData) {
-      setTimeout(() => loadData(), 500);
+    if (markReadPromises.length > 0 && loadData) {
+      Promise.all(markReadPromises).then(() => {
+        loadData();
+      });
     }
-  }, [tickets]);
+  }, [tickets, loadData]);
 
   const handleTicket = async(e)=>{
     e.preventDefault();
