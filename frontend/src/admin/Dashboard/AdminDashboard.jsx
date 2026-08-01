@@ -67,8 +67,8 @@ export default function AdminDashboard({ setTab }) {
           ['Today Earnings', `Rs. ${stats.today_earnings}`, 'linear-gradient(135deg, #713f12, #eab308)', '#fde047', '🪙'],
           ['Total Earnings', `Rs. ${stats.total_earnings}`, 'linear-gradient(135deg, #022c22, #059669)', '#6ee7b7', '💰'],
           ['Pending Payout', stats.pending_withdrawals,     'linear-gradient(135deg, #7f1d1d, #ef4444)', '#fca5a5', '🔴'],
-          ['Pending Funds',  pendingD,                      'linear-gradient(135deg, #164e63, #06b6d4)', '#67e8f9', '🟦'],
-          ['Open Tickets',   openT,                         'linear-gradient(135deg, #831843, #ec4899)', '#f9a8d4', '🩷'],
+          ['Pending Funds',  stats.pending_deposits,        'linear-gradient(135deg, #164e63, #06b6d4)', '#67e8f9', '🟦'],
+          ['Tickets',        stats.open_tickets,            'linear-gradient(135deg, #831843, #ec4899)', '#f9a8d4', '🩷'],
           ['Total Clicks',   stats.total_clicks,            'linear-gradient(135deg, #312e81, #6366f1)', '#a5b4fc', '⚡'],
         ].map(([l,v,bg,textCol,icon],i)=>(
           <div key={i} className="admin-stat-card" style={{ background: bg, animationDelay: `${i * 0.05}s` }}>

@@ -38,18 +38,31 @@ class AdUpdate(BaseModel):
     timer_seconds: Optional[int] = None
     daily_limit: Optional[int] = None
 
+from sqlalchemy import or_, and_
+
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     today = date.today()
-    week_ago = today - timedelta(days=7)
+    now = datetime.utcnow()
+    current_week_start = (now - timedelta(days=now.weekday())).date()
 
-    total_earnings = db.query(func.sum(Earning.amount)).filter(Earning.type == "click").scalar() or 0
+    total_earnings = db.query(func.sum(Earning.amount)).scalar() or 0
+    today_earnings = db.query(func.sum(Earning.amount)).filter(
+        cast(Earning.clicked_at, Date) == today
+    ).scalar() or 0
+    
     today_clicks = db.query(Earning).filter(
         cast(Earning.clicked_at, Date) == today, Earning.type == "click"
     ).count()
-    today_earnings = db.query(func.sum(Earning.amount)).filter(
-        cast(Earning.clicked_at, Date) == today, Earning.type == "click"
-    ).scalar() or 0
+
+    active_users = db.query(User).filter(
+        or_(
+            and_(User.registration_week_start == current_week_start, User.current_week_session_seconds >= 600),
+            and_(User.registration_week_start != current_week_start, User.current_week_session_seconds >= 1200)
+        )
+    ).count()
+
+    total_clicks = db.query(func.sum(Ad.total_clicks)).filter(Ad.is_active == True).scalar() or 0
 
     # Daily clicks for last 7 days
     daily_data = []
@@ -61,16 +74,16 @@ def get_stats(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
         daily_data.append({"date": str(d), "clicks": clicks})
 
     return {
-        "total_users": db.query(User).filter(User.is_admin == False).count(),
-        "active_users": db.query(User).filter(User.is_active == True, User.is_admin == False).count(),
-        "total_ads": db.query(Ad).count(),
-        "active_ads": db.query(Ad).filter(Ad.is_active == True).count(),
-        "total_clicks": db.query(Earning).filter(Earning.type == "click").count(),
+        "total_users": db.query(User).count(),
+        "active_users": active_users,
+        "total_ads": db.query(Ad).filter(Ad.is_active == True).count(),
+        "total_clicks": total_clicks,
         "today_clicks": today_clicks,
         "today_earnings": round(today_earnings, 4),
         "total_earnings": round(total_earnings, 4),
         "pending_withdrawals": db.query(Withdrawal).filter(Withdrawal.status == "pending").count(),
-        "total_withdrawal_amount": round(db.query(func.sum(Withdrawal.amount)).filter(Withdrawal.status == "approved").scalar() or 0, 2),
+        "pending_deposits": db.query(Deposit).filter(Deposit.status == "pending").count(),
+        "open_tickets": db.query(SupportTicket).filter(SupportTicket.status == "open").count(),
         "daily_data": daily_data
     }
 

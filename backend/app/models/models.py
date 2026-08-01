@@ -22,6 +22,10 @@ class User(Base):
     two_fa_enabled = Column(Boolean, default=False)
     two_fa_secret = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=func.now())
+    total_session_seconds = Column(Integer, default=0)
+    current_week_session_seconds = Column(Integer, default=0)
+    last_session_week_start = Column(Date, nullable=True)
+    registration_week_start = Column(Date, nullable=True)
 
     earnings = relationship("Earning", back_populates="user")
     withdrawals = relationship("Withdrawal", back_populates="user")

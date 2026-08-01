@@ -51,6 +51,25 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+# ── SESSION PING ─────────────────────────────────────────────────────────────
+@router.post("/ping")
+def session_ping(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+    current_week_start = (now - timedelta(days=now.weekday())).date()
+    
+    if hasattr(current_user, 'last_session_week_start') and current_user.last_session_week_start != current_week_start:
+        current_user.current_week_session_seconds = 0
+        current_user.last_session_week_start = current_week_start
+        
+    # Increment session time (assumes ping every 60s)
+    if not hasattr(current_user, 'total_session_seconds') or current_user.total_session_seconds is None: current_user.total_session_seconds = 0
+    if not hasattr(current_user, 'current_week_session_seconds') or current_user.current_week_session_seconds is None: current_user.current_week_session_seconds = 0
+    
+    current_user.total_session_seconds += 60
+    current_user.current_week_session_seconds += 60
+    db.commit()
+    return {"status": "ok"}
+
 # ── PROFILE ─────────────────────────────────────────────────────────────────
 @router.get("/profile", response_model=UserOut)
 def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

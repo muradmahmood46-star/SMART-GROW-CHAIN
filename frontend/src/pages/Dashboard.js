@@ -23,6 +23,7 @@ import SupportTicket from '../user/SupportTicket';
 import KYCVerification from '../user/KYCVerification';
 import TwoFactorSecurity from '../user/TwoFactorSecurity';
 import Notifications from '../user/Notifications';
+import SessionTracker from '../components/SessionTracker';
 import '../panel.css';
 
 export default function Dashboard() {
@@ -166,6 +167,7 @@ export default function Dashboard() {
 
       <div className={`panel-main${sidebarCollapsed?" sidebar-hidden":""}`}>
         <div className="sgc-topbar">
+          <SessionTracker />
           <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
             <button className="hamburger" onClick={()=>{if(window.innerWidth<=768){setSidebarOpen(true);}setSidebarCollapsed(false);}}>☰</button>
             <button className="sgc-topbar-login-back" onClick={handleBack} aria-label="Go back" title="Go back">←</button>
