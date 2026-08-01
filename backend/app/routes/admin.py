@@ -353,10 +353,10 @@ def confirm_deposit(dep_id: int, db: Session = Depends(get_db), admin=Depends(ge
         raise HTTPException(status_code=400, detail="Already processed")
     user = db.query(User).filter(User.id == dep.user_id).first()
     if user:
-        user.balance -= dep.amount_pkr
+        user.balance += dep.amount_pkr
     dep.status = "confirmed"
     db.commit()
-    return {"message": f"Deposit confirmed. Rs. {dep.amount_pkr} deducted from user balance"}
+    return {"message": f"Deposit confirmed. Rs. {dep.amount_pkr} added to user balance"}
 
 @router.put("/deposits/{dep_id}/reject")
 def reject_deposit(dep_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):

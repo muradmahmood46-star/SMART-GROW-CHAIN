@@ -88,6 +88,7 @@ export default function DashboardHome({
       </div>
       <div className="sgc-stats sgc-dashboard-stats">
         {[
+          ['Current Plan', profile?.plan_active ? profile.membership.toUpperCase() : 'GSC FREE PLAN', '#3b82f6', '💎', false],
           ['Ads Available',availableAds,'#7c3aed','📺',false],
           ['Total Clicks',earnings?.filter(e=>e.type==='click').length||0,'#0891b2','👆',false],
           ['Referrals',referrals?.total_referrals||0,'#059669','👥',false],
