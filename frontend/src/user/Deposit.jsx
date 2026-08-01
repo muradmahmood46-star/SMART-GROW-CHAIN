@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api';
 
-export default function Deposit({ notify, loadData }) {
-  const [epAccounts, setEpAccounts] = useState([]);
+export default function Deposit({ epAccounts: initialEpAccounts, notify, loadData }) {
+  const [epAccounts, setEpAccounts] = useState(initialEpAccounts || []);
+  const [loadingAccounts, setLoadingAccounts] = useState(!(initialEpAccounts && initialEpAccounts.length > 0));
   const [selectedMethod, setSelectedMethod] = useState('easypaisa');
   const [deposit, setDeposit] = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
   const [screenshot, setScreenshot] = useState(null);
 
   useEffect(() => {
-    API.get('/deposit/easypaisa-accounts').then(r=>setEpAccounts(r.data)).catch(()=>{});
-  }, []);
+    if (initialEpAccounts && initialEpAccounts.length > 0) {
+      setEpAccounts(initialEpAccounts);
+      setLoadingAccounts(false);
+    }
+    API.get('/deposit/easypaisa-accounts').then(r => {
+      setEpAccounts(r.data);
+      setLoadingAccounts(false);
+    }).catch(() => {
+      setLoadingAccounts(false);
+    });
+  }, [initialEpAccounts]);
 
   const handleDeposit = async(e)=>{
     e.preventDefault();
@@ -61,7 +71,12 @@ export default function Deposit({ notify, loadData }) {
 
       {/* Our Accounts */}
       <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>OUR ACCOUNTS</p>
-      {epAccounts.length>0 ? (
+      {loadingAccounts && epAccounts.length === 0 ? (
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:'24px 20px',textAlign:'center',marginBottom:28}}>
+          <div style={{fontSize:24,marginBottom:8}}>⏳</div>
+          <p style={{color:'var(--dim)',fontSize:13,margin:0,fontWeight:600}}>Loading payment accounts...</p>
+        </div>
+      ) : epAccounts.length > 0 ? (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,marginBottom:28}}>
           {epAccounts.map(a=>{
             const isEP=(a.method_type||'easypaisa')==='easypaisa';

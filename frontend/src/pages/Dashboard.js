@@ -230,7 +230,7 @@ export default function Dashboard() {
             {tab==='dashboard' && <DashboardHome profile={profile} earnings={earnings} referrals={referrals} refBonus={refBonus} availableAds={availableAds} todayEarned={todayEarned} freePlanExpired={freePlanExpired} freePlanDaysLeft={freePlanDaysLeft} siteSettings={siteSettings} dashboardMsg={dashboardMsg} transactions={transactions} showAllTx={showAllTx} setShowAllTx={setShowAllTx} setTab={setTab} notify={notify} />}
             {tab==='ads' && <Advertisement profile={profile} adPlanRequired={adPlanRequired} ads={ads} earnings={earnings} tab={tab} setTab={setTab} notify={notify} kycData={kycData} siteSettings={siteSettings} setAds={setAds} loadData={loadData} />}
             {tab==='fund-history' && <FundHistory myDeposits={myDeposits} transfers={transfers} />}
-            {tab==='transfer' && <Deposit notify={notify} loadData={loadData} />}
+            {tab==='transfer' && <Deposit epAccounts={epAccounts} notify={notify} loadData={loadData} />}
             {tab==='payout' && <Payout siteSettings={siteSettings} kycData={kycData} profile={profile} withdrawals={withdrawals} withdrawalMsg={withdrawalMsg} notify={notify} loadData={loadData} />}
             {tab==='payout-hist' && <PayoutHistory withdrawals={withdrawals} />}
             {tab==='send-funds' && <SendFunds profile={profile} transfers={transfers} siteSettings={siteSettings} notify={notify} loadData={loadData} />}
@@ -238,7 +238,7 @@ export default function Dashboard() {
             {tab==='referral' && <MyReferral referrals={referrals} referralMsg={referralMsg} selectedRefLevel={selectedRefLevel} setSelectedRefLevel={setSelectedRefLevel} refLevelData={refLevelData} setRefLevelData={setRefLevelData} refLevelLoading={refLevelLoading} setRefLevelLoading={setRefLevelLoading} loadRefLevel={loadRefLevel} parseUTCDate={parseUTCDate} notify={notify} />}
             {tab==='transactions' && <AllTransaction transactions={transactions} />}
             {tab==='ref-bonus' && <ReferralBonus />}
-            {tab==='create-ad' && <Advertise profile={profile} notify={notify} setTab={setTab} loadData={loadData} />}
+            {tab==='create-ad' && <Advertise profile={profile} notify={notify} setTab={setTab} loadData={loadData} advertiserMsg={advertiserMsg} />}
             {tab==='support' && <SupportTicket tickets={tickets} notify={notify} loadData={loadData} />}
             {tab==='kyc' && <KYCVerification kycData={kycData} notify={notify} setTab={setTab} loadData={loadData} />}
             {tab==='2fa' && <TwoFactorSecurity profile={profile} notify={notify} loadData={loadData} />}
