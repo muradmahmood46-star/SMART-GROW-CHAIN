@@ -105,7 +105,33 @@ def adjust_balance(user_id: int, data: BalanceAdjust, db: Session = Depends(get_
 
 @router.get("/ads")
 def get_all_ads(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    return db.query(Ad).order_by(Ad.created_at.desc()).all()
+    ads = db.query(Ad).order_by(Ad.created_at.desc()).all()
+    result = []
+    for ad in ads:
+        sponsored = db.query(UserAdRequest).filter(
+            UserAdRequest.url == ad.url,
+            UserAdRequest.title == ad.title,
+            UserAdRequest.status == "approved"
+        ).first()
+        username = "Admin"
+        if sponsored and sponsored.user:
+            username = sponsored.user.username
+            
+        result.append({
+            "id": ad.id,
+            "title": ad.title,
+            "url": ad.url,
+            "description": ad.description,
+            "earning_amount": ad.earning_amount,
+            "timer_seconds": ad.timer_seconds,
+            "daily_limit": ad.daily_limit,
+            "total_clicks": ad.total_clicks,
+            "is_active": ad.is_active,
+            "created_at": ad.created_at,
+            "username": username,
+            "is_sponsored": sponsored is not None
+        })
+    return result
 
 @router.post("/ads")
 def create_ad(data: AdCreate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
