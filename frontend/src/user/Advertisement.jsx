@@ -12,7 +12,8 @@ export default function Advertisement({
   siteSettings,
   setAds,
   loadData,
-  profile
+  profile,
+  adPlanRequired
 }) {
   const availableAds = ads.filter(a=>!a.already_clicked).length;
   
@@ -110,13 +111,23 @@ export default function Advertisement({
   const timerPct = activeAd ? ((activeAd.timer_seconds-countdown)/activeAd.timer_seconds)*100 : 0;
 
   const now = new Date();
-  const isPlanActive = profile?.plan_active ?? (
-    profile ? (
-      profile.membership && profile.membership !== 'free'
-        ? (profile.plan_expires_at && new Date(profile.plan_expires_at) > now)
-        : (profile.free_plan_expires_at && new Date(profile.free_plan_expires_at) > now)
-    ) : false
-  );
+  const parseUTCDate = (str) => {
+    if (!str) return null;
+    try {
+      const s = String(str).trim();
+      if (!s) return null;
+      if (s.includes('T') || s.includes('Z')) return new Date(s);
+      return new Date(s.replace(' ', 'T') + 'Z');
+    } catch { return null; }
+  };
+
+  const freeExpiry = parseUTCDate(profile?.free_plan_expires_at);
+  const paidExpiry = parseUTCDate(profile?.plan_expires_at);
+  const isFreeValid = Boolean(profile?.membership === 'free' && freeExpiry && freeExpiry > now);
+  const isPaidValid = Boolean(profile?.membership && profile?.membership !== 'none' && profile?.membership !== 'free' && paidExpiry && paidExpiry > now);
+  const hasValidPlanInProfile = isFreeValid || isPaidValid || profile?.plan_active === true;
+
+  const isPlanActive = !adPlanRequired && (hasValidPlanInProfile || (ads && ads.length > 0));
 
   if (!isPlanActive) {
     return (
