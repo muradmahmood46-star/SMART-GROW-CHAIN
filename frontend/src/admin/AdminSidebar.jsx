@@ -28,6 +28,13 @@ export default function AdminSidebar({
 }) {
   const [counts, setCounts] = useState({ pendingW:0, pendingD:0, openT:0, pendingAdReqs:0, pendingKyc:0, pendingPlanPurchases:0 });
 
+  const updatePlanPurchasesSeen = (items) => {
+    if (Array.isArray(items) && items.length > 0) {
+      const maxId = Math.max(...items.map(x => Number(x.id) || 0));
+      localStorage.setItem('admin_last_seen_plan_purchase_id', String(maxId));
+    }
+  };
+
   useEffect(() => {
     let active = true;
     const fetchCounts = async () => {
@@ -41,13 +48,22 @@ export default function AdminSidebar({
           API.get('/admin/plan-purchases').catch(()=>({data:[]})),
         ]);
         if (active) {
-          const lastViewedStr = localStorage.getItem('admin_plan_purchases_viewed_at');
-          const lastViewed = lastViewedStr ? new Date(lastViewedStr) : new Date(0);
+          const purchases = p.data || [];
+          const lastSeenIdStr = localStorage.getItem('admin_last_seen_plan_purchase_id');
+          
+          let unreadPurchases = 0;
+          if (lastSeenIdStr !== null) {
+            const lastSeenId = Number(lastSeenIdStr) || 0;
+            unreadPurchases = purchases.filter(x => (Number(x.id) || 0) > lastSeenId).length;
+          } else if (purchases.length > 0) {
+            updatePlanPurchasesSeen(purchases);
+            unreadPurchases = 0;
+          }
 
-          const unreadPurchases = (p.data||[]).filter(x => {
-            const created = new Date(x.created_at);
-            return created > lastViewed;
-          }).length;
+          if (tab === 'plan-purchases') {
+            updatePlanPurchasesSeen(purchases);
+            unreadPurchases = 0;
+          }
 
           setCounts({
             pendingW: (w.data||[]).filter(x=>x.status==='pending').length,
@@ -61,13 +77,13 @@ export default function AdminSidebar({
       } catch (e) {}
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
+    const interval = setInterval(fetchCounts, 15000);
     return () => { active = false; clearInterval(interval); };
   }, [tab]);
 
   useEffect(() => {
     if (tab === 'plan-purchases') {
-      localStorage.setItem('admin_plan_purchases_viewed_at', new Date().toISOString());
+      API.get('/admin/plan-purchases').then(r => updatePlanPurchasesSeen(r.data)).catch(()=>{});
       setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
     }
   }, [tab]);
@@ -75,7 +91,7 @@ export default function AdminSidebar({
   const handleTab = (key) => {
     setTab(key);
     if (key === 'plan-purchases') {
-      localStorage.setItem('admin_plan_purchases_viewed_at', new Date().toISOString());
+      API.get('/admin/plan-purchases').then(r => updatePlanPurchasesSeen(r.data)).catch(()=>{});
       setCounts(prev => ({ ...prev, pendingPlanPurchases: 0 }));
     }
     if(window.innerWidth<=768){setSidebarCollapsed(true);setSidebarOpen(false);}

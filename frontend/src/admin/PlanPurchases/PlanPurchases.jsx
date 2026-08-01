@@ -11,6 +11,10 @@ export default function PlanPurchases({ notify, loadData }) {
     try {
       const res = await API.get('/admin/plan-purchases');
       setPlanPurchases(res.data);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const maxId = Math.max(...res.data.map(x => Number(x.id) || 0));
+        localStorage.setItem('admin_last_seen_plan_purchase_id', String(maxId));
+      }
     } catch (e) {
       console.error(e);
       if (notify) notify('Failed to fetch plan purchases', 'error');
@@ -20,7 +24,6 @@ export default function PlanPurchases({ notify, loadData }) {
   };
 
   useEffect(() => {
-    localStorage.setItem('admin_plan_purchases_viewed_at', new Date().toISOString());
     fetchPurchases();
   }, []);
 
