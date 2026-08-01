@@ -55,10 +55,13 @@ def get_stats(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
         cast(Earning.clicked_at, Date) == today, Earning.type == "click"
     ).count()
 
+    now = datetime.utcnow()
     active_users = db.query(User).filter(
+        User.membership != "none",
+        User.membership.isnot(None),
         or_(
-            and_(User.registration_week_start == current_week_start, User.current_week_session_seconds >= 600),
-            and_(User.registration_week_start != current_week_start, User.current_week_session_seconds >= 1200)
+            and_(User.membership == "free", User.free_plan_expires_at > now),
+            and_(User.membership != "free", User.plan_expires_at > now)
         )
     ).count()
 
