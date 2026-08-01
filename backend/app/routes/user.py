@@ -58,6 +58,7 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
     if current_user.total_earned is None:
         current_user.total_earned = 0.0
         db.commit()
+    current_user.plan_active = has_active_plan(current_user)
     return current_user
 
 # ── ADS ──────────────────────────────────────────────────────────────────────

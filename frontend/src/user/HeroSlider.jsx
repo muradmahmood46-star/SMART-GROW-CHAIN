@@ -1,10 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 const HERO_SLIDES = [
-  { src:'/hero%20pic%20main.png', alt:'Smart Grow Chain' },
-  { src:'/hero%20pic1.jpg',     alt:'Smart Grow Chain 1' },
-  { src:'/hero%20pic%202.jpg',    alt:'Smart Grow Chain 2' },
-  { src:'/hero%20pic%203.jpg',    alt:'Smart Grow Chain 3' },
+  { src: (process.env.PUBLIC_URL || '') + '/hero-pic-main.png', alt: 'Smart Grow Chain' },
+  { src: (process.env.PUBLIC_URL || '') + '/hero-pic1.jpg',     alt: 'Smart Grow Chain 1' },
+  { src: (process.env.PUBLIC_URL || '') + '/hero-pic-2.jpg',    alt: 'Smart Grow Chain 2' },
+  { src: (process.env.PUBLIC_URL || '') + '/hero-pic-3.jpg',    alt: 'Smart Grow Chain 3' },
 ];
 
 export default function HeroSlider() {

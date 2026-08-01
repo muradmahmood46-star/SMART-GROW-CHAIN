@@ -25,6 +25,7 @@ class UserOut(BaseModel):
     two_fa_enabled: bool
     kyc_status: str
     created_at: datetime
+    plan_active: Optional[bool] = False
     class Config:
         from_attributes = True
 
