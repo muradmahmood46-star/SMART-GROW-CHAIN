@@ -50,12 +50,14 @@ def get_ad_rate(db: Session = Depends(get_db)):
         "welcome_message": rate.welcome_message if rate else "Welcome! Create your campaign and reach thousands of members instantly."
     }
 
+@router.post("")
+@router.post("/")
 @router.post("/submit")
 async def submit_ad_request(
     title: str = Form(...),
     url: str = Form(...),
     members_needed: int = Form(...),
-    payment_method: str = Form(...),  # "wallet" or "easypaisa"
+    payment_method: str = Form(...),  # "wallet", "easypaisa", "jazzcash", "bank"
     sender_name: str = Form(""),
     transaction_id: str = Form(""),
     screenshot: UploadFile = File(None),
