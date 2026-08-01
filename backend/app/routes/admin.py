@@ -982,7 +982,7 @@ def _set_setting(db: Session, key: str, value: str):
 @router.get("/withdraw-settings")
 def get_withdraw_settings(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     rows = {r.key: r.value for r in db.query(SiteSettings).filter(
-        SiteSettings.key.in_(["withdraw_enabled", "withdraw_until", "withdraw_schedule_time"])
+        SiteSettings.key.in_(["withdraw_enabled", "withdraw_until", "withdraw_schedule_time", "withdraw_closed_message"])
     ).all()}
     enabled = rows.get("withdraw_enabled", "true") == "true"
     until_str = rows.get("withdraw_until", "")
@@ -999,7 +999,8 @@ def get_withdraw_settings(db: Session = Depends(get_db), admin=Depends(get_admin
     return {
         "withdraw_enabled": enabled,
         "withdraw_until": until_str,
-        "withdraw_schedule_time": rows.get("withdraw_schedule_time", "")
+        "withdraw_schedule_time": rows.get("withdraw_schedule_time", ""),
+        "withdraw_closed_message": rows.get("withdraw_closed_message", "")
     }
 
 @router.put("/withdraw-settings/toggle")

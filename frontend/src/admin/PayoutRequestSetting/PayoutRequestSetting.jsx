@@ -1,7 +1,7 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import API from '../../api';
-import { updateWithdrawToggle, updateWithdrawDuration, updateWithdrawSchedule, getWithdrawSettings } from '../../services/admin/adminService';
+import { updateWithdrawToggle, updateWithdrawDuration, updateWithdrawSchedule, getWithdrawSettings, updateSetting } from '../../services/admin/adminService';
 
 export default function PayoutRequestSetting({ notify, loadData }) {
   const [withdrawals, setWithdrawals] = useState([]);
@@ -13,6 +13,7 @@ export default function PayoutRequestSetting({ notify, loadData }) {
   const [schedOffTime, setSchedOffTime] = useState('');
   const [schedOffAmPm, setSchedOffAmPm] = useState('PM');
   const [payoutScreenshots, setPayoutScreenshots] = useState({});
+  const [customMessage, setCustomMessage] = useState('');
 
   const pendingW = withdrawals.filter(w => w.status === 'pending').length;
 
@@ -27,6 +28,7 @@ export default function PayoutRequestSetting({ notify, loadData }) {
         if (onPart) { setSchedOnTime(onPart.split(' ')[0]); setSchedOnAmPm(onPart.split(' ')[1]); }
         if (offPart) { setSchedOffTime(offPart.split(' ')[0]); setSchedOffAmPm(offPart.split(' ')[1]); }
       }
+      setCustomMessage(sRes.data.withdraw_closed_message || '');
     } catch (e) {
       console.error(e);
       if (notify) notify('Error loading payout data', 'error');
@@ -221,6 +223,24 @@ export default function PayoutRequestSetting({ notify, loadData }) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* D: Custom Message */}
+          <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:12,padding:'16px'}}>
+            <p style={{color:'var(--text)',fontWeight:700,fontSize:13,margin:'0 0 4px'}}>D. Leave a Message for Users</p>
+            <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 12px'}}>Custom message to show when withdraw is closed</p>
+            <textarea value={customMessage} onChange={e=>setCustomMessage(e.target.value)}
+              placeholder="Withdrawals are temporarily disabled due to system maintenance."
+              style={{width:'100%',background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,color:'var(--text)',padding:'10px',fontFamily:'var(--font)',fontSize:13,resize:'vertical',minHeight:80,marginBottom:10}}/>
+            <button onClick={async()=>{
+              try {
+                await updateSetting('withdraw_closed_message', customMessage);
+                setWithdrawSettings(s=>({...s,withdraw_closed_message:customMessage}));
+                if (notify) notify('Message saved ✅');
+              } catch (error) { showWithdrawSettingsError(error); }
+            }} style={{width:'100%',padding:'10px',background:'#1e3a6e',color:'var(--accent)',border:'1px solid #1e4080',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}}>
+              💾 Save Message
+            </button>
           </div>
         </div>
       </div>

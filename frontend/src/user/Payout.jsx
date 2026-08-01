@@ -21,6 +21,10 @@ export default function Payout({
 
   const handleWithdraw = async(e)=>{
     e.preventDefault();
+    if (siteSettings.withdraw_enabled === 'false') {
+      notify(siteSettings.withdraw_closed_message || 'Withdraw is currently closed.', 'error');
+      return;
+    }
     let walletAddr = withdraw.wallet_address;
     if(withdraw.method==='bank'){
       if(!withdrawBankName||!withdrawBankHolder||!withdraw.wallet_address){ notify('Please fill all bank fields','error'); return; }
@@ -49,7 +53,7 @@ export default function Payout({
           <span style={{fontSize:22}}>🔒</span>
           <div>
             <p style={{color:'#fca5a5',fontWeight:700,fontSize:14,margin:0}}>Withdraw Currently Closed</p>
-            <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Withdraw is temporarily disabled. Please check back later.</p>
+            <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0',whiteSpace:'pre-wrap'}}>{siteSettings.withdraw_closed_message || 'Withdraw is temporarily disabled. Please check back later.'}</p>
           </div>
         </div>
       )}
@@ -117,7 +121,11 @@ export default function Payout({
                 <span>Min: <b style={{color:'var(--yellow)'}}>Rs. {minW}</b></span>
                 {maxW>0&&<span>Max: <b style={{color:'var(--red)'}}>Rs. {maxW}</b></span>}
               </div>
-              <button className="sgc-btn-primary" type="submit">Submit Request</button>
+              <button className="sgc-btn-primary" type="submit" 
+                disabled={siteSettings.withdraw_enabled === 'false'} 
+                style={{ opacity: siteSettings.withdraw_enabled === 'false' ? 0.5 : 1, cursor: siteSettings.withdraw_enabled === 'false' ? 'not-allowed' : 'pointer' }}>
+                Submit Request
+              </button>
             </form>
 
             {/* Withdrawal Custom Message Box */}

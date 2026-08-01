@@ -223,7 +223,9 @@ def request_withdrawal(data: WithdrawalCreate, current_user: User = Depends(get_
                 db.commit()
         except: pass
     if not enabled:
-        raise HTTPException(status_code=400, detail="Withdraw is currently closed. Please try again later.")
+        w_msg = db.query(SiteSettings).filter(SiteSettings.key == "withdraw_closed_message").first()
+        msg = w_msg.value if w_msg and w_msg.value else "Withdrawals are currently disabled."
+        raise HTTPException(status_code=400, detail=msg)
     if current_user.kyc_status != "approved":
         raise HTTPException(status_code=400, detail="Please complete your KYC verification first before withdrawing.")
     # Get plan-based min/max withdrawal
