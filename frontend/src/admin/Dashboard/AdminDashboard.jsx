@@ -34,23 +34,52 @@ export default function AdminDashboard({ setTab }) {
 
   return (
     <div>
+      <style>{`
+        @keyframes adminSlideUpFade {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .admin-stat-card {
+          border-radius: 16px;
+          padding: 24px 20px;
+          color: #ffffff;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          border: 1px solid rgba(255,255,255,0.1);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          opacity: 0;
+          animation: adminSlideUpFade 0.6s ease-out forwards;
+        }
+        .admin-stat-card:hover {
+          transform: translateY(-6px) scale(1.02);
+          box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+          border-color: rgba(255,255,255,0.3);
+        }
+      `}</style>
       <h2 className="sgc-heading">📊 Dashboard</h2>
-      <div className="sgc-stats">
+      <div className="sgc-stats" style={{gap: '20px'}}>
         {[
-          ['Total Users',    stats.total_users,                    'var(--accent)'],
-          ['Active Users',   stats.active_users,                   'var(--green)'],
-          ['Total Ads',      stats.total_ads,                      'var(--purple)'],
-          ['Today Clicks',   stats.today_clicks,                   'var(--yellow)'],
-          ['Today Earnings', `Rs. ${stats.today_earnings}`,        'var(--green)'],
-          ['Total Earnings', `Rs. ${stats.total_earnings}`,        'var(--yellow)'],
-          ['Pending Payout', stats.pending_withdrawals,            'var(--red)'],
-          ['Pending Funds',  pendingD, 'var(--red)'],
-          ['Open Tickets',   openT,                                '#f472b6'],
-          ['Total Clicks',   stats.total_clicks,                   'var(--accent)'],
-        ].map(([l,v,c],i)=>(
-          <div key={i} className="sgc-stat-card">
-            <div className="sgc-stat-label">{l}</div>
-            <div className="sgc-stat-val" style={{color:c}}>{v}</div>
+          ['Total Users',    stats.total_users,             'linear-gradient(135deg, #1e3a8a, #3b82f6)', '#93c5fd', '👥'],
+          ['Active Users',   stats.active_users,            'linear-gradient(135deg, #064e3b, #10b981)', '#6ee7b7', '✅'],
+          ['Total Ads',      stats.total_ads,               'linear-gradient(135deg, #4c1d95, #8b5cf6)', '#c4b5fd', '📺'],
+          ['Today Clicks',   stats.today_clicks,            'linear-gradient(135deg, #7c2d12, #f97316)', '#fdba74', '👆'],
+          ['Today Earnings', `Rs. ${stats.today_earnings}`, 'linear-gradient(135deg, #713f12, #eab308)', '#fde047', '🪙'],
+          ['Total Earnings', `Rs. ${stats.total_earnings}`, 'linear-gradient(135deg, #022c22, #059669)', '#6ee7b7', '💰'],
+          ['Pending Payout', stats.pending_withdrawals,     'linear-gradient(135deg, #7f1d1d, #ef4444)', '#fca5a5', '🔴'],
+          ['Pending Funds',  pendingD,                      'linear-gradient(135deg, #164e63, #06b6d4)', '#67e8f9', '🟦'],
+          ['Open Tickets',   openT,                         'linear-gradient(135deg, #831843, #ec4899)', '#f9a8d4', '🩷'],
+          ['Total Clicks',   stats.total_clicks,            'linear-gradient(135deg, #312e81, #6366f1)', '#a5b4fc', '⚡'],
+        ].map(([l,v,bg,textCol,icon],i)=>(
+          <div key={i} className="admin-stat-card" style={{ background: bg, animationDelay: `${i * 0.05}s` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>{l}</div>
+              <div style={{ fontSize: 24, opacity: 0.8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>{icon}</div>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{v}</div>
+            
+            {/* Glassmorphism subtle flare effect */}
+            <div style={{ position: 'absolute', top: '-50%', right: '-20%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)', borderRadius: '50%', pointerEvents: 'none' }} />
           </div>
         ))}
       </div>
