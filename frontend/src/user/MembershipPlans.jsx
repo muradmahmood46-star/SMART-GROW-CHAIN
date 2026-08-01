@@ -79,8 +79,8 @@ export default function MembershipPlans({
         const fd = new FormData();
         fd.append('plan_id', selectedPlan.id);
         fd.append('payment_method', 'wallet');
-        await API.post('/user/plan/purchase', fd);
-        notify('Free plan activated successfully! ✅');
+        const res = await API.post('/user/plan/purchase', fd);
+        notify(res.data?.message || 'Free plan activated successfully! ✅');
         setSelectedPlan(null);
         if (loadData) loadData();
         API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
@@ -92,10 +92,10 @@ export default function MembershipPlans({
       return;
     }
 
-    // Wallet activation
+    // Wallet activation — frontend guard (backend also verifies independently)
     if (planPayMethod === 'wallet') {
-      if (profile.balance < selectedPlan.price) {
-        notify(`Insufficient balance. Required: Rs. ${selectedPlan.price}`, 'error');
+      if ((profile.balance || 0) < selectedPlan.price) {
+        notify('Insufficient balance. Please deposit first.', 'error');
         return;
       }
       setIsPurchasing(true);
@@ -103,12 +103,13 @@ export default function MembershipPlans({
         const fd = new FormData();
         fd.append('plan_id', selectedPlan.id);
         fd.append('payment_method', 'wallet');
-        await API.post('/user/plan/purchase', fd);
-        notify(`Plan activated successfully! Rs. ${selectedPlan.price} deducted. ✅`);
+        const res = await API.post('/user/plan/purchase', fd);
+        notify(res.data?.message || `Plan activated! Rs. ${selectedPlan.price} deducted. ✅`);
         setSelectedPlan(null);
         if (loadData) loadData();
         API.get('/user/plan/my-purchases').then(r=>setMyPlanPurchases(r.data)).catch(()=>{});
       } catch (err) {
+        // Backend returns exact message: "Insufficient balance. Please deposit first."
         notify(err.response?.data?.detail || 'Failed to activate plan', 'error');
       } finally {
         setIsPurchasing(false);
@@ -269,14 +270,14 @@ export default function MembershipPlans({
                   ))}
                 </div>
                 {!isCurrent && p.price>0 && (
-                  <button onClick={()=>handleSelectPlan(p)}
-                    style={{width:'100%',padding:'10px',background:col,color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
+                  <button onClick={()=>handleSelectPlan(p)} disabled={isPurchasing}
+                    style={{width:'100%',padding:'10px',background:col,color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1}}>
                     Upgrade to {p.name}
                   </button>
                 )}
                 {!isCurrent && p.price===0 && (
-                  <button onClick={()=>handleSelectPlan(p)}
-                    style={{width:'100%',padding:'10px',background:'var(--accent)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'var(--font)'}}>
+                  <button onClick={()=>handleSelectPlan(p)} disabled={isPurchasing}
+                    style={{width:'100%',padding:'10px',background:'var(--accent)',color:'var(--bg)',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1}}>
                     Activate Free Plan
                   </button>
                 )}
@@ -418,43 +419,56 @@ export default function MembershipPlans({
               </div>
 
               {/* METHOD 1: WALLET PAYMENT */}
-              {planPayMethod === 'wallet' && (
-                <div>
-                  <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px',marginBottom:20}}>
-                    <p style={{color:'var(--dim)',fontSize:12,margin:'0 0 6px',fontWeight:700,letterSpacing:.5}}>YOUR WALLET BALANCE</p>
-                    <p style={{color: profile.balance >= selectedPlan.price ? 'var(--green)' : 'var(--red)', fontSize:24, fontWeight:900, margin:'0 0 8px'}}>
-                      Rs. {profile.balance.toFixed(2)}
-                    </p>
-                    {profile.balance >= selectedPlan.price ? (
-                      <p style={{color:'#4ade80',fontSize:13,margin:0,fontWeight:600}}>
-                        ✓ Sufficient wallet balance! Rs. {selectedPlan.price} will be deducted automatically and your plan activated immediately.
+              {planPayMethod === 'wallet' && (() => {
+                const walletBal = profile?.balance || 0;
+                const hasSufficientBalance = walletBal >= selectedPlan.price;
+                return (
+                  <div>
+                    {/* Balance card */}
+                    <div style={{background:'var(--card)',border:`1.5px solid ${hasSufficientBalance ? '#22c55e44' : '#ef444444'}`,borderRadius:14,padding:'18px 20px',marginBottom:16}}>
+                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 6px',fontWeight:700,letterSpacing:.8}}>YOUR WALLET BALANCE</p>
+                      <p style={{color: hasSufficientBalance ? '#4ade80' : '#f87171', fontSize:26, fontWeight:900, margin:'0 0 6px'}}>
+                        Rs. {walletBal.toFixed(2)}
                       </p>
+                      <div style={{height:4,background:'var(--border)',borderRadius:4,marginBottom:10,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:`${Math.min((walletBal/selectedPlan.price)*100,100).toFixed(1)}%`,background:hasSufficientBalance?'#22c55e':'#ef4444',borderRadius:4,transition:'width .6s'}} />
+                      </div>
+                      {hasSufficientBalance ? (
+                        <p style={{color:'#86efac',fontSize:13,margin:0,fontWeight:600}}>
+                          ✓ Sufficient balance. Rs. {selectedPlan.price} will be deducted automatically and your plan activated immediately.
+                        </p>
+                      ) : (
+                        <div>
+                          <p style={{color:'#fca5a5',fontSize:13,margin:'0 0 4px',fontWeight:700}}>
+                            Insufficient balance. Please deposit first.
+                          </p>
+                          <p style={{color:'var(--dim)',fontSize:12,margin:0}}>
+                            Need Rs. {selectedPlan.price} · You have Rs. {walletBal.toFixed(2)} · Short by Rs. {(selectedPlan.price - walletBal).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {hasSufficientBalance ? (
+                      <button
+                        type="button"
+                        className="sgc-btn-primary"
+                        disabled={isPurchasing}
+                        onClick={handleSubmitPurchase}
+                        style={{width:'100%',padding:'14px',fontSize:15,fontWeight:800,opacity:isPurchasing?0.7:1,cursor:isPurchasing?'not-allowed':'pointer'}}>
+                        {isPurchasing ? '⏳ Activating...' : `🚀 Activate Plan via Wallet (Rs. ${selectedPlan.price})`}
+                      </button>
                     ) : (
-                      <p style={{color:'#fca5a5',fontSize:13,margin:0,fontWeight:600}}>
-                        ⚠️ Your wallet balance (Rs. {profile.balance.toFixed(2)}) is less than plan price (Rs. {selectedPlan.price}). Needed: Rs. {(selectedPlan.price - profile.balance).toFixed(2)} more. Please select a deposit method above or deposit first.
-                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setTab('transfer')}
+                        style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'#000',border:'none',borderRadius:12,fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 4px 14px rgba(245,158,11,0.4)'}}>
+                        💳 Go to Deposit Section
+                      </button>
                     )}
                   </div>
-
-                  {profile.balance >= selectedPlan.price ? (
-                    <button
-                      type="button"
-                      className="sgc-btn-primary"
-                      disabled={isPurchasing}
-                      onClick={handleSubmitPurchase}
-                      style={{width:'100%',padding:'14px',fontSize:15,fontWeight:800}}>
-                      {isPurchasing ? 'Activating...' : `🚀 Activate Plan via Wallet (Rs. ${selectedPlan.price})`}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setTab('transfer')}
-                      style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,#f59e0b,#d97706)',color:'var(--bg)',border:'none',borderRadius:12,fontWeight:800,fontSize:15,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 4px 14px rgba(245,158,11,0.4)'}}>
-                      💳 Go to Deposit Section
-                    </button>
-                  )}
-                </div>
-              )}
+                );
+              })()}
 
               {/* METHOD 2: MANUAL DEPOSIT METHODS (Easypaisa, JazzCash, Bank Transfer) EXACT MATCH WITH DEPOSIT SECTION */}
               {planPayMethod !== 'wallet' && (

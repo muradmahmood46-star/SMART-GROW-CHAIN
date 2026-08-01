@@ -578,12 +578,26 @@ async def purchase_plan(
     plan = db.query(MembershipPlan).filter(MembershipPlan.id == plan_id, MembershipPlan.is_active == True).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Block if user already has this plan and it is still active (not expired)
     current_expiry = current_user.free_plan_expires_at if plan.price <= 0 else current_user.plan_expires_at
     if current_user.membership == plan.name and current_expiry and current_expiry > datetime.utcnow():
-        raise HTTPException(status_code=400, detail="You already have this plan")
+        raise HTTPException(status_code=400, detail="You already have this plan active.")
 
     if payment_method not in ["wallet", "easypaisa", "jazzcash", "bank"]:
         raise HTTPException(status_code=400, detail="Invalid payment method")
+
+    # Double-submission guard: reject if an identical wallet purchase was created in the last 30 seconds
+    if payment_method == "wallet" and plan.price > 0:
+        cutoff = datetime.utcnow() - timedelta(seconds=30)
+        recent = db.query(PlanPurchaseRequest).filter(
+            PlanPurchaseRequest.user_id == current_user.id,
+            PlanPurchaseRequest.plan_id == plan_id,
+            PlanPurchaseRequest.payment_method == "wallet",
+            PlanPurchaseRequest.created_at >= cutoff
+        ).first()
+        if recent:
+            raise HTTPException(status_code=429, detail="Duplicate request detected. Please wait a moment.")
 
     screenshot_path = None
     if plan.price <= 0:
