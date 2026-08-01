@@ -91,10 +91,12 @@ export default function FundRequests({ notify, loadData }) {
                     <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 3px',fontWeight:600,letterSpacing:.5}}>SENT BY (ACCOUNT NAME)</p>
                     <p style={{color:'var(--accent)',fontWeight:700,fontSize:15,margin:0}}>{d.sender_name||'—'}</p>
                   </div>
-                  {/* Phone */}
+                  {/* Phone & TRX ID */}
                   <div style={{background:'var(--bg)',borderRadius:9,padding:'10px 14px',marginBottom:10}}>
                     <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 3px',fontWeight:600,letterSpacing:.5}}>SENDER PHONE NUMBER</p>
-                    <p style={{color:'var(--text)',fontWeight:600,fontSize:14,margin:0,fontFamily:'monospace'}}>{d.transaction_id||'—'}</p>
+                    <p style={{color:'var(--text)',fontWeight:600,fontSize:14,margin:'0 0 8px',fontFamily:'monospace'}}>{d.easypaisa_number||'—'}</p>
+                    <p style={{color:'var(--dim)',fontSize:10,margin:'0 0 3px',fontWeight:600,letterSpacing:.5}}>TRANSACTION ID (TRX ID)</p>
+                    <p style={{color:'var(--yellow)',fontWeight:800,fontSize:14,margin:0,fontFamily:'monospace'}}>{d.transaction_id||'—'}</p>
                   </div>
                   {/* Actions */}
                   {isPending&&(

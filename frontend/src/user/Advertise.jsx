@@ -269,10 +269,10 @@ export default function Advertise({
                 <>
                   {epAccounts.filter(a => a.method_type === reactivatePayMethod).slice(0, 1).map(a => (
                     <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 4px'}}>Send Rs. {reactivateModalReq.total_cost.toFixed(2)} to this account:</p>
+                      <p style={{color:'#cbd5e1',fontSize:11,margin:'0 0 4px'}}>Send Rs. {reactivateModalReq.total_cost.toFixed(2)} to this account:</p>
                       <p style={{color:'var(--yellow)',fontWeight:800,fontSize:16,margin:'0 0 2px'}}>{a.account_title}</p>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <p style={{color:'var(--text)',fontFamily:'monospace',fontSize:18,fontWeight:900,margin:0}}>{a.account_number}</p>
+                        <p style={{color:'#ffffff',fontFamily:'monospace',fontSize:18,fontWeight:900,margin:0}}>{a.account_number}</p>
                         <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--yellow)',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontSize:11,fontFamily:'var(--font)'}}>Copy</button>
                       </div>
                     </div>
@@ -307,11 +307,11 @@ export default function Advertise({
                 <>
                   {epAccounts.filter(a => a.method_type === 'bank').slice(0, 1).map(a => (
                     <div key={a.id} style={{background:'#0c192e',border:'1.5px solid #3b82f640',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                      <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 4px'}}>Bank Details to Send Money:</p>
+                      <p style={{color:'#cbd5e1',fontSize:11,margin:'0 0 4px'}}>Bank Details to Send Money:</p>
                       <p style={{color:'var(--yellow)',fontWeight:800,fontSize:16,margin:'0 0 2px'}}>{a.bank_name || 'Bank Transfer'}</p>
-                      <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:'0 0 4px'}}>{a.account_title}</p>
+                      <p style={{color:'#ffffff',fontWeight:700,fontSize:14,margin:'0 0 4px'}}>{a.account_title}</p>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
-                        <p style={{color:'var(--text)',fontFamily:'monospace',fontSize:17,fontWeight:900,margin:0}}>{a.account_number}</p>
+                        <p style={{color:'#ffffff',fontFamily:'monospace',fontSize:17,fontWeight:900,margin:0}}>{a.account_number}</p>
                         <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--yellow)',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontSize:11,fontFamily:'var(--font)'}}>Copy</button>
                       </div>
                     </div>
@@ -423,10 +423,10 @@ export default function Advertise({
               <>
                 {epAccounts.filter(a => a.method_type === adPayMethod).slice(0, 1).map(a => (
                   <div key={a.id} style={{background:'#071a0d',border:'1.5px solid #3cb55940',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                    <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 4px'}}>Send Rs. {totalCost.toFixed(2)} to this account:</p>
+                    <p style={{color:'#cbd5e1',fontSize:11,margin:'0 0 4px'}}>Send Rs. {totalCost.toFixed(2)} to this account:</p>
                     <p style={{color:'var(--yellow)',fontWeight:800,fontSize:16,margin:'0 0 2px'}}>{a.account_title}</p>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <p style={{color:'var(--text)',fontFamily:'monospace',fontSize:18,fontWeight:900,margin:0}}>{a.account_number}</p>
+                      <p style={{color:'#ffffff',fontFamily:'monospace',fontSize:18,fontWeight:900,margin:0}}>{a.account_number}</p>
                       <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--yellow)',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontSize:11,fontFamily:'var(--font)'}}>Copy</button>
                     </div>
                   </div>
@@ -470,11 +470,11 @@ export default function Advertise({
               <>
                 {epAccounts.filter(a => a.method_type === 'bank').slice(0, 1).map(a => (
                   <div key={a.id} style={{background:'#0c192e',border:'1.5px solid #3b82f640',borderRadius:12,padding:'14px 18px',marginBottom:16}}>
-                    <p style={{color:'var(--dim)',fontSize:11,margin:'0 0 4px'}}>Bank Details to Send Money:</p>
+                    <p style={{color:'#cbd5e1',fontSize:11,margin:'0 0 4px'}}>Bank Details to Send Money:</p>
                     <p style={{color:'var(--yellow)',fontWeight:800,fontSize:16,margin:'0 0 2px'}}>{a.bank_name || 'Bank Transfer'}</p>
-                    <p style={{color:'var(--text)',fontWeight:700,fontSize:14,margin:'0 0 4px'}}>{a.account_title}</p>
+                    <p style={{color:'#ffffff',fontWeight:700,fontSize:14,margin:'0 0 4px'}}>{a.account_title}</p>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <p style={{color:'var(--text)',fontFamily:'monospace',fontSize:17,fontWeight:900,margin:0}}>{a.account_number}</p>
+                      <p style={{color:'#ffffff',fontFamily:'monospace',fontSize:17,fontWeight:900,margin:0}}>{a.account_number}</p>
                       <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Copied! 📋');}} style={{background:'var(--card)',border:'1px solid var(--border)',color:'var(--yellow)',borderRadius:6,padding:'2px 8px',cursor:'pointer',fontSize:11,fontFamily:'var(--font)'}}>Copy</button>
                     </div>
                   </div>
