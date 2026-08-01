@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import API from '../../api';
 
 export default function ReferralCommission({ notify }) {
-  const [refSettings, setRefSettings] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const fetchSettings = async () => {
     try {
       const res = await API.get('/admin/referral-settings');
-      setRefSettings(res.data);
+      setSettings(res.data);
     } catch (e) {
       console.error(e);
       if (notify) notify('Failed to fetch referral settings', 'error');
@@ -22,100 +23,131 @@ export default function ReferralCommission({ notify }) {
     fetchSettings();
   }, []);
 
-  const toggleBonusType = async (type, val) => {
+  const handleChange = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      await API.put(`/admin/referral-settings/toggle/${type}`, { is_active: val });
-      setRefSettings(prev => ({ ...prev, [type]: { ...prev[type], is_active: val } }));
-      if (notify) notify('Commission settings updated ✅');
+      await API.put('/admin/referral-settings', settings);
+      if (notify) notify('Referral settings updated successfully ✅');
     } catch (e) {
-      if (notify) notify('Error updating settings', 'error');
+      console.error(e);
+      if (notify) notify('Failed to update settings', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const addRefLevel = async (type) => {
-    try {
-      await API.post(`/admin/referral-settings/${type}/add-level`, {});
-      fetchSettings();
-      if (notify) notify('Level added ✅');
-    } catch (e) {
-      if (notify) notify('Error adding level', 'error');
-    }
-  };
-
-  const updateRefLevel = async (id, data) => {
-    try {
-      await API.put(`/admin/referral-settings/${id}`, data);
-      fetchSettings();
-    } catch (e) {
-      if (notify) notify('Error updating level', 'error');
-    }
-  };
-
-  const deleteRefLevel = async (id) => {
-    if (!window.confirm('Delete this level?')) return;
-    try {
-      await API.delete(`/admin/referral-settings/${id}`);
-      fetchSettings();
-      if (notify) notify('Level deleted');
-    } catch (e) {
-      if (notify) notify('Error deleting level', 'error');
-    }
-  };
-
-  if (loading || !refSettings) {
+  if (loading || !settings) {
     return <div style={{padding:20, color:'var(--dim)'}}>Loading referral settings...</div>;
   }
 
+  const Toggle = ({ active, onClick }) => (
+    <div onClick={onClick} style={{width:48,height:26,borderRadius:13,background:active?'var(--green)':'var(--border)',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
+      <div style={{position:'absolute',top:3,left:active?24:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .2s'}}/>
+    </div>
+  );
+
   return (
-    <div>
-      <h2 className="sgc-heading">⚙️ Referral Commission Settings</h2>
-      {[['plan_purchase','💳 Plan Purchase Bonus'],['vip_plan','👑 VIP Plan Purchase Bonus'],['deposit','💰 Add Fund Bonus'],['ad_view','📺 Advertisement View Bonus']].map(([type, label])=>{
-        const s = refSettings[type];
-        if(!s) return null;
-        return (
-          <div key={type} style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'18px 20px',marginBottom:16}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <div>
-                <p style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>{label}</p>
-                <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>To activate the commission, please switch on this button.</p>
-              </div>
-              <div onClick={()=>toggleBonusType(type,!s.is_active)} style={{width:48,height:26,borderRadius:13,background:s.is_active?'var(--green)':'var(--border)',cursor:'pointer',position:'relative',transition:'background .2s',flexShrink:0}}>
-                <div style={{position:'absolute',top:3,left:s.is_active?24:3,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .2s'}}/>
-              </div>
+    <div style={{maxWidth: 800}}>
+      <h2 className="sgc-heading">⚙️ Global Referral System</h2>
+      
+      {/* MASTER SWITCH */}
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'24px',marginBottom:24, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+        <div>
+          <h3 style={{color:'var(--text)',fontWeight:800,fontSize:18,margin:0}}>Enable Referral System</h3>
+          <p style={{color:'var(--dim)',fontSize:13,margin:'6px 0 0',maxWidth:500,lineHeight:1.6}}>
+            This is the Master Switch. If you turn this OFF, no referral commissions of any kind will be distributed across the entire platform. Turn it ON to enable the bonuses below.
+          </p>
+        </div>
+        <Toggle active={settings.ref_system_enabled === 'true'} onClick={()=>handleChange('ref_system_enabled', settings.ref_system_enabled === 'true' ? 'false' : 'true')} />
+      </div>
+
+      <div style={{opacity: settings.ref_system_enabled === 'true' ? 1 : 0.5, pointerEvents: settings.ref_system_enabled === 'true' ? 'auto' : 'none', transition: 'opacity 0.3s'}}>
+        
+        {/* REGISTRATION BONUS */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div>
+              <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>🎁 Registration Bonus (Fixed Amount)</h4>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer instantly when someone signs up using their link.</p>
             </div>
-            <div className="sgc-table-wrap">
-              <table className="sgc-table">
-                <thead><tr><th className="sgc-th">Level</th><th className="sgc-th">Level Details</th><th className="sgc-th">Bonus %</th><th className="sgc-th">Actions</th></tr></thead>
-                <tbody>
-                  {s.levels.map((lvl,li)=>(
-                    <tr key={lvl.id} className="sgc-tr">
-                      <td className="sgc-td" style={{color:'var(--yellow)',fontWeight:700}}>LEVEL# {lvl.level}</td>
-                      <td className="sgc-td">
-                        <input type="text" maxLength={160}
-                          defaultValue={lvl.details||''}
-                          placeholder="e.g. Share link to others"
-                          onBlur={e=>updateRefLevel(lvl.id, {details:e.target.value})}
-                          style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',padding:'4px 10px',width:220,fontFamily:'var(--font)',fontSize:13}}/>
-                      </td>
-                      <td className="sgc-td">
-                        <input type="number" min="0" max="100" step="0.1"
-                          defaultValue={lvl.percent}
-                          onBlur={e=>updateRefLevel(lvl.id, {percent:parseFloat(e.target.value)||0})}
-                          style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',padding:'4px 10px',width:80,fontFamily:'var(--font)',fontSize:13}}/>
-                        <span style={{color:'var(--dim)',marginLeft:6}}>%</span>
-                      </td>
-                      <td className="sgc-td">
-                        <button className="sgc-btn-sm" style={{background:'#450a0a',color:'#fca5a5'}} onClick={()=>deleteRefLevel(lvl.id)}>Delete</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <button className="sgc-btn-sm" style={{marginTop:10,background:'#1e3a6e',color:'var(--accent)',padding:'6px 16px'}} onClick={()=>addRefLevel(type)}>+ Add Level</button>
+            <Toggle active={settings.ref_reg_bonus_enabled === 'true'} onClick={()=>handleChange('ref_reg_bonus_enabled', settings.ref_reg_bonus_enabled === 'true' ? 'false' : 'true')} />
           </div>
-        );
-      })}
+          {settings.ref_reg_bonus_enabled === 'true' && (
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
+              <span style={{color:'var(--text)', fontSize: 14}}>Bonus Amount: Rs.</span>
+              <input type="number" min="0" step="1" className="sgc-input" style={{width: 120, margin: 0, padding: '8px 12px'}} 
+                value={settings.ref_reg_bonus_amount} onChange={e=>handleChange('ref_reg_bonus_amount', e.target.value)} />
+            </div>
+          )}
+        </div>
+
+        {/* PLAN PURCHASE BONUS */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div>
+              <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>💳 Plan Purchase Bonus (Percentage)</h4>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer when their direct referral successfully purchases a Membership Plan.</p>
+            </div>
+            <Toggle active={settings.ref_plan_bonus_enabled === 'true'} onClick={()=>handleChange('ref_plan_bonus_enabled', settings.ref_plan_bonus_enabled === 'true' ? 'false' : 'true')} />
+          </div>
+          {settings.ref_plan_bonus_enabled === 'true' && (
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
+              <span style={{color:'var(--text)', fontSize: 14}}>Commission Rate:</span>
+              <input type="number" min="0" max="100" step="0.1" className="sgc-input" style={{width: 100, margin: 0, padding: '8px 12px'}} 
+                value={settings.ref_plan_bonus_percent} onChange={e=>handleChange('ref_plan_bonus_percent', e.target.value)} />
+              <span style={{color:'var(--text)', fontSize: 14}}>% of plan price</span>
+            </div>
+          )}
+        </div>
+
+        {/* DEPOSIT BONUS */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div>
+              <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>💰 Add Fund (Deposit) Bonus (Percentage)</h4>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer when you approve a deposit from their direct referral.</p>
+            </div>
+            <Toggle active={settings.ref_deposit_bonus_enabled === 'true'} onClick={()=>handleChange('ref_deposit_bonus_enabled', settings.ref_deposit_bonus_enabled === 'true' ? 'false' : 'true')} />
+          </div>
+          {settings.ref_deposit_bonus_enabled === 'true' && (
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
+              <span style={{color:'var(--text)', fontSize: 14}}>Commission Rate:</span>
+              <input type="number" min="0" max="100" step="0.1" className="sgc-input" style={{width: 100, margin: 0, padding: '8px 12px'}} 
+                value={settings.ref_deposit_bonus_percent} onChange={e=>handleChange('ref_deposit_bonus_percent', e.target.value)} />
+              <span style={{color:'var(--text)', fontSize: 14}}>% of deposit amount</span>
+            </div>
+          )}
+        </div>
+
+        {/* AD VIEW BONUS */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div>
+              <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>📺 Advertisement View Bonus (Percentage)</h4>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer every time their direct referral finishes watching an Ad.</p>
+            </div>
+            <Toggle active={settings.ref_ad_bonus_enabled === 'true'} onClick={()=>handleChange('ref_ad_bonus_enabled', settings.ref_ad_bonus_enabled === 'true' ? 'false' : 'true')} />
+          </div>
+          {settings.ref_ad_bonus_enabled === 'true' && (
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
+              <span style={{color:'var(--text)', fontSize: 14}}>Commission Rate:</span>
+              <input type="number" min="0" max="100" step="0.1" className="sgc-input" style={{width: 100, margin: 0, padding: '8px 12px'}} 
+                value={settings.ref_ad_bonus_percent} onChange={e=>handleChange('ref_ad_bonus_percent', e.target.value)} />
+              <span style={{color:'var(--text)', fontSize: 14}}>% of Ad earning</span>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      <button className="sgc-btn-primary" style={{marginTop: 16, width: 200}} onClick={handleSave} disabled={saving}>
+        {saving ? 'Saving...' : '💾 Save Settings'}
+      </button>
+
     </div>
   );
 }

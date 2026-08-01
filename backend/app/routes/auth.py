@@ -107,6 +107,24 @@ def _create_user(data, db: Session):
     try:
         db.commit()
         db.refresh(user)
+        
+        # Referral Registration Bonus (For the Referrer)
+        ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
+        if ref_system_enabled and ref_system_enabled.value == "true" and referred_by:
+            ref_reg_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_reg_bonus_enabled").first()
+            if ref_reg_bonus_enabled and ref_reg_bonus_enabled.value == "true":
+                ref_reg_bonus_amount = db.query(SiteSettings).filter(SiteSettings.key == "ref_reg_bonus_amount").first()
+                amt = float(ref_reg_bonus_amount.value) if ref_reg_bonus_amount and ref_reg_bonus_amount.value else 0.0
+                if amt > 0:
+                    referrer_db = db.query(User).filter(User.id == referred_by).first()
+                    if referrer_db:
+                        referrer_db.balance += amt
+                        referrer_db.total_earned += amt
+                        from app.models.models import Earning, Notification
+                        db.add(Earning(user_id=referrer_db.id, ad_id=0, amount=amt, type="referral_reg"))
+                        db.add(Notification(user_id=referrer_db.id, title="Referral Commission! 💸", message=f"You earned Rs. {amt} for referring {user.username}."))
+                        db.commit()
+                        
     except Exception as e:
         db.rollback()
         print(f"User creation error: {e}")

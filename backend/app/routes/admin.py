@@ -367,6 +367,24 @@ def confirm_deposit(dep_id: int, db: Session = Depends(get_db), admin=Depends(ge
     user = db.query(User).filter(User.id == dep.user_id).first()
     if user:
         user.balance += dep.amount_pkr
+        db.add(Notification(user_id=user.id, title="Deposit Confirmed ✅", message=f"Your deposit of Rs. {dep.amount_pkr} has been credited to your balance."))
+        
+        # Referral Add Fund Bonus
+        ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
+        if ref_system_enabled and ref_system_enabled.value == "true":
+            if user.referred_by:
+                referrer = db.query(User).filter(User.id == user.referred_by).first()
+                if referrer:
+                    ref_dep_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_deposit_bonus_enabled").first()
+                    if ref_dep_bonus_enabled and ref_dep_bonus_enabled.value == "true":
+                        ref_dep_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_deposit_bonus_percent").first()
+                        rate = float(ref_dep_bonus_percent.value) if ref_dep_bonus_percent and ref_dep_bonus_percent.value else 0.0
+                        if rate > 0:
+                            commission = round(dep.amount_pkr * (rate / 100), 2)
+                            referrer.balance += commission
+                            referrer.total_earned += commission
+                            db.add(Earning(user_id=referrer.id, ad_id=0, amount=commission, type="referral_deposit"))
+                            db.add(Notification(user_id=referrer.id, title="Referral Commission! 💸", message=f"You earned Rs. {commission} from {user.username}'s deposit."))
     dep.status = "confirmed"
     db.commit()
     return {"message": f"Deposit confirmed. Rs. {dep.amount_pkr} added to user balance"}
@@ -558,89 +576,54 @@ def delete_admin_email(email_id: int, db: Session = Depends(get_db), admin=Depen
 
 
 # ── REFERRAL SETTINGS ───────────────────────────────────────────────
-BONUS_TYPES = ["plan_purchase", "vip_plan", "deposit", "ad_view"]
-DEFAULT_LEVELS = {
-    "plan_purchase": [(1,1),(2,2),(3,3),(4,4)],
-    "vip_plan":      [(1,15),(2,10),(3,5)],
-    "deposit":       [(1,1),(2,2),(3,3),(4,4)],
-    "ad_view":       [(1,1),(2,2),(3,3),(4,4)],
-}
-
-def ensure_defaults(db: Session):
-    for bt, levels in DEFAULT_LEVELS.items():
-        for lvl, pct in levels:
-            exists = db.query(ReferralSetting).filter(
-                ReferralSetting.bonus_type == bt, ReferralSetting.level == lvl
-            ).first()
-            if not exists:
-                db.add(ReferralSetting(bonus_type=bt, level=lvl, percent=pct, is_active=True))
-    db.commit()
+# ── REFERRAL SETTINGS ───────────────────────────────────────────────
+class GlobalRefSettingsUpdate(BaseModel):
+    ref_system_enabled: str
+    ref_reg_bonus_enabled: str
+    ref_reg_bonus_amount: str
+    ref_plan_bonus_enabled: str
+    ref_plan_bonus_percent: str
+    ref_deposit_bonus_enabled: str
+    ref_deposit_bonus_percent: str
+    ref_ad_bonus_enabled: str
+    ref_ad_bonus_percent: str
 
 @router.get("/referral-settings")
 def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    ensure_defaults(db)
-    rows = db.query(ReferralSetting).order_by(ReferralSetting.bonus_type, ReferralSetting.level).all()
-    result = {}
-    for bt in BONUS_TYPES:
-        type_rows = [r for r in rows if r.bonus_type == bt]
-        # is_active for the whole type = any row active
-        result[bt] = {
-            "is_active": any(r.is_active for r in type_rows),
-            "levels": [{"id": r.id, "level": r.level, "percent": r.percent, "details": r.details or "", "is_active": r.is_active} for r in type_rows]
-        }
-    return result
+    # Fetch from SiteSettings, setting defaults if missing
+    keys = [
+        "ref_system_enabled", "ref_reg_bonus_enabled", "ref_reg_bonus_amount",
+        "ref_plan_bonus_enabled", "ref_plan_bonus_percent",
+        "ref_deposit_bonus_enabled", "ref_deposit_bonus_percent",
+        "ref_ad_bonus_enabled", "ref_ad_bonus_percent"
+    ]
+    db_settings = {s.key: s.value for s in db.query(SiteSettings).filter(SiteSettings.key.in_(keys)).all()}
+    
+    defaults = {
+        "ref_system_enabled": "false",
+        "ref_reg_bonus_enabled": "false",
+        "ref_reg_bonus_amount": "0",
+        "ref_plan_bonus_enabled": "false",
+        "ref_plan_bonus_percent": "0",
+        "ref_deposit_bonus_enabled": "false",
+        "ref_deposit_bonus_percent": "0",
+        "ref_ad_bonus_enabled": "false",
+        "ref_ad_bonus_percent": "0"
+    }
+    
+    for k, v in defaults.items():
+        if k not in db_settings:
+            _set_setting(db, k, v)
+            db_settings[k] = v
+            
+    return db_settings
 
-class RefSettingToggle(BaseModel):
-    is_active: bool
-
-class RefSettingUpdate(BaseModel):
-    percent: Optional[float] = None
-    details: Optional[str] = ""
-
-def limit_words(text: Optional[str], max_words: int = 20) -> str:
-    words = (text or "").strip().split()
-    return " ".join(words[:max_words])
-
-@router.put("/referral-settings/toggle/{bonus_type}")
-def toggle_bonus_type(bonus_type: str, data: RefSettingToggle, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    rows = db.query(ReferralSetting).filter(ReferralSetting.bonus_type == bonus_type).all()
-    for r in rows:
-        r.is_active = data.is_active
-    db.commit()
-    return {"message": "Updated"}
-
-@router.put("/referral-settings/{setting_id}")
-def update_referral_level(setting_id: int, data: RefSettingUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    r = db.query(ReferralSetting).filter(ReferralSetting.id == setting_id).first()
-    if not r:
-        raise HTTPException(status_code=404, detail="Not found")
-    if data.percent is not None:
-        r.percent = data.percent
-    if data.details is not None:
-        r.details = limit_words(data.details)
-    db.commit()
-    return r
-
-@router.post("/referral-settings/{bonus_type}/add-level")
-def add_referral_level(bonus_type: str, data: RefSettingUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    max_lvl = db.query(func.max(ReferralSetting.level)).filter(ReferralSetting.bonus_type == bonus_type).scalar() or 0
-    r = ReferralSetting(
-        bonus_type=bonus_type,
-        level=max_lvl+1,
-        percent=data.percent or 0,
-        details=limit_words(data.details),
-        is_active=True
-    )
-    db.add(r); db.commit(); db.refresh(r)
-    return r
-
-@router.delete("/referral-settings/{setting_id}")
-def delete_referral_level(setting_id: int, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    r = db.query(ReferralSetting).filter(ReferralSetting.id == setting_id).first()
-    if not r:
-        raise HTTPException(status_code=404, detail="Not found")
-    db.delete(r); db.commit()
-    return {"message": "Deleted"}
+@router.put("/referral-settings")
+def update_global_referral_settings(data: GlobalRefSettingsUpdate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
+    settings_dict = data.dict()
+    for k, v in settings_dict.items():
+        _set_setting(db, k, v)
+    return {"message": "Referral settings updated successfully"}
 
 
 # ── SITE SETTINGS ─────────────────────────────────────────────────────
@@ -881,6 +864,23 @@ def approve_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = D
         user.plan_expires_at = datetime.utcnow() + __import__('datetime').timedelta(days=days)
         # notify user
         db.add(Notification(user_id=user.id, title="Plan Activated ✅", message=f"Your {req.plan_name} plan has been activated successfully."))
+        
+        # Referral Plan Purchase Bonus
+        ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
+        if ref_system_enabled and ref_system_enabled.value == "true":
+            if user.referred_by:
+                referrer = db.query(User).filter(User.id == user.referred_by).first()
+                if referrer:
+                    ref_plan_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_plan_bonus_enabled").first()
+                    if ref_plan_bonus_enabled and ref_plan_bonus_enabled.value == "true":
+                        ref_plan_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_plan_bonus_percent").first()
+                        rate = float(ref_plan_bonus_percent.value) if ref_plan_bonus_percent and ref_plan_bonus_percent.value else 0.0
+                        if rate > 0:
+                            commission = round(req.plan_price * (rate / 100), 2)
+                            referrer.balance += commission
+                            referrer.total_earned += commission
+                            db.add(Earning(user_id=referrer.id, ad_id=0, amount=commission, type="referral_plan"))
+                            db.add(Notification(user_id=referrer.id, title="Referral Commission! 💸", message=f"You earned Rs. {commission} from {user.username}'s plan purchase."))
     req.status = "approved"
     req.admin_note = data.admin_note
     db.commit()

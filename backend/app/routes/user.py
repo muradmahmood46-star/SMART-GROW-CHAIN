@@ -192,37 +192,22 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
         active_req.members_reached = (active_req.members_reached or 0) + 1
         if active_req.members_reached >= active_req.members_needed:
             active_req.status = "completed"
-    if current_user.referred_by:
-        import json
-        referrer = db.query(User).filter(User.id == current_user.referred_by).first()
-        if referrer:
-            plan = db.query(MembershipPlan).filter(MembershipPlan.name == referrer.membership).first()
-            # Use level_commissions if set, else fallback to referral_commission
-            level_comm = {}
-            if plan and plan.level_commissions:
-                try: level_comm = json.loads(plan.level_commissions)
-                except: level_comm = {}
-            rate = float(level_comm.get("1", plan.referral_commission if plan else 0.10))
-            commission = round(ad.earning_amount * rate / 100 if level_comm else ad.earning_amount * rate, 6)
-            referrer.balance += commission
-            referrer.total_earned += commission
-            db.add(Earning(user_id=referrer.id, ad_id=ad_id, amount=commission, type="referral"))
-            # Level 2, 3... upline chain
-            upline = db.query(User).filter(User.id == referrer.referred_by).first() if referrer.referred_by else None
-            for lvl in range(2, 6):
-                if not upline: break
-                upline_plan = db.query(MembershipPlan).filter(MembershipPlan.name == upline.membership).first()
-                ul_comm = {}
-                if upline_plan and upline_plan.level_commissions:
-                    try: ul_comm = json.loads(upline_plan.level_commissions)
-                    except: ul_comm = {}
-                ul_rate = float(ul_comm.get(str(lvl), 0))
-                if ul_rate > 0:
-                    ul_amount = round(ad.earning_amount * ul_rate / 100, 6)
-                    upline.balance += ul_amount
-                    upline.total_earned += ul_amount
-                    db.add(Earning(user_id=upline.id, ad_id=ad_id, amount=ul_amount, type="referral"))
-                upline = db.query(User).filter(User.id == upline.referred_by).first() if upline.referred_by else None
+    # Check if referral system is enabled globally
+    ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
+    if ref_system_enabled and ref_system_enabled.value == "true":
+        if current_user.referred_by:
+            referrer = db.query(User).filter(User.id == current_user.referred_by).first()
+            if referrer:
+                # Check Ad View Bonus
+                ref_ad_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_enabled").first()
+                if ref_ad_bonus_enabled and ref_ad_bonus_enabled.value == "true":
+                    ref_ad_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_percent").first()
+                    rate = float(ref_ad_bonus_percent.value) if ref_ad_bonus_percent and ref_ad_bonus_percent.value else 0.0
+                    if rate > 0:
+                        commission = round(ad.earning_amount * (rate / 100), 6)
+                        referrer.balance += commission
+                        referrer.total_earned += commission
+                        db.add(Earning(user_id=referrer.id, ad_id=ad_id, amount=commission, type="referral_ad_view"))
     db.commit()
     return {"message": "Earning credited", "amount": ad.earning_amount, "new_balance": current_user.balance}
 
