@@ -1,10 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import heroMain from '../assets/hero/hero-pic-main.png';
+import hero1 from '../assets/hero/hero-pic1.jpg';
+import hero2 from '../assets/hero/hero-pic-2.jpg';
+import hero3 from '../assets/hero/hero-pic-3.jpg';
 
 const HERO_SLIDES = [
-  { src: (process.env.PUBLIC_URL || '') + '/hero-pic-main.png', alt: 'Smart Grow Chain' },
-  { src: (process.env.PUBLIC_URL || '') + '/hero-pic1.jpg',     alt: 'Smart Grow Chain 1' },
-  { src: (process.env.PUBLIC_URL || '') + '/hero-pic-2.jpg',    alt: 'Smart Grow Chain 2' },
-  { src: (process.env.PUBLIC_URL || '') + '/hero-pic-3.jpg',    alt: 'Smart Grow Chain 3' },
+  { src: heroMain, alt: 'Smart Grow Chain' },
+  { src: hero1,    alt: 'Smart Grow Chain 1' },
+  { src: hero2,    alt: 'Smart Grow Chain 2' },
+  { src: hero3,    alt: 'Smart Grow Chain 3' },
 ];
 
 export default function HeroSlider() {
@@ -74,7 +78,7 @@ export default function HeroSlider() {
         onPointerDown={()=>setIsInteracting(true)} onPointerUp={()=>setIsInteracting(false)}
         onPointerCancel={()=>setIsInteracting(false)} onPointerLeave={e=>{ if(e.pointerType==='mouse') setIsInteracting(false); }}>
         {loopSlides.map((s,i)=>(
-          <div key={`${s.src}-${i}`} className={`sgc-hero-slide${activeSlide===i%slideCount?' active-slide':''}${s.src==='/favicon.png'?' hero-logo-slide':''}`}>
+          <div key={`${s.src}-${i}`} className={`sgc-hero-slide${activeSlide===i%slideCount?' active-slide':''}`}>
             <img src={s.src} alt={s.alt}/>
           </div>
         ))}

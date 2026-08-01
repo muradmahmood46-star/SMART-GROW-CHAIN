@@ -38,6 +38,7 @@ async def lifespan(app: FastAPI):
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_enabled', 'true') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_until', '') ON CONFLICT (key) DO NOTHING",
         "INSERT INTO site_settings (key, value) VALUES ('withdraw_schedule_time', '') ON CONFLICT (key) DO NOTHING",
+        "UPDATE users SET membership = 'none', free_plan_expires_at = NULL, plan_expires_at = NULL WHERE id NOT IN (SELECT user_id FROM plan_purchase_requests WHERE status = 'approved')",
     ]
     try:
         with engine.connect() as conn:
@@ -48,30 +49,29 @@ async def lifespan(app: FastAPI):
                 except Exception:
                     pass
     except Exception as e:
-        print(f"[STARTUP] Migration error: {e}")
+        print(f"[STARTUP] Migrations error: {e}")
     yield
 
-app = FastAPI(
-    title="Smart Grow Chain API",
-    lifespan=lifespan, 
-    docs_url="/docs", 
-    openapi_url="/openapi.json"
-)
+app = FastAPI(title="Smart Grow Chain API", lifespan=lifespan)
+
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://smart-grow-chain.vercel.app",
+    "https://smart-grow-chain.store",
+    "https://www.smart-grow-chain.store",
+    "*"
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.smart-grow-chain.store",
-        "https://smart-grow-chain.store",
-        "https://smart-grow-chain.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5173",
-    ],
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=True,
 )
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(user.router)
@@ -79,10 +79,6 @@ app.include_router(admin.router)
 app.include_router(deposit.router)
 app.include_router(userad.router)
 
-# Always mount uploads (dir created in lifespan)
-os.makedirs("uploads/screenshots", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
 @app.get("/")
-def root():
-    return {"message": "Smart Grow Chain API Running"}
+def read_root():
+    return {"message": "Smart Grow Chain API is running"}
