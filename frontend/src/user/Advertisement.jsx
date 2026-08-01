@@ -175,7 +175,11 @@ export default function Advertisement({
           <div key={ad.id} className="sgc-ad-card" style={{animationDelay:`${i*.05}s`,border:ad.is_sponsored?'2px solid #f59e0b':'1px solid var(--border)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
               <div style={{flex:1,marginRight:8}}>
-                {ad.is_sponsored && <span style={{background:'#451a03',color:'#f59e0b',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,display:'inline-block',marginBottom:4}}>⭐ SPONSORED</span>}
+                {ad.is_own_ad ? (
+                  <span style={{background:'linear-gradient(135deg,#d97706,#b45309)',color:'#fff',fontSize:10,fontWeight:800,padding:'3px 9px',borderRadius:20,display:'inline-block',marginBottom:4,boxShadow:'0 2px 6px rgba(217,119,6,0.4)',letterSpacing:.5}}>⭐ YOUR AD</span>
+                ) : ad.is_sponsored ? (
+                  <span style={{background:'#451a03',color:'#f59e0b',fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,display:'inline-block',marginBottom:4}}>⭐ SPONSORED</span>
+                ) : null}
                 <h4 style={{color:'var(--text)',fontSize:14,fontWeight:700,margin:0}}>{ad.title}</h4>
               </div>
               <span className="sgc-earn">Rs. {ad.earning_amount}</span>

@@ -84,6 +84,7 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             UserAdRequest.url == ad.url,
             UserAdRequest.status == "approved"
         ).first()
+        is_own = sponsored is not None and sponsored.user_id == current_user.id
         result.append({
             "id": ad.id, "title": ad.title, "url": ad.url,
             "description": ad.description,
@@ -91,7 +92,8 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             "timer_seconds": ad.timer_seconds,
             "total_clicks": ad.total_clicks,
             "already_clicked": False,
-            "is_sponsored": sponsored is not None
+            "is_sponsored": sponsored is not None,
+            "is_own_ad": is_own
         })
     result.sort(key=lambda x: (0 if x["is_sponsored"] else 1, -x["earning_amount"]))
     return {"plan_required": False, "ads": result}
@@ -772,10 +774,24 @@ async def submit_kyc(
 def get_my_campaign_viewers(req_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     req = db.query(UserAdRequest).filter(UserAdRequest.id == req_id, UserAdRequest.user_id == current_user.id).first()
     if not req:
-        raise HTTPException(status_code=404, detail="Not found")
-    earnings = db.query(Earning).filter(Earning.type == "click").join(
-        Ad, Earning.ad_id == Ad.id
-    ).filter(Ad.url == req.url).order_by(Earning.clicked_at.desc()).all()
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    
+    req_url_clean = (req.url or "").strip()
+    req_title_clean = (req.title or "").strip()
+    
+    ads = db.query(Ad).filter(
+        (Ad.url == req.url) | (Ad.url == req_url_clean) | (Ad.title == req.title) | (Ad.title == req_title_clean)
+    ).all()
+    ad_ids = [a.id for a in ads]
+
+    if not ad_ids:
+        return []
+
+    earnings = db.query(Earning).filter(
+        Earning.type == "click",
+        Earning.ad_id.in_(ad_ids)
+    ).order_by(Earning.clicked_at.desc()).all()
+
     result = []
     for e in earnings:
         user = db.query(User).filter(User.id == e.user_id).first()
@@ -785,16 +801,16 @@ def get_my_campaign_viewers(req_id: int, current_user: User = Depends(get_curren
         result.append({
             "username": user.username,
             "email": user.email,
-            "membership": user.membership,
-            "balance": round(user.balance, 2),
-            "total_earned": round(user.total_earned, 2),
+            "membership": user.membership or "none",
+            "balance": round(user.balance or 0, 2),
+            "total_earned": round(user.total_earned or 0, 2),
             "kyc_status": user.kyc_status or "none",
             "kyc_name": kyc.full_name if kyc else "-",
             "plan_expires_at": user.plan_expires_at,
             "is_active": user.is_active,
             "joined": user.created_at,
             "viewed_at": e.clicked_at,
-            "earned_amount": round(e.amount, 2),
+            "earned_amount": round(e.amount or 0, 2),
         })
     return result
 

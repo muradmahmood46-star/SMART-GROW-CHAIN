@@ -22,6 +22,7 @@ export default function Advertise({
   const [adScreenshot, setAdScreenshot] = useState(null);
   const [myAdRequests, setMyAdRequests] = useState([]);
   const [campaignViewers, setCampaignViewers] = useState({});
+  const [viewerLimits, setViewerLimits] = useState({});
   const [epAccounts, setEpAccounts] = useState([]);
   const [advertiserMsg, setAdvertiserMsg] = useState(initialAdvertiserMsg || '');
   const [hasAcceptedMsg, setHasAcceptedMsg] = useState(false);
@@ -364,28 +365,80 @@ export default function Advertise({
                       <div style={{marginTop:10}}>
                         <button
                           type="button"
-                          onClick={() => toggleViewers(req.id)}
+                          onClick={async () => {
+                            if (isViewersOpen) {
+                              setCampaignViewers(prev => ({ ...prev, [req.id]: null }));
+                            } else {
+                              try {
+                                const r = await API.get(`/user/ad-request/viewers/${req.id}`);
+                                setCampaignViewers(prev => ({ ...prev, [req.id]: r.data }));
+                                setViewerLimits(prev => ({ ...prev, [req.id]: 10 }));
+                              } catch (e) {
+                                notify('Failed to load viewers list', 'error');
+                              }
+                            }
+                          }}
                           style={{background:'#0d1e38',border:'1px solid #1e4080',color:'#38bdf8',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:700,cursor:'pointer',width:'100%',fontFamily:'var(--font)',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
                           👥 View Campaign Viewers ({req.views_count}) {isViewersOpen ? '▲' : '▼'}
                         </button>
 
-                        {isViewersOpen && (
-                          <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 14px',marginTop:10,maxHeight:220,overflowY:'auto'}}>
-                            <p style={{color:'var(--dim)',fontSize:11,fontWeight:700,margin:'0 0 8px',letterSpacing:.5}}>USERS WHO VIEWED YOUR AD:</p>
-                            {campaignViewers[req.id] && campaignViewers[req.id].length > 0 ? (
-                              <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                                {campaignViewers[req.id].map((v, i) => (
-                                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,borderBottom:'1px solid var(--border)',paddingBottom:4}}>
-                                    <span style={{color:'var(--text)',fontWeight:600}}>@{v.username}</span>
-                                    <span style={{color:'var(--dim)',fontSize:10}}>{new Date(v.viewed_at).toLocaleString()}</span>
-                                  </div>
-                                ))}
+                        {isViewersOpen && (() => {
+                          const list = campaignViewers[req.id] || [];
+                          const currentLimit = viewerLimits[req.id] || 10;
+                          const shownList = list.slice(0, currentLimit);
+                          const totalViewers = list.length;
+
+                          return (
+                            <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:12,padding:'14px 16px',marginTop:10}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10,borderBottom:'1px solid var(--border)',paddingBottom:8}}>
+                                <p style={{color:'var(--accent)',fontSize:11,fontWeight:800,margin:0,letterSpacing:.5}}>👥 CAMPAIGN VIEWERS HISTORY</p>
+                                <span style={{color:'var(--dim)',fontSize:11,fontWeight:600}}>Showing {Math.min(currentLimit, totalViewers)} of {totalViewers}</span>
                               </div>
-                            ) : (
-                              <p style={{color:'var(--dim)',fontSize:12,margin:0}}>No viewers recorded yet.</p>
-                            )}
-                          </div>
-                        )}
+
+                              {totalViewers > 0 ? (
+                                <>
+                                  <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:260,overflowY:'auto',paddingRight:4}}>
+                                    {shownList.map((v, i) => (
+                                      <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,background:'var(--card)',border:'1px solid var(--border)',borderRadius:8,padding:'8px 12px'}}>
+                                        <div>
+                                          <span style={{color:'var(--text)',fontWeight:700,display:'block'}}>@{v.username}</span>
+                                          <span style={{color:'var(--dim)',fontSize:10}}>{new Date(v.viewed_at).toLocaleString()}</span>
+                                        </div>
+                                        <span style={{background:'#052e16',color:'#4ade80',border:'1px solid #166534',padding:'2px 8px',borderRadius:6,fontSize:11,fontWeight:700}}>
+                                          +Rs. {(v.earned_amount || 0).toFixed(2)}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* SEE MORE BUTTONS */}
+                                  {totalViewers > currentLimit && (
+                                    <div style={{marginTop:12,textAlign:'center'}}>
+                                      {currentLimit === 10 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setViewerLimits(prev => ({ ...prev, [req.id]: 30 }))}
+                                          style={{background:'linear-gradient(135deg,#2563eb,#1d4ed8)',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 2px 8px rgba(37,99,235,0.3)',width:'100%'}}>
+                                          ➕ See More (+20 Viewers)
+                                        </button>
+                                      )}
+                                      {currentLimit >= 30 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setViewerLimits(prev => ({ ...prev, [req.id]: totalViewers }))}
+                                          style={{background:'linear-gradient(135deg,#059669,#047857)',color:'#fff',border:'none',borderRadius:8,padding:'8px 16px',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'0 2px 8px rgba(5,150,105,0.3)',width:'100%'}}>
+                                          ➕ See More (Show All Viewers)
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <p style={{color:'var(--dim)',fontSize:12,margin:0,textAlign:'center',padding:'8px 0'}}>No viewers recorded yet.</p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
 
