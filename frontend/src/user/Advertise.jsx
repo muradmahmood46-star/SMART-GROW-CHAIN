@@ -1,5 +1,5 @@
-/* eslint-disable */
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import API from '../api';
 
 export default function Advertise({
@@ -217,9 +217,9 @@ export default function Advertise({
   return (
     <div>
       {/* Guidelines Modal */}
-      {!hasAcceptedMsg && advertiserMsg && (
+      {!hasAcceptedMsg && advertiserMsg && createPortal(
         <div className="sgc-modal-overlay" style={{zIndex:9999,position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',backdropFilter:'blur(5px)'}}>
-          <div className="sgc-modal" style={{position:'fixed',top:'40%',left:'50%',transform:'translate(-50%, -50%)',animation:'none',margin:0,textAlign:'left',maxWidth:540,width:'92%',maxHeight:'85dvh',display:'flex',flexDirection:'column',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'28px 24px',boxShadow:'0 20px 50px rgba(0,0,0,0.5)'}}>
+          <div className="sgc-modal" style={{position:'fixed',top:'35%',left:'50%',transform:'translate(-50%, -50%)',animation:'none',margin:0,textAlign:'left',maxWidth:540,width:'92%',maxHeight:'85dvh',display:'flex',flexDirection:'column',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'28px 24px',boxShadow:'0 20px 50px rgba(0,0,0,0.5)'}}>
             <div style={{textAlign:'center',marginBottom:16}}>
               <div style={{fontSize:44,marginBottom:8}}>📢</div>
               <h3 style={{color:'var(--accent)',fontSize:20,fontWeight:800,margin:'0 0 6px'}}>Advertiser Guidelines & Rules</h3>
@@ -233,12 +233,12 @@ export default function Advertise({
             </button>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* REACTIVATE PAYMENT MODAL (Only opens when wallet balance is insufficient) */}
-      {reactivateModalReq && (
+      {reactivateModalReq && createPortal(
         <div className="sgc-modal-overlay" style={{zIndex:9999,position:'fixed',inset:0,background:'rgba(0,0,0,0.82)',backdropFilter:'blur(6px)'}}>
-          <div className="sgc-modal" style={{position:'fixed',top:'40%',left:'50%',transform:'translate(-50%, -50%)',animation:'none',margin:0,textAlign:'left',maxWidth:540,width:'92%',maxHeight:'90dvh',overflowY:'auto',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'28px 24px',boxShadow:'0 20px 50px rgba(0,0,0,0.6)'}}>
+          <div className="sgc-modal" style={{position:'fixed',top:'35%',left:'50%',transform:'translate(-50%, -50%)',animation:'none',margin:0,textAlign:'left',maxWidth:540,width:'92%',maxHeight:'90dvh',overflowY:'auto',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'28px 24px',boxShadow:'0 20px 50px rgba(0,0,0,0.6)'}}>
             
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <h3 style={{color:'var(--accent)',fontSize:18,fontWeight:800,margin:0}}>🔄 Reactivate Campaign</h3>
@@ -357,7 +357,7 @@ export default function Advertise({
             </form>
           </div>
         </div>
-      )}
+      , document.body)}
 
       <h2 className="sgc-heading">📢 Advertise Your Link</h2>
 
