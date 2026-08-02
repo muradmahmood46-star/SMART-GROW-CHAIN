@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef } from 'react';
  * @param {Function} options.setSidebarOpen    - Open/close sidebar overlay
  * @param {Function} [options.setSidebarCollapsed] - Collapse/expand sidebar (optional)
  * @param {Function} options.navigate          - React Router navigate function
+ * @param {boolean}  [options.isAdmin=false]   - Whether this is the admin panel
  * @returns {{ handleBack: Function }}
  */
 export default function useBackNavigation({
@@ -28,6 +29,7 @@ export default function useBackNavigation({
   setSidebarOpen,
   setSidebarCollapsed,
   navigate,
+  isAdmin = false,
 }) {
   const isInternal = tab !== 'dashboard';
   const processingRef = useRef(false);
@@ -53,6 +55,9 @@ export default function useBackNavigation({
 
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
+
+  const isAdminRef = useRef(isAdmin);
+  isAdminRef.current = isAdmin;
 
   /**
    * Check if the current viewport is mobile width.
@@ -81,6 +86,7 @@ export default function useBackNavigation({
       const currentSetSidebarOpen = setSidebarOpenRef.current;
       const currentSetSidebarCollapsed = setSidebarCollapsedRef.current;
       const currentNavigate = navigateRef.current;
+      const currentIsAdmin = isAdminRef.current;
       const mobile = window.innerWidth <= 768;
 
       if (currentSidebarOpen) {
@@ -97,21 +103,27 @@ export default function useBackNavigation({
       }
 
       if (currentIsInternal) {
-        // Internal page → Sidebar opens
-        if (mobile) {
-          // Mobile: show sidebar as overlay
-          currentSetSidebarOpen(true);
-          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+        if (currentIsAdmin) {
+          // Admin Panel: Internal page → Dashboard directly
+          currentSetTab('dashboard');
+          if (mobile) {
+            currentSetSidebarOpen(false);
+            if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
+          }
         } else {
-          // Desktop: sidebar is already in normal position, ensure it's visible
-          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
-          // Do NOT set sidebarOpen(true) on desktop – that would trigger the overlay!
+          // User Panel: Internal page → Sidebar opens
+          if (mobile) {
+            currentSetSidebarOpen(true);
+            if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+          } else {
+            if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+          }
         }
         return;
       }
 
       // Dashboard → Login
-      currentNavigate('/login', fromPopstate ? { replace: true } : undefined);
+      currentNavigate(currentIsAdmin ? '/admin-login' : '/login', fromPopstate ? { replace: true } : undefined);
     },
     [] // No deps needed – all values come from refs
   );

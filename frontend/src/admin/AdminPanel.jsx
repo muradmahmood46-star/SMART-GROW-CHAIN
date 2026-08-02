@@ -54,6 +54,7 @@ export default function AdminPanel() {
     setSidebarOpen,
     setSidebarCollapsed,
     navigate,
+    isAdmin: true,
   });
 
   return (
