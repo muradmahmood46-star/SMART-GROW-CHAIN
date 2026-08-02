@@ -42,16 +42,16 @@ export default function Users({ notify }) {
     setShowBalanceModal(true);
   };
 
-  const updateBalance = async () => {
+  const updateBalance = async (action) => {
     if (!balanceUser) return;
     try {
-      await API.put(`/admin/users/${balanceUser.id}/balance`, { balance: parseFloat(balanceAmount) });
+      await API.put(`/admin/users/${balanceUser.id}/balance`, { amount: parseFloat(balanceAmount), action });
       setShowBalanceModal(false);
       fetchUsers();
-      if (notify) notify('Balance updated ✅');
+      if (notify) notify('Balance updated successfully ✅');
     } catch (e) {
       console.error(e);
-      if (notify) notify('Error updating balance', 'error');
+      if (notify) notify(e.response?.data?.detail || 'Error updating balance', 'error');
     }
   };
 
@@ -96,11 +96,14 @@ export default function Users({ notify }) {
         <div className="sgc-modal-overlay" onClick={()=>setShowBalanceModal(false)}>
           <div className="sgc-modal" onClick={e=>e.stopPropagation()} style={{maxWidth:420,width:'90%'}}>
             <h3 style={{color:'var(--text)',marginBottom:12,fontSize:15,fontWeight:700}}>Update Balance</h3>
-            <p style={{color:'var(--dim)',fontSize:12,marginBottom:12}}>User: <b>{balanceUser?.username}</b></p>
-            <input className="sgc-input" type="number" step="0.01" placeholder="Enter new balance" value={balanceAmount} onChange={e=>setBalanceAmount(e.target.value)} autoFocus/>
-            <div style={{display:'flex',gap:10,marginTop:12}}>
-              <button className="sgc-btn-yellow" style={{flex:1}} onClick={updateBalance}>Update</button>
-              <button className="sgc-btn-sm" style={{flex:1,background:'var(--border)',color:'var(--text)',padding:11,borderRadius:10}} onClick={()=>setShowBalanceModal(false)}>Cancel</button>
+            <p style={{color:'var(--dim)',fontSize:12,marginBottom:4}}>User: <b>{balanceUser?.username}</b></p>
+            <p style={{color:'var(--text)',fontSize:14,marginBottom:12,fontWeight:600}}>Current Balance: <span style={{color:'var(--green)'}}>Rs. {balanceUser?.balance?.toFixed(2) || '0.00'}</span></p>
+            <input className="sgc-input" type="number" step="0.01" placeholder="Enter amount" value={balanceAmount} onChange={e=>setBalanceAmount(e.target.value)} autoFocus/>
+            <div style={{display:'flex',gap:10,marginTop:12,flexWrap:'wrap'}}>
+              <button className="sgc-btn-yellow" style={{flex:1,minWidth:'45%'}} onClick={()=>updateBalance('set')}>Set New</button>
+              <button className="sgc-btn-primary" style={{flex:1,minWidth:'45%',background:'#16a34a',border:'none'}} onClick={()=>updateBalance('add')}>Add (+)</button>
+              <button className="sgc-btn-primary" style={{flex:1,minWidth:'45%',background:'#dc2626',border:'none'}} onClick={()=>updateBalance('cut')}>Cut (-)</button>
+              <button className="sgc-btn-sm" style={{flex:1,minWidth:'45%',background:'var(--border)',color:'var(--text)',padding:11,borderRadius:10}} onClick={()=>setShowBalanceModal(false)}>Cancel</button>
             </div>
           </div>
         </div>

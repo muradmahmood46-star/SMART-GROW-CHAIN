@@ -28,6 +28,7 @@ def get_admin_user(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
 
 class BalanceAdjust(BaseModel):
     amount: float
+    action: str = "add"
     note: Optional[str] = ""
 
 class AdUpdate(BaseModel):
@@ -115,9 +116,16 @@ def adjust_balance(user_id: int, data: BalanceAdjust, db: Session = Depends(get_
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     amount = abs(data.amount)
-    user.balance -= amount
+    if data.action == "set":
+        user.balance = amount
+    elif data.action == "add":
+        user.balance += amount
+    elif data.action == "cut":
+        user.balance = max(0.0, user.balance - amount)
+    else:
+        user.balance += amount
     db.commit()
-    return {"message": f"Balance deducted by Rs. {amount}", "new_balance": user.balance}
+    return {"message": f"Balance updated successfully", "new_balance": user.balance}
 
 @router.get("/ads")
 def get_all_ads(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
