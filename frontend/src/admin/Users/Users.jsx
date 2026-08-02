@@ -8,6 +8,7 @@ export default function Users({ notify }) {
   const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [balanceUser, setBalanceUser] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchUsers = async () => {
     try {
@@ -59,11 +60,23 @@ export default function Users({ notify }) {
     return <div style={{padding: 20, color: 'var(--dim)'}}>Loading users...</div>;
   }
 
+  const filteredUsers = users.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div>
-      <div className="sgc-page-header">
-        <h2 className="sgc-heading">👥 Users</h2>
-        <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{users.length} total</span>
+      <div className="sgc-page-header" style={{flexWrap: 'wrap', gap: 12, justifyContent: 'space-between'}}>
+        <div style={{display:'flex', alignItems:'center', gap:12}}>
+          <h2 className="sgc-heading">👥 Users</h2>
+          <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{users.length} total</span>
+        </div>
+        <input 
+          type="text" 
+          placeholder="Search by username..." 
+          className="sgc-input" 
+          style={{maxWidth: 240, margin: 0, padding: '8px 12px'}}
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
       </div>
       <div className="sgc-table-wrap">
         <table className="sgc-table">
@@ -72,7 +85,7 @@ export default function Users({ notify }) {
             <th className="sgc-th">Balance</th><th className="sgc-th">Earned</th>
             <th className="sgc-th">Plan</th><th className="sgc-th">Status</th><th className="sgc-th">Actions</th>
           </tr></thead>
-          <tbody>{users.map(u=>(
+          <tbody>{filteredUsers.map(u=>(
             <tr key={u.id} className="sgc-tr">
               <td className="sgc-td" style={{color:'var(--text)',fontWeight:700}}>{u.username}</td>
               <td className="sgc-td">{u.email}</td>
@@ -86,7 +99,7 @@ export default function Users({ notify }) {
               </td>
             </tr>
           ))}
-          {users.length===0&&<tr><td colSpan={7} className="sgc-td" style={{textAlign:'center',padding:32}}>No users found</td></tr>}
+          {filteredUsers.length===0&&<tr><td colSpan={7} className="sgc-td" style={{textAlign:'center',padding:32}}>No users found</td></tr>}
           </tbody>
         </table>
       </div>
