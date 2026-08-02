@@ -56,6 +56,26 @@ export default function AdminDashboard({ setTab }) {
           box-shadow: 0 16px 40px rgba(0,0,0,0.3);
           border-color: rgba(255,255,255,0.3);
         }
+        @media (max-width: 768px) {
+          .admin-stat-card {
+            padding: 16px 14px;
+            border-radius: 12px;
+          }
+          .admin-stat-card .admin-stat-title {
+            font-size: 11px !important;
+            margin-bottom: 6px !important;
+          }
+          .admin-stat-card .admin-stat-icon {
+            font-size: 18px !important;
+          }
+          .admin-stat-card .admin-stat-value {
+            font-size: 20px !important;
+          }
+          .sgc-stats {
+            gap: 12px !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
       `}</style>
       <h2 className="sgc-heading">📊 Dashboard</h2>
       <div className="sgc-stats" style={{gap: '20px'}}>
@@ -72,11 +92,11 @@ export default function AdminDashboard({ setTab }) {
           ['Total Clicks',   stats.total_clicks,            'linear-gradient(135deg, #312e81, #6366f1)', '#a5b4fc', '⚡'],
         ].map(([l,v,bg,textCol,icon],i)=>(
           <div key={i} className="admin-stat-card" style={{ background: bg, animationDelay: `${i * 0.05}s` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>{l}</div>
-              <div style={{ fontSize: 24, opacity: 0.8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>{icon}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }} className="admin-stat-title-wrap">
+              <div className="admin-stat-title" style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' }}>{l}</div>
+              <div className="admin-stat-icon" style={{ fontSize: 24, opacity: 0.8, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>{icon}</div>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{v}</div>
+            <div className="admin-stat-value" style={{ fontSize: 28, fontWeight: 900, color: '#ffffff', fontFamily: 'monospace', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{v}</div>
             
             {/* Glassmorphism subtle flare effect */}
             <div style={{ position: 'absolute', top: '-50%', right: '-20%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.1)', filter: 'blur(30px)', borderRadius: '50%', pointerEvents: 'none' }} />
