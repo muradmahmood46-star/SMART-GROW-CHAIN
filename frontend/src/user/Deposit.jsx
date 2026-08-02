@@ -7,6 +7,7 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
   const [selectedMethod, setSelectedMethod] = useState('easypaisa');
   const [deposit, setDeposit] = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
   const [screenshot, setScreenshot] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (initialEpAccounts && initialEpAccounts.length > 0) {
@@ -23,11 +24,13 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
 
   const handleDeposit = async(e)=>{
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     if(selectedMethod==='bank'){
-      if(!deposit.bank_name||!deposit.bank_account_holder||!deposit.bank_account_number){ notify('Please fill all bank fields','error'); return; }
-      if(!screenshot){ notify('Please upload payment screenshot','error'); return; }
+      if(!deposit.bank_name||!deposit.bank_account_holder||!deposit.bank_account_number){ notify('Please fill all bank fields','error'); setIsSubmitting(false); return; }
+      if(!screenshot){ notify('Please upload payment screenshot','error'); setIsSubmitting(false); return; }
       const bankAccount = epAccounts.find(a=>a.method_type==='bank');
-      if(!bankAccount){ notify('No bank account available','error'); return; }
+      if(!bankAccount){ notify('No bank account available','error'); setIsSubmitting(false); return; }
       try{
         const fd = new FormData();
         fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
@@ -43,11 +46,12 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
         setScreenshot(null);
       }
       catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+      finally { setIsSubmitting(false); }
       return;
     }
     const acc_id = deposit.easypaisa_account_id || (epAccounts[0]?.id);
-    if (!acc_id){ notify('No payment account available','error'); return; }
-    if (!screenshot){ notify('Please upload payment screenshot','error'); return; }
+    if (!acc_id){ notify('No payment account available','error'); setIsSubmitting(false); return; }
+    if (!screenshot){ notify('Please upload payment screenshot','error'); setIsSubmitting(false); return; }
     try{
       const fd = new FormData();
       fd.append('amount_pkr', parseFloat(deposit.amount_pkr));
@@ -63,6 +67,7 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
       setScreenshot(null);
     }
     catch(err){ notify(err.response?.data?.detail||'Error','error'); }
+    finally { setIsSubmitting(false); }
   };
 
   return (
@@ -177,7 +182,9 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
               </div>
               <label className="sgc-label">Note (optional)</label>
               <input className="sgc-input" placeholder="Any note for admin" value={deposit.screenshot_note} onChange={e=>setDeposit({...deposit,screenshot_note:e.target.value})}/>
-              <button className="sgc-btn-primary" type="submit" style={{background:'linear-gradient(135deg,#3b82f6,#1d4ed8)'}}>📤 Submit Deposit Request</button>
+              <button className="sgc-btn-primary" type="submit" disabled={isSubmitting} style={{background:'linear-gradient(135deg,#3b82f6,#1d4ed8)', opacity: isSubmitting ? 0.7 : 1}}>
+                {isSubmitting ? '⏳ Submitting...' : '📤 Submit Deposit Request'}
+              </button>
             </form>
           );
         }
@@ -207,8 +214,8 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
             </div>
             <label className="sgc-label">Note (optional)</label>
             <input className="sgc-input" placeholder="Any note for admin" value={deposit.screenshot_note} onChange={e=>setDeposit({...deposit,screenshot_note:e.target.value})}/>
-            <button className="sgc-btn-primary" type="submit" style={{background:`linear-gradient(135deg,${col},${selectedMethod==='easypaisa'?'#2a8c42':'#b5001a'})`}}>
-              📤 Submit Deposit Request
+            <button className="sgc-btn-primary" type="submit" disabled={isSubmitting} style={{background:`linear-gradient(135deg,${col},${selectedMethod==='easypaisa'?'#2a8c42':'#b5001a'})`, opacity: isSubmitting ? 0.7 : 1}}>
+              {isSubmitting ? '⏳ Submitting...' : '📤 Submit Deposit Request'}
             </button>
           </form>
         );

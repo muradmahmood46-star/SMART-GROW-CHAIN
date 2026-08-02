@@ -7,6 +7,11 @@ export default function FundRequests({ notify, loadData }) {
   const [loading, setLoading] = useState(true);
   const pendingD = deposits.filter(d => d.status === 'pending').length;
 
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('http') ? url : `${API.defaults.baseURL}${url}`;
+  };
+
   const fetchDeposits = async () => {
     try {
       const res = await API.get('/admin/deposits');
@@ -111,8 +116,8 @@ export default function FundRequests({ notify, loadData }) {
                 <div style={{flex:'0 0 200px',padding:'16px',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',borderLeft:'1px solid var(--border)'}}>
                   <p style={{color:'var(--dim)',fontSize:10,fontWeight:600,letterSpacing:.5,marginBottom:8}}>PAYMENT SCREENSHOT</p>
                   {d.screenshot_url ? (
-                    <a href={d.screenshot_url} target="_blank" rel="noreferrer">
-                      <img src={d.screenshot_url} alt="screenshot"
+                    <a href={getImageUrl(d.screenshot_url)} target="_blank" rel="noreferrer">
+                      <img src={getImageUrl(d.screenshot_url)} alt="screenshot"
                         style={{width:160,height:160,objectFit:'cover',borderRadius:10,border:'2px solid var(--border)',display:'block',transition:'transform .2s'}}
                         onMouseEnter={e=>e.target.style.transform='scale(1.04)'}
                         onMouseLeave={e=>e.target.style.transform='scale(1)'}
