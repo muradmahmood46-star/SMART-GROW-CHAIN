@@ -103,21 +103,12 @@ export default function useBackNavigation({
       }
 
       if (currentIsInternal) {
-        if (currentIsAdmin) {
-          // Admin Panel: Internal page → Dashboard directly
-          currentSetTab('dashboard');
-          if (mobile) {
-            currentSetSidebarOpen(false);
-            if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
-          }
+        // Internal page → Sidebar opens (for both User and Admin)
+        if (mobile) {
+          currentSetSidebarOpen(true);
+          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
         } else {
-          // User Panel: Internal page → Sidebar opens
-          if (mobile) {
-            currentSetSidebarOpen(true);
-            if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
-          } else {
-            if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
-          }
+          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
         }
         return;
       }
