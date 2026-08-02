@@ -5,6 +5,7 @@ import API from '../../api';
 export default function FundRequests({ notify, loadData }) {
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [minDeposit, setMinDeposit] = useState(100);
   const pendingD = deposits.filter(d => d.status === 'pending').length;
 
   const getImageUrl = (url) => {
@@ -16,6 +17,9 @@ export default function FundRequests({ notify, loadData }) {
     try {
       const res = await API.get('/admin/deposits');
       setDeposits(res.data);
+      const setRes = await API.get('/admin/settings');
+      const minDepSetting = setRes.data.find(s => s.key === 'min_deposit');
+      if (minDepSetting) setMinDeposit(parseInt(minDepSetting.value) || 100);
     } catch (err) {
       console.error(err);
       if (notify) notify('Failed to fetch deposits', 'error');
@@ -27,6 +31,15 @@ export default function FundRequests({ notify, loadData }) {
   useEffect(() => {
     fetchDeposits();
   }, []);
+
+  const updateMinDeposit = async () => {
+    try {
+      await API.put('/admin/settings/min_deposit', { value: minDeposit.toString() });
+      if (notify) notify('Minimum deposit updated ✅');
+    } catch (e) {
+      if (notify) notify('Error updating minimum deposit', 'error');
+    }
+  };
 
   const confirmDeposit = async (id) => {
     try {
@@ -60,6 +73,15 @@ export default function FundRequests({ notify, loadData }) {
         <h2 className="sgc-heading">📥 Fund Requests</h2>
         <span style={{color:'var(--red)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{pendingD} pending</span>
       </div>
+      
+      <div className="sgc-card" style={{marginBottom: 20, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap'}}>
+        <div style={{flex: 1, minWidth: 200}}>
+          <label className="sgc-label" style={{marginBottom:8, display:'block'}}>Minimum Deposit Amount (Rs.)</label>
+          <input className="sgc-input" style={{margin:0}} type="number" value={minDeposit} onChange={e => setMinDeposit(e.target.value)} />
+        </div>
+        <button className="sgc-btn-primary" onClick={updateMinDeposit}>Update Limit</button>
+      </div>
+
       <div style={{display:'flex',flexDirection:'column',gap:14}}>
         {deposits.map(d=>{
           const isPending=d.status==='pending';

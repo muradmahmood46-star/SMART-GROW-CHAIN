@@ -8,6 +8,7 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
   const [deposit, setDeposit] = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
   const [screenshot, setScreenshot] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [minDeposit, setMinDeposit] = useState(100);
 
   useEffect(() => {
     if (initialEpAccounts && initialEpAccounts.length > 0) {
@@ -20,11 +21,20 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
     }).catch(() => {
       setLoadingAccounts(false);
     });
+    API.get('/user/settings').then(r => {
+      if (r.data.min_deposit) setMinDeposit(parseInt(r.data.min_deposit) || 100);
+    }).catch(()=>{});
   }, [initialEpAccounts]);
 
   const handleDeposit = async(e)=>{
     e.preventDefault();
     if (isSubmitting) return;
+    
+    if (parseFloat(deposit.amount_pkr) < minDeposit) {
+      notify(`Minimum deposit is Rs. ${minDeposit}`, 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     if(selectedMethod==='bank'){
       if(!deposit.bank_name||!deposit.bank_account_holder||!deposit.bank_account_number){ notify('Please fill all bank fields','error'); setIsSubmitting(false); return; }
@@ -161,8 +171,8 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
         if(selectedMethod==='bank'){
           return (
             <form onSubmit={handleDeposit} className="sgc-form" style={{background:'#0a1628',border:'1px solid #1e4080',maxWidth:520}}>
-              <label className="sgc-label">Amount Sent (Rs.)</label>
-              <input className="sgc-input" type="number" min="100" placeholder="Min Rs. 100" value={deposit.amount_pkr} onChange={e=>setDeposit({...deposit,amount_pkr:e.target.value})} required/>
+              <label className="sgc-label">Amount (PKR)</label>
+              <input className="sgc-input" type="number" min={minDeposit} placeholder={`Min Rs. ${minDeposit}`} value={deposit.amount_pkr} onChange={e=>setDeposit({...deposit,amount_pkr:e.target.value})} required/>
               <label className="sgc-label">Bank Name</label>
               <input className="sgc-input" placeholder="e.g. HBL, UBL, Meezan Bank" value={deposit.bank_name} onChange={e=>setDeposit({...deposit,bank_name:e.target.value})} required/>
               <label className="sgc-label">Account Holder Name</label>
@@ -193,8 +203,8 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
         if(!filtered.length) return <p style={{color:'var(--dim)',fontSize:13}}>No {selectedMethod} account available.</p>;
         return (
           <form onSubmit={handleDeposit} className="sgc-form" style={{background:'#0d1e38',border:'1px solid #1e4080',maxWidth:520}}>
-            <label className="sgc-label">Amount Sent (Rs.)</label>
-            <input className="sgc-input" type="number" min="100" placeholder="Min Rs. 100" value={deposit.amount_pkr} onChange={e=>setDeposit({...deposit,amount_pkr:e.target.value,easypaisa_account_id:filtered[0].id})} required/>
+            <label className="sgc-label">Amount (PKR)</label>
+            <input className="sgc-input" type="number" min={minDeposit} placeholder={`Min Rs. ${minDeposit}`} value={deposit.amount_pkr} onChange={e=>setDeposit({...deposit,amount_pkr:e.target.value,easypaisa_account_id:filtered[0].id})} required/>
             <label className="sgc-label">Send By (Your Account Name)</label>
             <input className="sgc-input" placeholder="e.g. Ali Hassan" value={deposit.sender_name} onChange={e=>setDeposit({...deposit,sender_name:e.target.value})} required/>
             <label className="sgc-label">Your {selectedMethod==='easypaisa'?'Easypaisa':'JazzCash'} Number</label>

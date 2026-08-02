@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import User, Deposit, EasypaisaAccount
+from app.models.models import User, Deposit, EasypaisaAccount, SiteSettings
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
 import os, shutil, uuid
@@ -66,8 +66,11 @@ async def request_deposit(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if amount_pkr < 100:
-        raise HTTPException(status_code=400, detail="Minimum deposit is Rs. 100")
+    min_dep_setting = db.query(SiteSettings).filter(SiteSettings.key == "min_deposit").first()
+    min_dep = float(min_dep_setting.value) if min_dep_setting and min_dep_setting.value else 100.0
+
+    if amount_pkr < min_dep:
+        raise HTTPException(status_code=400, detail=f"Minimum deposit is Rs. {int(min_dep)}")
 
     acc = db.query(EasypaisaAccount).filter(
         EasypaisaAccount.id == easypaisa_account_id,
