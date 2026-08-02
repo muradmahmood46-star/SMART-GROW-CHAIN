@@ -62,6 +62,14 @@ export default function Dashboard() {
   const [msg, setMsg] = useState({ text:'', type:'' });
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handleOpenSidebar = () => {
+      setSidebarOpen(true);
+    };
+    window.addEventListener('openSidebar', handleOpenSidebar);
+    return () => window.removeEventListener('openSidebar', handleOpenSidebar);
+  }, []);
+
   const setTab = useCallback((newTab) => {
     if (newTab === tab) return;
     if (newTab !== 'dashboard') {
