@@ -26,11 +26,11 @@ export default function KYCVerification({ kycData, notify, setTab, loadData }) {
       {kycData?.kyc_status==='approved' ? (
         <div style={{background:'#052e16',border:'1px solid #166534',borderRadius:12,padding:'20px 24px',maxWidth:480}}>
           <p style={{color:'#4ade80',fontWeight:700,fontSize:15,margin:'0 0 8px'}}>✅ KYC Verified Successfully</p>
-          <p style={{color:'var(--dim)',fontSize:13,margin:0}}>Your identity has been verified. You can now withdraw funds and access all bonuses.</p>
+          <p style={{color:'#fff',fontSize:13,margin:0}}>Your identity has been verified. You can now withdraw funds and access all bonuses.</p>
           {kycData.kyc && (
             <div style={{marginTop:14,borderTop:'1px solid var(--border)',paddingTop:14}}>
-              <p style={{color:'var(--muted)',fontSize:12,margin:'0 0 4px'}}>Name: <b style={{color:'var(--text)'}}>{kycData.kyc.full_name}</b></p>
-              <p style={{color:'var(--muted)',fontSize:12,margin:0}}>CNIC: <b style={{color:'var(--text)'}}>{kycData.kyc.cnic}</b></p>
+              <p style={{color:'#fff',fontSize:12,margin:'0 0 4px'}}>Name: <b>{kycData.kyc.full_name}</b></p>
+              <p style={{color:'#fff',fontSize:12,margin:0}}>CNIC: <b>{kycData.kyc.cnic}</b></p>
             </div>
           )}
         </div>
