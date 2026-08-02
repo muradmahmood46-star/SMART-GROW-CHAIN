@@ -49,15 +49,6 @@ export default function Advertise({
       if(r.data.advertiser_message) setAdvertiserMsg(r.data.advertiser_message);
     }).catch(()=>{});
     API.get('/deposit/easypaisa-accounts').then(r=>setEpAccounts(r.data)).catch(()=>{});
-
-    // Trap back button on mobile to open sidebar instead of leaving app
-    window.history.pushState(null, null, window.location.href);
-    const handlePopState = () => {
-      setTab('dashboard');
-      window.dispatchEvent(new Event('openSidebar'));
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const fetchRequests = () => {
@@ -229,7 +220,7 @@ export default function Advertise({
       {!hasAcceptedMsg && advertiserMsg && createPortal(
         <div className="sgc-modal-overlay" style={{zIndex:9999,position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',backdropFilter:'blur(5px)'}}>
           <div className="sgc-modal" style={{position:'fixed',top:'40%',left:'50%',transform:'translate(-50%, -50%)',animation:'none',margin:0,textAlign:'left',maxWidth:540,width:'92%',maxHeight:'85dvh',display:'flex',flexDirection:'column',background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:'28px 24px',boxShadow:'0 20px 50px rgba(0,0,0,0.5)'}}>
-            <button onClick={() => { setTab('dashboard'); window.dispatchEvent(new Event('openSidebar')); }} style={{position:'absolute',top:16,right:16,background:'transparent',border:'none',color:'var(--dim)',fontSize:22,cursor:'pointer',fontWeight:800}}>✕</button>
+            <button onClick={() => { setTab('dashboard'); if(window.innerWidth <= 768) window.dispatchEvent(new Event('openSidebar')); }} style={{position:'absolute',top:16,right:16,background:'transparent',border:'none',color:'var(--dim)',fontSize:22,cursor:'pointer',fontWeight:800}}>✕</button>
             <div style={{textAlign:'center',marginBottom:16,marginTop:8}}>
               <div style={{fontSize:44,marginBottom:8}}>📢</div>
               <h3 style={{color:'var(--accent)',fontSize:20,fontWeight:800,margin:'0 0 6px'}}>Advertiser Guidelines & Rules</h3>

@@ -103,12 +103,13 @@ export default function useBackNavigation({
       }
 
       if (currentIsInternal) {
-        // Internal page → Sidebar opens (for both User and Admin)
+        // Internal page
         if (mobile) {
           currentSetSidebarOpen(true);
           if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
         } else {
-          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
+          // On PC, sidebar is always visible, so pressing back goes to Dashboard
+          currentSetTab('dashboard');
         }
         return;
       }
