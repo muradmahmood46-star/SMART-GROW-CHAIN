@@ -67,7 +67,7 @@ export default function DashboardHome({
           ['Total Clicks',earnings?.filter(e=>e.type==='click').length||0,'#0891b2','👆',false],
           ['Referrals',referrals?.total_referrals||0,'#059669','👥',false],
           ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777','🎁',false],
-          ['Membership',profile.membership.toUpperCase(),'#d97706','🏆',false],
+          ['Membership',profile.plan_active ? profile.membership.toUpperCase() : 'EXPIRED',profile.plan_active ? '#d97706' : '#ef4444','🏆',false],
         ].map(([l,v,c,icon,growth],i)=>(
           <div key={i} className="sgc-stat-card sgc-dashboard-stat-card" style={{borderLeftColor:c,'--stat-color':c}}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>

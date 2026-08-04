@@ -159,7 +159,16 @@ def get_all_ads(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
 
 @router.post("/ads")
 def create_ad(data: AdCreate, db: Session = Depends(get_db), admin=Depends(get_admin_user)):
-    ad = Ad(**data.dict())
+    ad_dict = data.dict()
+    valid_for_days = ad_dict.get('valid_for_days')
+    
+    from datetime import datetime, timedelta
+    if valid_for_days:
+        ad_dict['valid_until'] = datetime.utcnow() + timedelta(days=valid_for_days)
+    else:
+        ad_dict['valid_until'] = None
+
+    ad = Ad(**ad_dict)
     db.add(ad)
     db.commit()
     db.refresh(ad)
@@ -868,11 +877,10 @@ def approve_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = D
         raise HTTPException(status_code=400, detail="Already processed")
     user = db.query(User).filter(User.id == req.user_id).first()
     if user:
-        user.membership = req.plan_name
         from datetime import datetime
         plan = db.query(MembershipPlan).filter(MembershipPlan.name == req.plan_name).first()
         days = plan.period_days if plan else 30
-        user.plan_expires_at = datetime.utcnow() + __import__('datetime').timedelta(days=days)
+        req.expires_at = datetime.utcnow() + __import__('datetime').timedelta(days=days)
         # notify user
         db.add(Notification(user_id=user.id, title="Plan Activated ✅", message=f"Your {req.plan_name} plan has been activated successfully."))
         

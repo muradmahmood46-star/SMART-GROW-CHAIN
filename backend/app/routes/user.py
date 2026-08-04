@@ -15,14 +15,60 @@ import pyotp, qrcode, io, base64
 router = APIRouter(prefix="/user", tags=["User"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-def has_active_plan(user: User) -> bool:
-    """A plan is usable only until its actual expiry time."""
+def get_user_active_plans(user: User, db: Session):
     now = datetime.utcnow()
-    if not user.membership or user.membership == "none":
-        return False
-    if user.membership == "free":
-        return bool(user.free_plan_expires_at and user.free_plan_expires_at > now)
-    return bool(user.plan_expires_at and user.plan_expires_at > now)
+    # Find all approved, non-expired plan purchases for this user
+    active_purchases = db.query(PlanPurchaseRequest).filter(
+        PlanPurchaseRequest.user_id == user.id,
+        PlanPurchaseRequest.status == "approved",
+        PlanPurchaseRequest.expires_at > now
+    ).all()
+    
+    total_daily_ads = 0
+    total_earning_per_click = 0
+    total_referral_commission = 0.0
+    active_plan_names = []
+
+    for req in active_purchases:
+        plan = db.query(MembershipPlan).filter(MembershipPlan.id == req.plan_id).first()
+        if plan:
+            total_daily_ads += (plan.daily_ads or 0)
+            total_earning_per_click += (plan.earning_per_click or 0.0)
+            total_referral_commission += (plan.referral_commission or 0.0)
+            if plan.name not in active_plan_names:
+                active_plan_names.append(plan.name)
+
+    # Backward compatibility fallback if they have an active plan string but no tracked purchases
+    has_legacy = False
+    if len(active_purchases) == 0 and user.membership and user.membership != "none":
+        legacy_expiry = user.free_plan_expires_at if user.membership == "free" else user.plan_expires_at
+        if legacy_expiry and legacy_expiry > now:
+            has_legacy = True
+            plan = db.query(MembershipPlan).filter(MembershipPlan.name == user.membership).first()
+            if plan:
+                total_daily_ads += (plan.daily_ads or 0)
+                total_earning_per_click += (plan.earning_per_click or 0.0)
+                total_referral_commission += (plan.referral_commission or 0.0)
+                active_plan_names.append(plan.name)
+
+    return {
+        "active": len(active_purchases) > 0 or has_legacy,
+        "daily_ads": total_daily_ads,
+        "earning_per_click": total_earning_per_click,
+        "referral_commission": total_referral_commission,
+        "plan_names": active_plan_names
+    }
+
+def has_active_plan(user: User, db: Session = None) -> bool:
+    """A plan is usable only until its actual expiry time."""
+    if not db:
+        # Fallback for old code
+        now = datetime.utcnow()
+        if not user.membership or user.membership == "none": return False
+        if user.membership == "free": return bool(user.free_plan_expires_at and user.free_plan_expires_at > now)
+        return bool(user.plan_expires_at and user.plan_expires_at > now)
+        
+    return get_user_active_plans(user, db)["active"]
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
@@ -79,25 +125,33 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
     if current_user.total_earned is None:
         current_user.total_earned = 0.0
         db.commit()
-    current_user.plan_active = has_active_plan(current_user)
+    active_data = get_user_active_plans(current_user, db)
+    current_user.plan_active = active_data["active"]
+    if active_data["plan_names"]:
+        current_user.membership = " + ".join(active_data["plan_names"])
+    elif current_user.plan_active:
+        pass # fallback to string
+    else:
+        # Not active
+        pass
+
     return current_user
 
 # ── ADS ──────────────────────────────────────────────────────────────────────
 @router.get("/ads")
 def get_ads(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    # Change 3: user must have an active plan to see ads
-    if not has_active_plan(current_user):
+    if not get_user_active_plans(current_user, db)["active"]:
         return {"plan_required": True, "ads": []}
 
+    now = datetime.utcnow()
     ads = db.query(Ad).filter(Ad.is_active == True).all()
-    result = []
+    
+    sponsored_list = []
+    admin_list = []
+    
     for ad in ads:
-        already_clicked = db.query(Earning).filter(
-            Earning.user_id == current_user.id,
-            Earning.ad_id == ad.id,
-            Earning.type == "click"
-        ).first()
-        if already_clicked:
+        # Check validity for Admin ads
+        if ad.valid_until and ad.valid_until < now:
             continue
 
         # Check if this ad originates from a UserAdRequest (User Advertise section)
@@ -106,11 +160,32 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             UserAdRequest.title == ad.title,
             UserAdRequest.status == "approved"
         ).first()
-
         is_sponsored = sponsored is not None
+
+        if is_sponsored:
+            # SPONSORED AD: Strict "View Once" rule
+            already_clicked = db.query(Earning).filter(
+                Earning.user_id == current_user.id,
+                Earning.ad_id == ad.id,
+                Earning.type == "click"
+            ).first()
+            if already_clicked:
+                continue
+        else:
+            # ADMIN AD: 24-hour respawn rule
+            twenty_four_hours_ago = now - timedelta(hours=24)
+            already_clicked_recent = db.query(Earning).filter(
+                Earning.user_id == current_user.id,
+                Earning.ad_id == ad.id,
+                Earning.type == "click",
+                Earning.clicked_at >= twenty_four_hours_ago
+            ).first()
+            if already_clicked_recent:
+                continue
+
         is_own = is_sponsored and sponsored.user_id == current_user.id
 
-        result.append({
+        ad_data = {
             "id": ad.id,
             "title": ad.title,
             "url": ad.url,
@@ -120,29 +195,54 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             "total_clicks": ad.total_clicks,
             "already_clicked": False,
             "is_sponsored": is_sponsored,
-            "is_own_ad": is_own
-        })
+            "is_own_ad": is_own,
+            "members_needed": sponsored.members_needed if sponsored else 0
+        }
+        
+        if is_sponsored:
+            sponsored_list.append(ad_data)
+        else:
+            admin_list.append(ad_data)
 
-    # Sort logic:
-    # 1) Sponsored Ads (User Advertise section) at the VERY TOP (0), Admin Simple Ads below (1)
-    # 2) Within each group, newest ad ID first (-x["id"])
-    result.sort(key=lambda x: (0 if x["is_sponsored"] else 1, -x["id"]))
-    return {"plan_required": False, "ads": result}
+    # Sort Sponsored by members_needed descending
+    sponsored_list.sort(key=lambda x: -x["members_needed"])
+    # Sort Admin by newest first
+    admin_list.sort(key=lambda x: -x["id"])
+    
+    # Priority Distribution Logic
+    if len(sponsored_list) >= 10:
+        final_ads = sponsored_list
+    else:
+        final_ads = sponsored_list + admin_list[:(10 - len(sponsored_list))]
+
+    return {"plan_required": False, "ads": final_ads}
 
 @router.post("/click/start/{ad_id}")
 def start_click(ad_id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not has_active_plan(current_user):
+    if not has_active_plan(current_user, db):
         raise HTTPException(status_code=403, detail="Please activate a plan first.")
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
-    # Permanent check
-    already_clicked = db.query(Earning).filter(
-        Earning.user_id == current_user.id, Earning.ad_id == ad_id,
-        Earning.type == "click"
+    sponsored = db.query(UserAdRequest).filter(
+        UserAdRequest.url == ad.url, UserAdRequest.title == ad.title, UserAdRequest.status == "approved"
     ).first()
-    if already_clicked:
-        raise HTTPException(status_code=400, detail="Already clicked this ad")
+    is_sponsored = sponsored is not None
+
+    if is_sponsored:
+        already_clicked = db.query(Earning).filter(
+            Earning.user_id == current_user.id, Earning.ad_id == ad_id, Earning.type == "click"
+        ).first()
+        if already_clicked:
+            raise HTTPException(status_code=400, detail="Already clicked this sponsored ad")
+    else:
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        already_clicked_recent = db.query(Earning).filter(
+            Earning.user_id == current_user.id, Earning.ad_id == ad_id,
+            Earning.type == "click", Earning.clicked_at >= twenty_four_hours_ago
+        ).first()
+        if already_clicked_recent:
+            raise HTTPException(status_code=400, detail="You can click this ad again after 24 hours")
     ip = request.client.host
     ua = request.headers.get("user-agent", "")
     today = date.today()
@@ -157,18 +257,30 @@ def start_click(ad_id: int, request: Request, current_user: User = Depends(get_c
 
 @router.post("/click/complete/{ad_id}")
 def complete_click(ad_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    if not has_active_plan(current_user):
+    if not has_active_plan(current_user, db):
         raise HTTPException(status_code=403, detail="Please activate a plan first.")
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")
-    # Permanent check
-    already_clicked = db.query(Earning).filter(
-        Earning.user_id == current_user.id, Earning.ad_id == ad_id,
-        Earning.type == "click"
+    sponsored = db.query(UserAdRequest).filter(
+        UserAdRequest.url == ad.url, UserAdRequest.title == ad.title, UserAdRequest.status == "approved"
     ).first()
-    if already_clicked:
-        raise HTTPException(status_code=400, detail="Already clicked this ad")
+    is_sponsored = sponsored is not None
+
+    if is_sponsored:
+        already_clicked = db.query(Earning).filter(
+            Earning.user_id == current_user.id, Earning.ad_id == ad_id, Earning.type == "click"
+        ).first()
+        if already_clicked:
+            raise HTTPException(status_code=400, detail="Already clicked this sponsored ad")
+    else:
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        already_clicked_recent = db.query(Earning).filter(
+            Earning.user_id == current_user.id, Earning.ad_id == ad_id,
+            Earning.type == "click", Earning.clicked_at >= twenty_four_hours_ago
+        ).first()
+        if already_clicked_recent:
+            raise HTTPException(status_code=400, detail="You can click this ad again after 24 hours")
     today = date.today()
     log = db.query(ClickLog).filter(
         ClickLog.user_id == current_user.id, ClickLog.ad_id == ad_id,
@@ -178,10 +290,15 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
         if (datetime.utcnow() - log.created_at).total_seconds() < ad.timer_seconds:
             raise HTTPException(status_code=400, detail="Please watch the ad for the full required time")
         log.timer_completed = True
-    earning = Earning(user_id=current_user.id, ad_id=ad_id, amount=ad.earning_amount, type="click")
+    active_data = get_user_active_plans(current_user, db)
+    # The ad has its own earning amount. If we want to strictly use the ad's base + the user's dynamic limits:
+    # Actually, the user says the rate doubles. We will use the ad's base earning_amount + user's dynamic earning_per_click
+    total_earning = ad.earning_amount + active_data["earning_per_click"]
+    
+    earning = Earning(user_id=current_user.id, ad_id=ad_id, amount=total_earning, type="click")
     db.add(earning)
-    current_user.balance += ad.earning_amount
-    current_user.total_earned += ad.earning_amount
+    current_user.balance += total_earning
+    current_user.total_earned += total_earning
     ad.total_clicks += 1
     # ── members_reached increment for approved UserAdRequest ──
     active_req = db.query(UserAdRequest).filter(
@@ -201,15 +318,20 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
                 # Check Ad View Bonus
                 ref_ad_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_enabled").first()
                 if ref_ad_bonus_enabled and ref_ad_bonus_enabled.value == "true":
-                    ref_ad_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_percent").first()
-                    rate = float(ref_ad_bonus_percent.value) if ref_ad_bonus_percent and ref_ad_bonus_percent.value else 0.0
+                    # We use the referrer's dynamic referral commission if possible, or fallback to site setting
+                    referrer_data = get_user_active_plans(referrer, db)
+                    rate = referrer_data["referral_commission"]
+                    if rate == 0:
+                        ref_ad_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_percent").first()
+                        rate = float(ref_ad_bonus_percent.value) if ref_ad_bonus_percent and ref_ad_bonus_percent.value else 0.0
+                    
                     if rate > 0:
-                        commission = round(ad.earning_amount * (rate / 100), 6)
+                        commission = round(total_earning * (rate / 100), 6)
                         referrer.balance += commission
                         referrer.total_earned += commission
                         db.add(Earning(user_id=referrer.id, ad_id=ad_id, amount=commission, type="referral_ad_view"))
     db.commit()
-    return {"message": "Earning credited", "amount": ad.earning_amount, "new_balance": current_user.balance}
+    return {"message": "Earning credited", "amount": total_earning, "new_balance": current_user.balance}
 
 # ── WITHDRAW ─────────────────────────────────────────────────────────────────
 @router.post("/withdraw")
@@ -594,11 +716,6 @@ async def purchase_plan(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
-    # Block if user already has this plan and it is still active (not expired)
-    current_expiry = current_user.free_plan_expires_at if plan.price <= 0 else current_user.plan_expires_at
-    if current_user.membership == plan.name and current_expiry and current_expiry > datetime.utcnow():
-        raise HTTPException(status_code=400, detail="You already have this plan active.")
-
     if payment_method not in ["wallet", "easypaisa", "jazzcash", "bank"]:
         raise HTTPException(status_code=400, detail="Invalid payment method")
 
@@ -621,7 +738,8 @@ async def purchase_plan(
         current_user.free_plan_expires_at = datetime.utcnow() + timedelta(days=plan.period_days or 7)
         req = PlanPurchaseRequest(
             user_id=current_user.id, plan_id=plan.id, plan_name=plan.name, plan_price=0,
-            payment_method="free", status="approved"
+            payment_method="free", status="approved",
+            expires_at=datetime.utcnow() + timedelta(days=plan.period_days or 7)
         )
         db.add(req)
         db.add(Notification(user_id=current_user.id, title="Free Plan Activated ✅", message=f"Your {plan.name} plan has been activated."))
@@ -644,7 +762,8 @@ async def purchase_plan(
             plan_name=plan.name,
             plan_price=plan.price,
             payment_method="wallet",
-            status="approved"
+            status="approved",
+            expires_at=datetime.utcnow() + timedelta(days=plan.period_days or 30)
         )
         db.add(req)
         

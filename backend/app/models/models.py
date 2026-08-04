@@ -43,6 +43,8 @@ class Ad(Base):
     daily_limit = Column(Integer, default=100)
     total_clicks = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
+    valid_for_days = Column(Integer, nullable=True)
+    valid_until = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now())
 
     earnings = relationship("Earning", back_populates="ad")
@@ -245,6 +247,7 @@ class PlanPurchaseRequest(Base):
     sender_phone    = Column(String(100), nullable=True)
     status          = Column(String(20), default="pending")  # pending, approved, rejected
     admin_note      = Column(String(255), nullable=True)
+    expires_at      = Column(DateTime, nullable=True)        # Track expiry for multiple concurrent plans
     created_at      = Column(DateTime, default=func.now())
     user = relationship("User", backref="plan_purchases")
     plan = relationship("MembershipPlan")

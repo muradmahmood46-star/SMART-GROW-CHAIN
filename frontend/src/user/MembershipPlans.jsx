@@ -238,7 +238,7 @@ export default function MembershipPlans({
       {!selectedPlan && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16,marginBottom:28}}>
           {plans.map((p,i)=>{
-            const isCurrent = hasActivatedPlan && !isExpired && profile.membership === p.name;
+            const isActive = profile?.membership?.includes(p.name);
             const lowerName = (p.name || '').toLowerCase();
             let col = '#0284c7'; // default
             if (lowerName.includes('free')) col = '#eab308'; // Yellow
@@ -255,8 +255,8 @@ export default function MembershipPlans({
               : `${(p.referral_commission*100).toFixed(0)}%`;
             const levelDetails = Object.entries(detailMap).filter(([,v])=>v).map(([k,v])=>`L${k}: ${v}`).join(' | ');
             return (
-              <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isCurrent?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
-                {isCurrent&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{String.fromCharCode(10003)} Current Plan</div>}
+              <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isActive?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
+                {isActive&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{String.fromCharCode(10003)} Active Plan</div>}
                 <h3 style={{color:col,textTransform:'capitalize',marginBottom:4,fontSize:17}}>{p.name}</h3>
                 <p style={{color:'var(--text)',fontSize:26,fontWeight:800,marginBottom:16}}>Rs. {p.price}<span style={{fontSize:13,color:'var(--dim)',fontWeight:400}}>/{p.period_days}d</span></p>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
@@ -274,24 +274,24 @@ export default function MembershipPlans({
                     </div>
                   ))}
                 </div>
-                {!isCurrent && p.price>0 && (
+                {p.price>0 && (
                   <button onClick={()=>handleSelectPlan(p)} disabled={isPurchasing}
                     style={{width:'100%',padding:'10px',background:col,color:'#ffffff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1,boxShadow:`0 4px 14px ${col}40`,transition:'all .2s'}}
                     onMouseEnter={(e)=>e.target.style.filter='brightness(1.1)'}
                     onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
                     onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
                     onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
-                    Upgrade to {p.name}
+                    {isActive ? `Buy Another ${p.name}` : `Upgrade to ${p.name}`}
                   </button>
                 )}
-                {!isCurrent && p.price===0 && (
+                {p.price===0 && (
                   <button onClick={()=>handleSelectPlan(p)} disabled={isPurchasing}
                     style={{width:'100%',padding:'10px',background:col,color:'#ffffff',border:'none',borderRadius:10,fontWeight:700,fontSize:13,cursor:isPurchasing?'not-allowed':'pointer',fontFamily:'var(--font)',opacity:isPurchasing?0.6:1,boxShadow:`0 4px 14px ${col}40`,transition:'all .2s'}}
                     onMouseEnter={(e)=>e.target.style.filter='brightness(1.1)'}
                     onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
                     onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
                     onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
-                    Activate Free Plan
+                    {isActive ? 'Activate Free Again' : 'Activate Free Plan'}
                   </button>
                 )}
               </div>

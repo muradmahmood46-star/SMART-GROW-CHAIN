@@ -46,6 +46,7 @@ class AdCreate(BaseModel):
     earning_amount: float
     timer_seconds: int
     daily_limit: int
+    valid_for_days: Optional[int] = None
 
 class DepositCreate(BaseModel):
     amount_pkr: float
