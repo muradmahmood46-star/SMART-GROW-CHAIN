@@ -4,7 +4,7 @@ import API from '../api';
 export default function Deposit({ epAccounts: initialEpAccounts, notify, loadData }) {
   const [epAccounts, setEpAccounts] = useState(initialEpAccounts || []);
   const [loadingAccounts, setLoadingAccounts] = useState(!(initialEpAccounts && initialEpAccounts.length > 0));
-  const [selectedMethod, setSelectedMethod] = useState('easypaisa');
+  const [selectedMethod, setSelectedMethod] = useState('');
   const [deposit, setDeposit] = useState({ amount_pkr:'', easypaisa_account_id:'', sender_name:'', trx_id:'', transaction_id:'', screenshot_note:'', bank_name:'', bank_account_holder:'', bank_account_number:'' });
   const [screenshot, setScreenshot] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,65 +84,10 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
     <div>
       <h2 className="sgc-heading">📲 Deposit</h2>
 
-      {/* Our Accounts */}
-      <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>OUR ACCOUNTS</p>
-      {loadingAccounts && epAccounts.length === 0 ? (
-        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:16,padding:'24px 20px',textAlign:'center',marginBottom:28}}>
-          <div style={{fontSize:24,marginBottom:8}}>⏳</div>
-          <p style={{color:'var(--dim)',fontSize:13,margin:0,fontWeight:600}}>Loading payment accounts...</p>
-        </div>
-      ) : epAccounts.length > 0 ? (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,marginBottom:28}}>
-          {epAccounts.map(a=>{
-            const isEP=(a.method_type||'easypaisa')==='easypaisa';
-            const isBank=a.method_type==='bank';
-            const col=isEP?'#22c55e':isBank?'#3b82f6':'#ef4444';
-            const bg=isEP?'linear-gradient(135deg,#dcfce7,#86efac)':isBank?'linear-gradient(135deg,#dbeafe,#60a5fa)':'linear-gradient(135deg,#fee2e2,#f87171)';
-            const methodLabel=isEP?'EASYPAISA':isBank?'BANK TRANSFER':'JAZZCASH';
-            return (
-              <div key={a.id} style={{background:bg,border:`2px solid ${col}`,borderRadius:16,padding:'20px 22px',minHeight:210,boxShadow:`0 10px 24px ${col}26`,color:'#0f172a'}}>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-                  <div style={{width:46,height:46,borderRadius:12,background:'#0f172a',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,flexShrink:0}}>
-                    {isEP?'EP':isBank?'BK':'JC'}
-                  </div>
-                  <div>
-                    <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:'0 0 3px',letterSpacing:.6}}>{methodLabel}</p>
-                    <p style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)',fontWeight:900,fontSize:18,margin:0}}>{a.account_title}</p>
-                  </div>
-                </div>
-                <div style={{background:'rgba(15,23,42,.9)',borderRadius:12,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-                  <div>
-                    <p style={{color:'#cbd5e1',fontSize:10,margin:'0 0 3px',fontWeight:700}}>Account Number</p>
-                    <p style={{color:'#facc15',fontFamily:'monospace',fontSize:17,fontWeight:900,letterSpacing:1,margin:0,wordBreak:'break-all'}}>{a.account_number}</p>
-                  </div>
-                  <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#facc15',border:'none',color:'#111827',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,fontWeight:900,fontFamily:'var(--font)'}}>Copy</button>
-                </div>
-                {isBank&&(
-                  <div style={{marginTop:10,color:'#0f172a',fontSize:13,lineHeight:1.7,fontWeight:700}}>
-                    <div>Bank: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.bank_name||'Bank Transfer'}</b></div>
-                    <div>Account title: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.account_title}</b></div>
-                  </div>
-                )}
-                {a.deposit_message && (
-                  <div style={{marginTop:12,background:'rgba(255,255,255,.72)',border:'1px solid rgba(15,23,42,.15)',borderRadius:10,padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
-                    <span style={{fontSize:15,flexShrink:0}}>💬</span>
-                    <p style={{color:'#0f172a',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap',fontWeight:700}}>{a.deposit_message}</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:10,padding:16,marginBottom:28}}>
-          <p style={{color:'var(--red)',fontSize:13,margin:0}}>⚠️ No payment accounts available. Contact support.</p>
-        </div>
-      )}
-
       {/* Method Selector */}
       {epAccounts.length>0&&(
         <>
-          <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>PAYMENT METHOD</p>
+          <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>1. SELECT PAYMENT METHOD</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:14,marginBottom:22,maxWidth:760}}>
             {['easypaisa','jazzcash'].map(m=>{
               const isEP=m==='easypaisa'; const col=isEP?'#3cb559':'#e8001e';
@@ -162,6 +107,54 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
               <span style={{color:selectedMethod==='bank'?'#0f172a':'var(--muted)',fontWeight:900,fontSize:15}}>Bank Transfer</span>
               {!epAccounts.some(a=>a.method_type==='bank')&&<span style={{color:'var(--dim)',fontSize:10,fontWeight:700}}>Not available</span>}
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Our Accounts (Filtered) */}
+      {selectedMethod && (
+        <>
+          <p style={{color:'var(--muted)',fontSize:12,fontWeight:700,letterSpacing:1,marginBottom:12}}>2. SEND PAYMENT TO THIS ACCOUNT</p>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:16,marginBottom:28}}>
+            {epAccounts.filter(a => (a.method_type || 'easypaisa') === selectedMethod).map(a=>{
+              const isEP=(a.method_type||'easypaisa')==='easypaisa';
+              const isBank=a.method_type==='bank';
+              const col=isEP?'#22c55e':isBank?'#3b82f6':'#ef4444';
+              const bg=isEP?'linear-gradient(135deg,#dcfce7,#86efac)':isBank?'linear-gradient(135deg,#dbeafe,#60a5fa)':'linear-gradient(135deg,#fee2e2,#f87171)';
+              const methodLabel=isEP?'EASYPAISA':isBank?'BANK TRANSFER':'JAZZCASH';
+              return (
+                <div key={a.id} style={{background:bg,border:`2px solid ${col}`,borderRadius:16,padding:'20px 22px',minHeight:210,boxShadow:`0 10px 24px ${col}26`,color:'#0f172a'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+                    <div style={{width:46,height:46,borderRadius:12,background:'#0f172a',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:900,flexShrink:0}}>
+                      {isEP?'EP':isBank?'BK':'JC'}
+                    </div>
+                    <div>
+                      <p style={{color:'#0f172a',fontSize:12,fontWeight:900,margin:'0 0 3px',letterSpacing:.6}}>{methodLabel}</p>
+                      <p style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)',fontWeight:900,fontSize:18,margin:0}}>{a.account_title}</p>
+                    </div>
+                  </div>
+                  <div style={{background:'rgba(15,23,42,.9)',borderRadius:12,padding:'12px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                    <div>
+                      <p style={{color:'#cbd5e1',fontSize:10,margin:'0 0 3px',fontWeight:700}}>Account Number</p>
+                      <p style={{color:'#facc15',fontFamily:'monospace',fontSize:17,fontWeight:900,letterSpacing:1,margin:0,wordBreak:'break-all'}}>{a.account_number}</p>
+                    </div>
+                    <button type="button" onClick={()=>{navigator.clipboard.writeText(a.account_number);notify('Number copied! 📋');}} style={{background:'#facc15',border:'none',color:'#111827',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:12,fontWeight:900,fontFamily:'var(--font)'}}>Copy</button>
+                  </div>
+                  {isBank&&(
+                    <div style={{marginTop:10,color:'#0f172a',fontSize:13,lineHeight:1.7,fontWeight:700}}>
+                      <div>Bank: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.bank_name||'Bank Transfer'}</b></div>
+                      <div>Account title: <b style={{color:'#fff',textShadow:'0 1px 2px rgba(0,0,0,.55)'}}>{a.account_title}</b></div>
+                    </div>
+                  )}
+                  {a.deposit_message && (
+                    <div style={{marginTop:12,background:'rgba(255,255,255,.72)',border:'1px solid rgba(15,23,42,.15)',borderRadius:10,padding:'10px 12px',display:'flex',gap:8,alignItems:'flex-start'}}>
+                      <span style={{fontSize:15,flexShrink:0}}>💬</span>
+                      <p style={{color:'#0f172a',fontSize:12,margin:0,lineHeight:1.6,whiteSpace:'pre-wrap',fontWeight:700}}>{a.deposit_message}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}
