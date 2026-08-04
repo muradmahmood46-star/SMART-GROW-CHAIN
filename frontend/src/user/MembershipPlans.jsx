@@ -565,8 +565,8 @@ export default function MembershipPlans({
                         <label className="sgc-label">Account Holder Name</label>
                         <input className="sgc-input" placeholder="e.g. Ali Hassan" value={planAccountHolder} onChange={e=>setPlanAccountHolder(e.target.value)} required/>
 
-                        <label className="sgc-label">Account Number / IBAN</label>
-                        <input className="sgc-input" placeholder="e.g. PK36HABB0000123456789012" value={planAccountNumber} onChange={e=>setPlanAccountNumber(e.target.value)} required/>
+                        <label className="sgc-label">Transaction id/TRx id</label>
+                        <input className="sgc-input" placeholder="e.g. TRX123456789" value={planAccountNumber} onChange={e=>setPlanAccountNumber(e.target.value)} required/>
                       </>
                     ) : (
                       <>

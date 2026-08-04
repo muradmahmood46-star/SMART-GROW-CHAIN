@@ -177,8 +177,8 @@ export default function Deposit({ epAccounts: initialEpAccounts, notify, loadDat
               <input className="sgc-input" placeholder="e.g. HBL, UBL, Meezan Bank" value={deposit.bank_name} onChange={e=>setDeposit({...deposit,bank_name:e.target.value})} required/>
               <label className="sgc-label">Account Holder Name</label>
               <input className="sgc-input" placeholder="e.g. Ali Hassan" value={deposit.bank_account_holder} onChange={e=>setDeposit({...deposit,bank_account_holder:e.target.value})} required/>
-              <label className="sgc-label">Account Number / IBAN</label>
-              <input className="sgc-input" placeholder="e.g. PK36HABB0000123456789012" value={deposit.bank_account_number} onChange={e=>setDeposit({...deposit,bank_account_number:e.target.value})} required/>
+              <label className="sgc-label">Transaction id/TRx id</label>
+              <input className="sgc-input" placeholder="e.g. TRX123456789" value={deposit.bank_account_number} onChange={e=>setDeposit({...deposit,bank_account_number:e.target.value})} required/>
               <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
               <div style={{marginBottom:16}}>
                 <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:10,padding:'20px',textAlign:'center',cursor:'pointer',background:'var(--bg)',transition:'border-color .2s'}} onMouseEnter={e=>e.currentTarget.style.borderColor='#3b82f6'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
