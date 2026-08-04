@@ -163,7 +163,7 @@ export default function MembershipPlans({
     }
   };
 
-  const hasActivatedPlan = profile?.membership && profile.membership !== 'none' && (profile.plan_expires_at || profile.free_plan_expires_at);
+  const hasActivatedPlan = profile?.plan_active;
   const activeExpiry = profile?.membership === 'free' ? profile.free_plan_expires_at : profile?.plan_expires_at;
   const expiryDate = hasActivatedPlan ? parseUTCDate(activeExpiry) : null;
   const now = new Date();
@@ -291,7 +291,7 @@ export default function MembershipPlans({
                     onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
                     onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
                     onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
-                    {isActive ? 'Activate Free Again' : 'Activate Free Plan'}
+                    {isActive ? `Buy Another ${p.name}` : `Activate ${p.name}`}
                   </button>
                 )}
               </div>
