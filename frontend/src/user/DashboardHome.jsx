@@ -69,12 +69,19 @@ export default function DashboardHome({
           ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777','🎁',false],
           ['Membership',profile.plan_active ? profile.membership.toUpperCase() : 'EXPIRED',profile.plan_active ? '#d97706' : '#ef4444','🏆',false],
         ].map(([l,v,c,icon,growth],i)=>(
-          <div key={i} className="sgc-stat-card sgc-dashboard-stat-card" style={{borderLeftColor:c,'--stat-color':c}}>
+          <div key={i} className="sgc-stat-card sgc-dashboard-stat-card" 
+               style={{borderLeftColor:c,'--stat-color':c, cursor: l === 'Membership' ? 'pointer' : 'default'}}
+               onClick={() => { if (l === 'Membership') setTab('plans'); }}>
             <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
               <span style={{fontSize:16,background:`${c}18`,borderRadius:8,padding:'3px 6px'}}>{icon}</span>
               <div className="sgc-stat-label" style={{margin:0}}>{l}</div>
             </div>
-            <div className="sgc-stat-val" style={{color:c}}>{v}</div>
+            <div className="sgc-stat-val" style={{
+              color:c,
+              whiteSpace: l === 'Membership' ? 'nowrap' : 'normal',
+              overflow: l === 'Membership' ? 'hidden' : 'visible',
+              textOverflow: l === 'Membership' ? 'ellipsis' : 'clip'
+            }} title={l === 'Membership' ? v : undefined}>{v}</div>
             {growth && <span className="sgc-growth-badge">📈</span>}
           </div>
         ))}
