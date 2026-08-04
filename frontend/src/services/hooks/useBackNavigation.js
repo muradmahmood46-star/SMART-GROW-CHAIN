@@ -71,7 +71,7 @@ export default function useBackNavigation({
    * Uses refs internally so it always has the latest values.
    * @param {boolean} [fromPopstate=false] - true when called from popstate event
    */
-  const handleBack = useCallback(
+    const handleBack = useCallback(
     (fromPopstate = false) => {
       // Prevent rapid double-back
       if (processingRef.current) return;
@@ -85,64 +85,36 @@ export default function useBackNavigation({
       const currentSetTab = setTabRef.current;
       const currentSetSidebarOpen = setSidebarOpenRef.current;
       const currentSetSidebarCollapsed = setSidebarCollapsedRef.current;
-      const currentNavigate = navigateRef.current;
-      const currentIsAdmin = isAdminRef.current;
-      const mobile = window.innerWidth <= 768;
 
+      // Always close sidebar if open
       if (currentSidebarOpen) {
-        // Sidebar overlay is open → Dashboard
-        if (mobile) {
-          currentSetSidebarOpen(false);
-          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
-        } else {
-          // Desktop: just close the overlay (sidebar stays in normal position)
-          currentSetSidebarOpen(false);
-        }
-        currentSetTab('dashboard');
-        return;
+        currentSetSidebarOpen(false);
+        if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(true);
       }
 
+      // If on an internal page, always go back to dashboard
       if (currentIsInternal) {
-        // Internal page
-        if (mobile) {
-          currentSetSidebarOpen(true);
-          if (currentSetSidebarCollapsed) currentSetSidebarCollapsed(false);
-        } else {
-          // On PC, sidebar is always visible, so pressing back goes to Dashboard
-          currentSetTab('dashboard');
-        }
-        return;
+        currentSetTab('dashboard');
       }
-
-      // Dashboard → Login
-      currentNavigate(currentIsAdmin ? '/admin-login' : '/login', fromPopstate ? { replace: true } : undefined);
+      
+      // If already on dashboard and sidebar closed, do nothing (stay on dashboard)
     },
-    [] // No deps needed – all values come from refs
+    [] 
   );
 
-  // ── Popstate handler (browser back + hardware back) ──
-  // Only mounted once – always reads latest values from refs
   useEffect(() => {
+    // Ensure there is a history state to pop so we don't accidentally exit on first back press
+    window.history.pushState({ sgcInit: true }, '', window.location.href);
+
     const onPop = (e) => {
-      const currentSidebarOpen = sidebarOpenRef.current;
-      const currentTab = tabRef.current;
-
-      // Capture whether we're about to navigate away BEFORE handleBack changes state
-      const goingToLogin = !currentSidebarOpen && currentTab === 'dashboard';
-
       handleBack(true);
-
-      if (!goingToLogin) {
-        // Keep the history stack balanced when staying on the same URL
-        window.history.pushState({}, '', window.location.href);
-      }
-      // If goingToLogin is true, navigate('/login', { replace: true }) handles history
-      // and the component will unmount, cleaning up this listener
+      // Always push state again so the user never exits the app via hardware back button
+      window.history.pushState({ sgcStay: true }, '', window.location.href);
     };
 
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, []); // Empty deps – refs always have latest values
+  }, []);
 
   return { handleBack };
 }
