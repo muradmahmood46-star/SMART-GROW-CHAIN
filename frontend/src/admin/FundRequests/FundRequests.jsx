@@ -22,7 +22,8 @@ export default function FundRequests({ notify, loadData }) {
       if (minDepSetting) setMinDeposit(parseInt(minDepSetting.value) || 100);
     } catch (err) {
       console.error(err);
-      if (notify) notify('Failed to fetch deposits', 'error');
+      // Removed to prevent annoying iPhone popup since data loads fine
+      // if (notify) notify('Failed to fetch deposits', 'error');
     } finally {
       setLoading(false);
     }
