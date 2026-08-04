@@ -63,7 +63,7 @@ export default function DashboardHome({
       </div>
       <div className="sgc-stats sgc-dashboard-stats">
         {[
-          ['Ads Available', availableAds > 10 ? '10+' : availableAds, '#7c3aed', '📺', false],
+          ['Ads Available', availableAds, '#7c3aed', '📺', false],
           ['Total Clicks',earnings?.filter(e=>e.type==='click').length||0,'#0891b2','👆',false],
           ['Referrals',referrals?.total_referrals||0,'#059669','👥',false],
           ['Referral Bonus',`Rs. ${(refBonus?.total_bonus||0).toFixed(2)}`,'#db2777','🎁',false],

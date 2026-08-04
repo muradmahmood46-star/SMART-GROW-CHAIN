@@ -154,9 +154,7 @@ export default function Advertisement({
     <div>
       <div className="sgc-page-header">
         <h2 className="sgc-heading">📺 Advertisement</h2>
-        <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>
-          {availableAds > 10 ? '10+' : availableAds} available today
-        </span>
+        <span style={{color:'var(--dim)',fontSize:13,background:'var(--card)',padding:'4px 12px',borderRadius:20,border:'1px solid var(--border)'}}>{availableAds} available today</span>
       </div>
       {siteSettings?.ad_section_message?.trim() && (
         <div style={{background:'linear-gradient(135deg,#1c1000,#451a03)',border:'1px solid #f59e0b',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',gap:10,alignItems:'flex-start'}}>
