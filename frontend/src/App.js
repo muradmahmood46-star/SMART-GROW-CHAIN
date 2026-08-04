@@ -22,17 +22,22 @@ function AdminRoute({ children }) {
   return children;
 }
 
-function HomeRoute() {
-  return <Landing />;
+function PublicRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  if (token) {
+    return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+  }
+  return children;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomeRoute />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
         {/* Redirect old routes */}
