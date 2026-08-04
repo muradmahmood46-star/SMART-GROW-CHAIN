@@ -32,9 +32,6 @@ export default function AdminPanel() {
 
   const setTab = useCallback((newTab) => {
     if (newTab === tab) return;
-    if (newTab !== 'dashboard') {
-      window.history.pushState({ sgcAdminTab: newTab }, '', window.location.href);
-    }
     _setTab(newTab);
   }, [tab]);
 
