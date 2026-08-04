@@ -176,7 +176,7 @@ export default function Advertisement({
         </div>
       )}
       <div className="sgc-ads-grid">
-        {ads.filter(a=>!a.already_clicked).map((ad,i)=>(
+        {ads.filter(a=>!a.already_clicked).slice(0, 10).map((ad,i)=>(
           <div key={ad.id} className="sgc-ad-card" style={{
             animationDelay:`${i*.05}s`,
             border: ad.is_own_ad ? '2px solid #f59e0b' : ad.is_sponsored ? '2px solid #eab308' : '1px solid var(--border)',
