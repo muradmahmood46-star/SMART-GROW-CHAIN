@@ -26,6 +26,7 @@ class UserOut(BaseModel):
     kyc_status: str
     created_at: datetime
     plan_active: Optional[bool] = False
+    active_plans: Optional[list] = []
     class Config:
         from_attributes = True
 

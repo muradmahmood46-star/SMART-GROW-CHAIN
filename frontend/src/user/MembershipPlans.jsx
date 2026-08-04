@@ -180,51 +180,68 @@ export default function MembershipPlans({
       <h2 className="sgc-heading">🏆 Membership Plans</h2>
       <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{hasActivatedPlan ? profile.membership : 'No Active Plan'}</span></p>
 
-      {/* Current Plan Info Card */}
-      <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px',marginBottom:16,maxWidth:480}}>
-        <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>CURRENT PLAN</p>
+      {/* Current Plan Info Cards */}
+      <div style={{display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 16, maxWidth: 480}}>
         {!hasActivatedPlan ? (
-          <div>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-              <p style={{color:'var(--yellow)',fontSize:20,fontWeight:800,margin:0}}>No Active Plan</p>
-              <span style={{background:'#334155',color:'var(--muted)',padding:'4px 14px',borderRadius:20,fontSize:11,fontWeight:700}}>NO PLAN</span>
+          <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px'}}>
+            <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>CURRENT PLAN</p>
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                <p style={{color:'var(--yellow)',fontSize:20,fontWeight:800,margin:0}}>No Active Plan</p>
+                <span style={{background:'#334155',color:'var(--muted)',padding:'4px 14px',borderRadius:20,fontSize:11,fontWeight:700}}>NO PLAN</span>
+              </div>
+              <p style={{color:'var(--dim)',fontSize:13,margin:0,lineHeight:1.6}}>You currently do not have an active membership plan. Please select and activate a plan below to start earning.</p>
             </div>
-            <p style={{color:'var(--dim)',fontSize:13,margin:0,lineHeight:1.6}}>You currently do not have an active membership plan. Please select and activate a plan below to start earning.</p>
           </div>
         ) : (
-          <>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,marginBottom:expiryDate?14:0}}>
-              <div>
-                <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0,textTransform:'capitalize'}}>🏆 {profile.membership}</p>
-                {expiryDate && (
-                  <p style={{color:isExpired?'var(--red)':'var(--green)',fontSize:12,margin:'4px 0 0',fontWeight:600}}>
-                    {isExpired?'Expired on':'Expires'}: <b>{expiryDate.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</b>
-                  </p>
+          profile?.active_plans?.map((activePlan, idx) => {
+            const expDate = activePlan.expires_at ? parseUTCDate(activePlan.expires_at) : null;
+            const isExp = expDate ? now > expDate : false;
+            let d = 0, h = 0, m = 0, s = 0;
+            if (expDate && !isExp) {
+              const diff = expDate - now;
+              d = Math.floor(diff / (1000 * 60 * 60 * 24));
+              h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+              m = Math.floor((diff / 1000 / 60) % 60);
+              s = Math.floor((diff / 1000) % 60);
+            }
+            return (
+              <div key={idx} style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:14,padding:'18px 20px'}}>
+                <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 10px'}}>CURRENT PLAN {profile.active_plans.length > 1 ? `#${idx + 1}` : ''}</p>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,marginBottom:expDate?14:0}}>
+                  <div>
+                    <p style={{color:'var(--yellow)',fontSize:22,fontWeight:800,margin:0,textTransform:'capitalize'}}>🏆 {activePlan.name}</p>
+                    {expDate && (
+                      <p style={{color:isExp?'var(--red)':'var(--green)',fontSize:12,margin:'4px 0 0',fontWeight:600}}>
+                        {isExp?'Expired on':'Expires'}: <b>{expDate.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'})}</b>
+                      </p>
+                    )}
+                  </div>
+                  <span style={{background:isExp?'#450a0a':'#064e3b',color:isExp?'#fca5a5':'#4ade80',padding:'4px 16px',borderRadius:20,fontSize:12,fontWeight:700,textTransform:'uppercase'}}>
+                    {isExp?'EXPIRED':'ACTIVE'}
+                  </span>
+                </div>
+                {expDate && !isExp && (
+                  <div style={{background:'rgba(0,0,0,.25)',borderRadius:10,padding:'12px 14px'}}>
+                    <p style={{color:'var(--dim)',fontSize:10,fontWeight:700,letterSpacing:1,margin:'0 0 8px'}}>⏱ EXPIRES IN</p>
+                    <div style={{display:'flex',gap:8}}>
+                      {[[d,'Days'],[h,'Hours'],[m,'Mins'],[s,'Secs']].map(([val,label])=>(
+                        <div key={label} style={{flex:1,background:'rgba(255,255,255,.08)',borderRadius:8,padding:'8px 4px',textAlign:'center'}}>
+                          <p style={{color:'#fff',fontSize:20,fontWeight:900,margin:0,fontFamily:'monospace'}}>{String(val).padStart(2,'0')}</p>
+                          <p style={{color:'var(--dim)',fontSize:10,margin:'2px 0 0',fontWeight:600}}>{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {isExp && (
+                  <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.3)',borderRadius:10,padding:'10px 14px',marginTop:10}}>
+                    <p style={{color:'#fca5a5',fontSize:13,margin:0,fontWeight:600}}>⚠️ Your plan has expired. Please purchase a new plan to continue earning.</p>
+                  </div>
                 )}
               </div>
-              <span style={{background:isExpired?'#450a0a':'#064e3b',color:isExpired?'#fca5a5':'#4ade80',padding:'4px 16px',borderRadius:20,fontSize:12,fontWeight:700,textTransform:'uppercase'}}>
-                {isExpired?'EXPIRED':'ACTIVE'}
-              </span>
-            </div>
-            {expiryDate && !isExpired && (
-              <div style={{background:'rgba(0,0,0,.25)',borderRadius:10,padding:'12px 14px'}}>
-                <p style={{color:'var(--dim)',fontSize:10,fontWeight:700,letterSpacing:1,margin:'0 0 8px'}}>⏱ EXPIRES IN</p>
-                <div style={{display:'flex',gap:8}}>
-                  {[[dd,'Days'],[hh,'Hours'],[mm,'Mins'],[ss,'Secs']].map(([val,label])=>(
-                    <div key={label} style={{flex:1,background:'rgba(255,255,255,.08)',borderRadius:8,padding:'8px 4px',textAlign:'center'}}>
-                      <p style={{color:'#fff',fontSize:20,fontWeight:900,margin:0,fontFamily:'monospace'}}>{String(val).padStart(2,'0')}</p>
-                      <p style={{color:'var(--dim)',fontSize:10,margin:'2px 0 0',fontWeight:600}}>{label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {isExpired && (
-              <div style={{background:'rgba(239,68,68,.1)',border:'1px solid rgba(239,68,68,.3)',borderRadius:10,padding:'10px 14px',marginTop:10}}>
-                <p style={{color:'#fca5a5',fontSize:13,margin:0,fontWeight:600}}>⚠️ Your plan has expired. Please purchase a new plan to continue earning.</p>
-              </div>
-            )}
-          </>
+            );
+          })
         )}
       </div>
 
@@ -238,7 +255,9 @@ export default function MembershipPlans({
       {!selectedPlan && (
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16,marginBottom:28}}>
           {plans.map((p,i)=>{
-            const isActive = profile?.membership?.includes(p.name);
+            const planCount = profile?.active_plans?.filter(ap => ap.name === p.name).length || 0;
+            const isActive = planCount > 0;
+            const badgeText = planCount > 1 ? `(x${planCount})` : '';
             const lowerName = (p.name || '').toLowerCase();
             let col = '#0284c7'; // default
             if (lowerName.includes('free')) col = '#eab308'; // Yellow
@@ -256,7 +275,7 @@ export default function MembershipPlans({
             const levelDetails = Object.entries(detailMap).filter(([,v])=>v).map(([k,v])=>`L${k}: ${v}`).join(' | ');
             return (
               <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isActive?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
-                {isActive&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{String.fromCharCode(10003)} Active Plan</div>}
+                {isActive&&<div style={{position:'absolute',top:-11,left:'50%',transform:'translateX(-50%)',background:col,color:'var(--bg)',padding:'2px 14px',borderRadius:20,fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{String.fromCharCode(10003)} Active Plan {badgeText}</div>}
                 <h3 style={{color:col,textTransform:'capitalize',marginBottom:4,fontSize:17}}>{p.name}</h3>
                 <p style={{color:'var(--text)',fontSize:26,fontWeight:800,marginBottom:16}}>Rs. {p.price}<span style={{fontSize:13,color:'var(--dim)',fontWeight:400}}>/{p.period_days}d</span></p>
                 <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
@@ -281,7 +300,7 @@ export default function MembershipPlans({
                     onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
                     onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
                     onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
-                    {isActive ? `Buy Another ${p.name}` : `Upgrade to ${p.name}`}
+                    {isActive ? `Buy Another ${p.name} ${badgeText}`.trim() : `Upgrade to ${p.name}`}
                   </button>
                 )}
                 {p.price===0 && (
@@ -291,7 +310,7 @@ export default function MembershipPlans({
                     onMouseLeave={(e)=>e.target.style.filter='brightness(1)'}
                     onMouseDown={(e)=>e.target.style.transform='scale(0.96)'}
                     onMouseUp={(e)=>e.target.style.transform='scale(1)'}>
-                    {isActive ? `Buy Another ${p.name}` : `Activate ${p.name}`}
+                    {isActive ? `Buy Another ${p.name} ${badgeText}`.trim() : `Activate ${p.name}`}
                   </button>
                 )}
               </div>

@@ -28,6 +28,7 @@ def get_user_active_plans(user: User, db: Session):
     total_earning_per_click = 0
     total_referral_commission = 0.0
     active_plan_names = []
+    active_plans_details = []
 
     for req in active_purchases:
         plan = db.query(MembershipPlan).filter(MembershipPlan.id == req.plan_id).first()
@@ -35,8 +36,12 @@ def get_user_active_plans(user: User, db: Session):
             total_daily_ads += (plan.daily_ads or 0)
             total_earning_per_click += (plan.earning_per_click or 0.0)
             total_referral_commission += (plan.referral_commission or 0.0)
-            if plan.name not in active_plan_names:
-                active_plan_names.append(plan.name)
+            active_plan_names.append(plan.name)
+            active_plans_details.append({
+                "id": req.id,
+                "name": plan.name,
+                "expires_at": req.expires_at.isoformat() if req.expires_at else None
+            })
 
     # Backward compatibility fallback if they have an active plan string but no tracked purchases
     has_legacy = False
@@ -50,13 +55,24 @@ def get_user_active_plans(user: User, db: Session):
                 total_earning_per_click += (plan.earning_per_click or 0.0)
                 total_referral_commission += (plan.referral_commission or 0.0)
                 active_plan_names.append(plan.name)
+                active_plans_details.append({
+                    "id": 0,
+                    "name": plan.name,
+                    "expires_at": legacy_expiry.isoformat() if legacy_expiry else None
+                })
+
+    # Count duplicates to show 'Plan (x2)'
+    from collections import Counter
+    counts = Counter(active_plan_names)
+    formatted_names = [f"{name} (x{counts[name]})" if counts[name] > 1 else name for name in counts.keys()]
 
     return {
         "active": len(active_purchases) > 0 or has_legacy,
         "daily_ads": total_daily_ads,
         "earning_per_click": total_earning_per_click,
         "referral_commission": total_referral_commission,
-        "plan_names": active_plan_names
+        "plan_names": formatted_names,
+        "active_plans": active_plans_details
     }
 
 def has_active_plan(user: User, db: Session = None) -> bool:
@@ -127,6 +143,7 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
         db.commit()
     active_data = get_user_active_plans(current_user, db)
     current_user.plan_active = active_data["active"]
+    current_user.active_plans = active_data["active_plans"]
     if active_data["plan_names"]:
         current_user.membership = " + ".join(active_data["plan_names"])
     elif current_user.plan_active:
