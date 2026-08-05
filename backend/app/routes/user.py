@@ -144,6 +144,17 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
     active_data = get_user_active_plans(current_user, db)
     current_user.plan_active = active_data["active"]
     current_user.active_plans = active_data["active_plans"]
+    current_user.daily_ads = active_data.get("daily_ads", 0)
+
+    # Count how many ads watched today
+    from datetime import date
+    today = date.today()
+    ads_watched = db.query(Earning).filter(
+        Earning.user_id == current_user.id,
+        Earning.type == "click",
+        cast(Earning.clicked_at, Date) == today
+    ).count()
+    current_user.ads_watched_today = ads_watched
     if active_data["plan_names"]:
         current_user.membership = " + ".join(active_data["plan_names"])
     elif current_user.plan_active:
@@ -227,10 +238,8 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
     admin_list.sort(key=lambda x: -x["id"])
     
     # Priority Distribution Logic
-    if len(sponsored_list) >= 10:
-        final_ads = sponsored_list
-    else:
-        final_ads = sponsored_list + admin_list[:(10 - len(sponsored_list))]
+    # Sponsored ads first, followed by Admin ads. The frontend handles slicing to show only 10 on screen.
+    final_ads = sponsored_list + admin_list
 
     return {"plan_required": False, "ads": final_ads}
 
@@ -238,6 +247,20 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
 def start_click(ad_id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not has_active_plan(current_user, db):
         raise HTTPException(status_code=403, detail="Please activate a plan first.")
+        
+    active_data = get_user_active_plans(current_user, db)
+    daily_limit = active_data.get("daily_ads", 0)
+    
+    today = date.today()
+    ads_watched_today = db.query(Earning).filter(
+        Earning.user_id == current_user.id,
+        Earning.type == "click",
+        cast(Earning.clicked_at, Date) == today
+    ).count()
+
+    if daily_limit > 0 and ads_watched_today >= daily_limit:
+        raise HTTPException(status_code=400, detail="You have reached your daily ad limit. Please wait until tomorrow or upgrade your plan.")
+
     ad = db.query(Ad).filter(Ad.id == ad_id, Ad.is_active == True).first()
     if not ad:
         raise HTTPException(status_code=404, detail="Ad not found")

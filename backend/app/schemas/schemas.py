@@ -27,6 +27,8 @@ class UserOut(BaseModel):
     created_at: datetime
     plan_active: Optional[bool] = False
     active_plans: Optional[list] = []
+    daily_ads: Optional[int] = 0
+    ads_watched_today: Optional[int] = 0
     class Config:
         from_attributes = True
 
