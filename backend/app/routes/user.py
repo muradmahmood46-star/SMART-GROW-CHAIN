@@ -155,6 +155,8 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
         cast(Earning.clicked_at, Date) == today
     ).count()
     current_user.ads_watched_today = ads_watched
+    current_user.earning_per_click = active_data.get("earning_per_click", 0.0)
+    current_user.referral_commission = active_data.get("referral_commission", 0.0)
     if active_data["plan_names"]:
         current_user.membership = " + ".join(active_data["plan_names"])
     elif current_user.plan_active:

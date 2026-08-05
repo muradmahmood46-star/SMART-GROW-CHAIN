@@ -29,6 +29,8 @@ class UserOut(BaseModel):
     active_plans: Optional[list] = []
     daily_ads: Optional[int] = 0
     ads_watched_today: Optional[int] = 0
+    earning_per_click: Optional[float] = 0.0
+    referral_commission: Optional[float] = 0.0
     class Config:
         from_attributes = True
 
