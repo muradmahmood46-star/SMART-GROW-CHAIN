@@ -180,6 +180,61 @@ export default function MembershipPlans({
       <h2 className="sgc-heading">🏆 Membership Plans</h2>
       <p style={{color:'var(--dim)',fontSize:13,marginBottom:20}}>Current Plan: <span style={{color:'var(--yellow)',fontWeight:700,textTransform:'capitalize'}}>{hasActivatedPlan ? profile.membership : 'No Active Plan'}</span></p>
 
+      {/* ── TOTAL ACTIVE PLAN BENEFITS SUMMARY CARD ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #7f1d1d, #991b1b, #b91c1c)',
+        border: '1.5px solid #ef4444',
+        borderRadius: 16,
+        padding: '20px 24px',
+        marginBottom: 20,
+        maxWidth: 480,
+        boxShadow: '0 8px 28px rgba(239,68,68,0.30)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* subtle shine overlay */}
+        <div style={{position:'absolute',top:0,left:0,right:0,height:'50%',background:'linear-gradient(180deg,rgba(255,255,255,0.07),transparent)',borderRadius:'16px 16px 0 0',pointerEvents:'none'}} />
+
+        <p style={{color:'#fca5a5',fontSize:11,fontWeight:800,letterSpacing:1.2,margin:'0 0 14px',textTransform:'uppercase'}}>
+          📊 Total Active Plan Benefits
+        </p>
+
+        <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          {/* Ads / Day */}
+          <div style={{flex:'1 1 120px',background:'rgba(0,0,0,0.25)',borderRadius:12,padding:'12px 14px',textAlign:'center',border:'1px solid rgba(239,68,68,0.35)'}}>
+            <p style={{fontSize:22,margin:'0 0 2px'}}>📺</p>
+            <p style={{color:'#ffffff',fontSize:22,fontWeight:900,margin:'0 0 2px',fontFamily:'monospace'}}>
+              {hasActivatedPlan ? (profile.daily_ads || 0) : 0}
+            </p>
+            <p style={{color:'#fca5a5',fontSize:10,fontWeight:700,margin:0,letterSpacing:0.5}}>Ads / Day</p>
+          </div>
+
+          {/* Earn per Ad */}
+          <div style={{flex:'1 1 120px',background:'rgba(0,0,0,0.25)',borderRadius:12,padding:'12px 14px',textAlign:'center',border:'1px solid rgba(239,68,68,0.35)'}}>
+            <p style={{fontSize:22,margin:'0 0 2px'}}>🪙</p>
+            <p style={{color:'#ffffff',fontSize:22,fontWeight:900,margin:'0 0 2px',fontFamily:'monospace'}}>
+              {hasActivatedPlan ? (profile.earning_per_click || 0).toFixed(2) : '0.00'}
+            </p>
+            <p style={{color:'#fca5a5',fontSize:10,fontWeight:700,margin:0,letterSpacing:0.5}}>Earn per Ad (Rs.)</p>
+          </div>
+
+          {/* Referral % */}
+          <div style={{flex:'1 1 120px',background:'rgba(0,0,0,0.25)',borderRadius:12,padding:'12px 14px',textAlign:'center',border:'1px solid rgba(239,68,68,0.35)'}}>
+            <p style={{fontSize:22,margin:'0 0 2px'}}>👥</p>
+            <p style={{color:'#ffffff',fontSize:22,fontWeight:900,margin:'0 0 2px',fontFamily:'monospace'}}>
+              {hasActivatedPlan ? `${((profile.referral_commission || 0) * 100).toFixed(0)}%` : '0%'}
+            </p>
+            <p style={{color:'#fca5a5',fontSize:10,fontWeight:700,margin:0,letterSpacing:0.5}}>Referral %</p>
+          </div>
+        </div>
+
+        {!hasActivatedPlan && (
+          <p style={{color:'rgba(252,165,165,0.7)',fontSize:11,margin:'12px 0 0',fontStyle:'italic'}}>
+            Activate a plan to see your combined benefits here.
+          </p>
+        )}
+      </div>
+
       {/* Current Plan Info Cards */}
       <div style={{display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 16, maxWidth: 480}}>
         {!hasActivatedPlan ? (
