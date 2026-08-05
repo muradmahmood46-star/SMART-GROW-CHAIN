@@ -35,7 +35,7 @@ export default function CreateAd({ notify, setTab, loadData }) {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
           <div>
             <label className="sgc-label">Earning (Rs.)</label>
-            <input className="sgc-input" type="number" step="0.01" min="0.01" value={newAd.earning_amount} onChange={e=>setNewAd({...newAd,earning_amount:e.target.value})} required disabled={loading}/>
+            <input className="sgc-input" type="number" step="0.01" min="0" value={newAd.earning_amount} onChange={e=>setNewAd({...newAd,earning_amount:e.target.value})} required disabled={loading}/>
           </div>
           <div>
             <label className="sgc-label">Timer (sec)</label>

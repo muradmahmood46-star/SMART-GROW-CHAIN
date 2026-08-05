@@ -218,7 +218,7 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             "title": ad.title,
             "url": ad.url,
             "description": ad.description,
-            "earning_amount": ad.earning_amount,
+            "earning_amount": ad.earning_amount + get_user_active_plans(current_user, db)["earning_per_click"],
             "timer_seconds": ad.timer_seconds,
             "total_clicks": ad.total_clicks,
             "already_clicked": False,
