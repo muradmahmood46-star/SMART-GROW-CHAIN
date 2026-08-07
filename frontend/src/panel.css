@@ -860,8 +860,8 @@ body {
   /* This must follow the dashboard slide rule above, which otherwise restores blur(.3px). */
   .sgc-user-dashboard .sgc-hero-slide { filter:none; }
   /* A three-column grid prevents balance figures from wrapping over each other. */
-  .sgc-user-dashboard .sgc-quick-balance-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; align-items:start; }
-  .sgc-user-dashboard .sgc-quick-bal-item { min-width:0; padding:10px 6px; }
+  .sgc-user-dashboard .sgc-quick-balance-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; align-items:stretch; }
+  .sgc-user-dashboard .sgc-quick-bal-item { min-width:0; padding:10px 6px; display:flex; flex-direction:column; justify-content:center; }
   .sgc-user-dashboard .sgc-quick-bal-label { font-size:11px; line-height:1.25; overflow-wrap:anywhere; font-weight:800; color:#334155; }
   .sgc-user-dashboard .sgc-quick-bal-val { font-size:clamp(14px,4.1vw,18px); line-height:1.25; overflow-wrap:anywhere; font-weight:900; }
   .sgc-user-dashboard .sgc-quick-actions { gap:16px; }
