@@ -104,7 +104,7 @@ async def submit_ad_request(
     # Wallet campaigns are already paid, therefore go live immediately.
     if payment_method == "wallet":
         db.flush()
-        db.add(Ad(title=title.strip(), url=url.strip(), description="Sponsored campaign", earning_amount=0.5, timer_seconds=15, daily_limit=members_needed, is_active=True))
+        db.add(Ad(title=title.strip(), url=url.strip(), description="Sponsored campaign", earning_amount=0.0, timer_seconds=15, daily_limit=members_needed, is_active=True))
         for admin in db.query(User).filter(User.is_admin == True).all():
             db.add(Notification(user_id=admin.id, title="New Wallet Advertisement 📢", message=f"{current_user.username} just advertised an ad. Rs. {total_cost} was deducted from their wallet."))
     db.commit()
@@ -186,7 +186,7 @@ async def reactivate_request(
             title=req.title.strip(),
             url=req.url.strip(),
             description="Sponsored campaign",
-            earning_amount=0.5,
+            earning_amount=0.0,
             timer_seconds=15,
             daily_limit=req.members_needed,
             is_active=True
