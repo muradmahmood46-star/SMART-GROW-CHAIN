@@ -330,8 +330,8 @@ export default function Advertise({
                   <label className="sgc-label">Account Holder Name</label>
                   <input className="sgc-input" placeholder="e.g. Ali Hassan" value={reactivateAccountHolder} onChange={e=>setReactivateAccountHolder(e.target.value)} required/>
 
-                  <label className="sgc-label">Account Number / IBAN</label>
-                  <input className="sgc-input" placeholder="e.g. PK36HABB0000123456789012" value={reactivateAccountNumber} onChange={e=>setReactivateAccountNumber(e.target.value)} required/>
+                  <label className="sgc-label">transaction id / TRx id</label>
+                  <input className="sgc-input" placeholder="e.g. TRX123456789" value={reactivateAccountNumber} onChange={e=>setReactivateAccountNumber(e.target.value)} required/>
 
                   <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
                   <label style={{display:'block',border:'2px dashed var(--border)',borderRadius:12,padding:'18px',textAlign:'center',cursor:'pointer',background:'var(--bg)',marginBottom:16}}>
@@ -496,9 +496,9 @@ export default function Advertise({
                 <label className="sgc-label">Account Holder Name</label>
                 <input className="sgc-input" placeholder="e.g. Ali Hassan" value={adAccountHolder} onChange={e=>setAdAccountHolder(e.target.value)} required/>
 
-                {/* Account Number / IBAN */}
-                <label className="sgc-label">Account Number / IBAN</label>
-                <input className="sgc-input" placeholder="e.g. PK36HABB0000123456789012" value={adAccountNumber} onChange={e=>setAdAccountNumber(e.target.value)} required/>
+                {/* transaction id / TRx id */}
+                <label className="sgc-label">transaction id / TRx id</label>
+                <input className="sgc-input" placeholder="e.g. TRX123456789" value={adAccountNumber} onChange={e=>setAdAccountNumber(e.target.value)} required/>
 
                 {/* Payment Screenshot * */}
                 <label className="sgc-label">Payment Screenshot <span style={{color:'var(--red)'}}>*</span></label>
