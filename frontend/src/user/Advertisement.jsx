@@ -193,7 +193,15 @@ export default function Advertisement({
         </div>
       )}
       <div className="sgc-ads-grid">
-        {ads.filter(a=>!a.already_clicked).slice(0, 10).map((ad,i)=>(
+        {ads.filter(a=>!a.already_clicked)
+           .sort((a,b) => {
+             if (b.is_sponsored !== a.is_sponsored) return b.is_sponsored ? 1 : -1;
+             const aRemaining = (a.daily_limit || 0) - (a.total_clicks || 0);
+             const bRemaining = (b.daily_limit || 0) - (b.total_clicks || 0);
+             return bRemaining - aRemaining;
+           })
+           .slice(0, profile ? Math.max(0, profile.daily_ads - (profile.ads_watched_today || 0)) : 0)
+           .map((ad,i)=>(
           <div key={ad.id} className="sgc-ad-card" style={{
             animationDelay:`${i*.05}s`,
             border: ad.is_own_ad ? '2px solid #f59e0b' : ad.is_sponsored ? '2px solid #eab308' : '1px solid var(--border)',
