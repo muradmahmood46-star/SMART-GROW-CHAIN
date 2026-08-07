@@ -6,6 +6,11 @@ export default function Advertisements({ setTab, onCreateAd, notify, loadData })
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingAd, setEditingAd] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: '', url: '', earning_amount: 0, timer_seconds: 0, daily_limit: 0
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchAds = async () => {
     try {
@@ -43,6 +48,33 @@ export default function Advertisements({ setTab, onCreateAd, notify, loadData })
       if (notify) notify('Ad deleted');
     } catch (e) {
       if (notify) notify('Error deleting ad', 'error');
+    }
+  };
+
+  const openEditModal = (ad) => {
+    setEditingAd(ad);
+    setEditForm({
+      title: ad.title || '',
+      url: ad.url || '',
+      earning_amount: ad.earning_amount || 0,
+      timer_seconds: ad.timer_seconds || 0,
+      daily_limit: ad.daily_limit || 0
+    });
+  };
+
+  const handleUpdateAd = async (e) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    try {
+      await API.put(`/admin/ads/${editingAd.id}`, editForm);
+      if (notify) notify('Ad updated successfully ✅');
+      setEditingAd(null);
+      fetchAds();
+      if (loadData) loadData();
+    } catch (err) {
+      if (notify) notify('Failed to update ad', 'error');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -147,6 +179,9 @@ export default function Advertisements({ setTab, onCreateAd, notify, loadData })
                   </span>
                 </td>
                 <td className="sgc-td" style={{display:'flex',gap:6}}>
+                  <button className="sgc-btn-sm" style={{background:'#0c2847',color:'#38bdf8'}} onClick={()=>openEditModal(a)}>
+                    Edit
+                  </button>
                   <button className="sgc-btn-sm" style={{background:'var(--border)',color:'var(--muted)'}} onClick={()=>toggleAd(a.id)}>
                     {a.is_active ? 'Pause' : 'Activate'}
                   </button>
@@ -166,6 +201,46 @@ export default function Advertisements({ setTab, onCreateAd, notify, loadData })
           </tbody>
         </table>
       </div>
+
+      {/* EDIT AD MODAL */}
+      {editingAd && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div style={{
+            background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16,
+            padding: 24, width: '100%', maxWidth: 500,
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+          }}>
+            <h3 className="sgc-subheading" style={{marginTop: 0}}>✏️ Edit Ad</h3>
+            <form onSubmit={handleUpdateAd} className="sgc-form">
+              <label className="sgc-label">Ad Title</label>
+              <input className="sgc-input" required value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
+
+              <label className="sgc-label">Ad URL</label>
+              <input className="sgc-input" required value={editForm.url} onChange={e => setEditForm({...editForm, url: e.target.value})} />
+
+              <label className="sgc-label">Earn per Click (Rs.)</label>
+              <input className="sgc-input" type="number" step="0.001" required value={editForm.earning_amount} onChange={e => setEditForm({...editForm, earning_amount: parseFloat(e.target.value)})} />
+
+              <label className="sgc-label">Timer (Seconds)</label>
+              <input className="sgc-input" type="number" required value={editForm.timer_seconds} onChange={e => setEditForm({...editForm, timer_seconds: parseInt(e.target.value)})} />
+
+              <label className="sgc-label">Daily Click Limit</label>
+              <input className="sgc-input" type="number" required value={editForm.daily_limit} onChange={e => setEditForm({...editForm, daily_limit: parseInt(e.target.value)})} />
+
+              <div style={{display: 'flex', gap: 12, marginTop: 24}}>
+                <button type="button" onClick={() => setEditingAd(null)} className="sgc-btn-secondary" style={{flex: 1}}>Cancel</button>
+                <button type="submit" className="sgc-btn-primary" disabled={isUpdating} style={{flex: 1}}>
+                  {isUpdating ? 'Saving...' : '💾 Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
