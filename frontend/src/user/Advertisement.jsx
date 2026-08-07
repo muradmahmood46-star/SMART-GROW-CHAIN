@@ -158,16 +158,18 @@ export default function Advertisement({
       </div>
 
       {profile && profile.daily_ads > 0 && (
-        <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:16,padding:'20px 24px',marginBottom:20,display:'flex',justifyContent:'space-between',alignItems:'center',maxWidth:480}}>
-          <div>
-            <p style={{color:'var(--muted)',fontSize:11,fontWeight:700,letterSpacing:1,margin:'0 0 6px'}}>DAILY ADS LIMIT</p>
-            <h3 style={{color:'var(--yellow)',fontSize:18,fontWeight:800,margin:0}}>You can view ads</h3>
+        <div style={{background:'linear-gradient(135deg,#0d1e38,#1e3a6e)',border:'1px solid #1e4080',borderRadius:16,padding:'20px 16px',marginBottom:20,display:'flex',justifyContent:'space-between',alignItems:'center',maxWidth:540,textAlign:'center'}}>
+          <div style={{flex:1}}>
+            <p style={{color:'#38bdf8',fontSize:26,fontWeight:900,margin:0,lineHeight:1}}>{availableAds}</p>
+            <p style={{color:'var(--dim)',fontSize:11,margin:'6px 0 0',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>Total Ads</p>
           </div>
-          <div style={{textAlign:'right'}}>
-            <p style={{color:'#fff',fontSize:32,fontWeight:900,margin:0,lineHeight:1}}>
-              {Math.max(0, profile.daily_ads - (profile.ads_watched_today || 0))}
-            </p>
-            <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0',fontWeight:600}}>Ads Remaining</p>
+          <div style={{flex:1,borderLeft:'1px solid rgba(255,255,255,0.1)',borderRight:'1px solid rgba(255,255,255,0.1)'}}>
+            <p style={{color:'var(--yellow)',fontSize:26,fontWeight:900,margin:0,lineHeight:1}}>{profile.daily_ads}</p>
+            <p style={{color:'var(--muted)',fontSize:11,margin:'6px 0 0',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>Daily Limit</p>
+          </div>
+          <div style={{flex:1}}>
+            <p style={{color:'#4ade80',fontSize:26,fontWeight:900,margin:0,lineHeight:1}}>{Math.max(0, profile.daily_ads - (profile.ads_watched_today || 0))}</p>
+            <p style={{color:'var(--dim)',fontSize:11,margin:'6px 0 0',fontWeight:700,textTransform:'uppercase',letterSpacing:0.5}}>Remaining</p>
           </div>
         </div>
       )}
