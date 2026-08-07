@@ -76,7 +76,7 @@ export default function PayoutRequestSetting({ notify, loadData }) {
     try {
       const form = new FormData();
       form.append('screenshot', file);
-      await API.post(`/admin/withdrawals/${id}/mark-sent`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await API.put(`/admin/withdrawals/${id}/sent`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setPayoutScreenshots(prev => { const n = {...prev}; delete n[id]; return n; });
       fetchData();
       if (loadData) loadData();
@@ -321,6 +321,9 @@ export default function PayoutRequestSetting({ notify, loadData }) {
                   )}
                   {isApproved&&(
                     <button style={{width:'100%',padding:'10px',background:'#1e3a6e',color:'#38bdf8',border:'1px solid #1e4080',borderRadius:9,cursor:'pointer',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} onClick={()=>markSentW(w.id)}>✈️ Mark as Sent</button>
+                  )}
+                  {w.status === 'sent' && (
+                    <button style={{width:'100%',padding:'10px',background:'#064e3b',color:'#4ade80',border:'1px solid #166534',borderRadius:9,cursor:'default',fontWeight:700,fontSize:13,fontFamily:'var(--font)'}} disabled>✅ Sent Successfully</button>
                   )}
                 </div>
               </div>
