@@ -341,8 +341,8 @@ export default function MembershipPlans({
                     ['🔗',`${p.referral_levels||'N/A'} referral levels`],
                     ['⬇️',`Min Withdraw: Rs. ${p.min_withdrawal||0}`],
                     ['⬆️',`Max Withdraw: ${p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}`],
-                    ['i',levelDetails || `Send link to ${p.required_referrals_per_level||3} users for next level`],
-                  ].map(([icon,text])=>(
+                    levelDetails ? ['i', levelDetails] : null
+                  ].filter(Boolean).map(([icon,text])=>(
                     <div key={text} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--muted)'}}>
                       <span>{icon}</span><span>{text}</span>
                     </div>
