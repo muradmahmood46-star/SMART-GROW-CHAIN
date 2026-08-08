@@ -607,7 +607,9 @@ class GlobalRefSettingsUpdate(BaseModel):
     ref_deposit_bonus_percent: str
     ref_ad_bonus_enabled: str
     ref_ad_bonus_percent: str
-
+    level_1_refs_needed: Optional[str] = "3"
+    level_2_refs_needed: Optional[str] = "5"
+    level_3_refs_needed: Optional[str] = "15"
 @router.get("/referral-settings")
 def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     # Fetch from SiteSettings, setting defaults if missing
@@ -615,7 +617,8 @@ def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin
         "ref_system_enabled", "ref_reg_bonus_enabled", "ref_reg_bonus_amount",
         "ref_plan_bonus_enabled", "ref_plan_bonus_percent",
         "ref_deposit_bonus_enabled", "ref_deposit_bonus_percent",
-        "ref_ad_bonus_enabled", "ref_ad_bonus_percent"
+        "ref_ad_bonus_enabled", "ref_ad_bonus_percent",
+        "level_1_refs_needed", "level_2_refs_needed", "level_3_refs_needed"
     ]
     db_settings = {s.key: s.value for s in db.query(SiteSettings).filter(SiteSettings.key.in_(keys)).all()}
     
@@ -628,7 +631,10 @@ def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin
         "ref_deposit_bonus_enabled": "false",
         "ref_deposit_bonus_percent": "0",
         "ref_ad_bonus_enabled": "false",
-        "ref_ad_bonus_percent": "0"
+        "ref_ad_bonus_percent": "0",
+        "level_1_refs_needed": "3",
+        "level_2_refs_needed": "5",
+        "level_3_refs_needed": "15"
     }
     
     for k, v in defaults.items():
