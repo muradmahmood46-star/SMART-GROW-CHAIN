@@ -4,7 +4,7 @@ import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
 from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, TicketResponse, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest, Notification
-from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate, AdRateCreate, PayoutSettingUpdate, GlobalRefSettingsUpdate, DepositAction, PlanAction
+from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate
 from app.commission_utils import distribute_multi_level_commission
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer

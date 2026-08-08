@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.models import User, Transaction, SiteSettings
+from app.models.models import User, SiteSettings
 from datetime import datetime
 
 def distribute_multi_level_commission(db: Session, base_user: User, base_amount: float, bonus_type: str, detail_prefix: str = "Commission"):
@@ -49,14 +49,7 @@ def distribute_multi_level_commission(db: Session, base_user: User, base_amount:
                 referrer.balance += comm_amount
                 referrer.total_earned += comm_amount
                 
-                t = Transaction(
-                    user_id=referrer.id,
-                    type="deposit",
-                    amount=comm_amount,
-                    details=f"{detail_prefix} (Level {level} - from {base_user.username})",
-                    date=datetime.utcnow()
-                )
-                db.add(t)
+
                 
                 from app.models.models import Earning, Notification
                 # Find appropriate type
