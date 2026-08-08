@@ -38,13 +38,25 @@ export default function MyReferral({ referrals, referralMsg, selectedRefLevel, s
         ) : (
           <p style={{color:'var(--dim)',fontSize:12,marginTop:8}}>Earn commission from every ad click your referrals make</p>
         )}
-        <div style={{marginTop:10,background:'#0d1e38',border:'1px solid #1e4080',borderRadius:10,padding:'10px 14px'}}>
-          <p style={{color:'var(--accent)',fontSize:13,margin:0,fontWeight:700}}>
-            {referrals.next_level_message || `Send link to ${referrals.referrals_to_next_level||referrals.required_referrals_per_level||3} users to gain next level`}
-          </p>
-          <p style={{color:'var(--dim)',fontSize:11,margin:'4px 0 0'}}>
-            Current Level {referrals.current_level||1} - {referrals.total_referrals||0}/{referrals.required_referrals_per_level||3} referrals toward next level
-          </p>
+        <div style={{marginTop:16,background:'linear-gradient(135deg, #0d1e38, #1e3a6e)',border:'1px solid #38bdf8',borderRadius:12,padding:'16px 20px', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div>
+            <p style={{color:'#38bdf8',fontSize:18,margin:0,fontWeight:900,letterSpacing:0.5}}>
+              Your Current Level {referrals.current_level||1}
+            </p>
+            <p style={{color:'#e2e8f0',fontSize:13,margin:'6px 0 0',fontWeight:500}}>
+              {referrals.current_level < 4 
+                ? `🚀 ${referrals.referrals_to_next_level} referrals needed to gain next level` 
+                : "🏆 Maximum level reached! You have unlocked all network tiers."}
+            </p>
+          </div>
+          {referrals.current_level < 4 && (
+            <div style={{textAlign:'right'}}>
+              <p style={{color:'#4ade80',fontSize:24,margin:0,fontWeight:900,lineHeight:1}}>
+                {referrals.total_referrals}/{referrals.required_referrals_per_level}
+              </p>
+              <p style={{color:'var(--dim)',fontSize:11,margin:'4px 0 0',fontWeight:700,textTransform:'uppercase'}}>Progress</p>
+            </div>
+          )}
         </div>
       </div>
 
