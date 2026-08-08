@@ -4,7 +4,8 @@ import os
 from sqlalchemy import func, Date, cast
 from app.database import get_db
 from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, EasypaisaAccount, Deposit, AdminEmail, SupportTicket, TicketResponse, MembershipPlan, ReferralSetting, AdBudgetRate, UserAdRequest, SiteSettings, PlanPurchaseRequest, Notification
-from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate
+from app.schemas.schemas import AdCreate, EasypaisaAccountCreate, PlanCreate, PlanUpdate, AdRateCreate, PayoutSettingUpdate, GlobalRefSettingsUpdate, DepositAction, PlanAction
+from app.commission_utils import distribute_multi_level_commission
 from app.utils import decode_token
 from fastapi.security import OAuth2PasswordBearer
 from datetime import date, timedelta
@@ -389,22 +390,8 @@ def confirm_deposit(dep_id: int, db: Session = Depends(get_db), admin=Depends(ge
         user.balance += dep.amount_pkr
         db.add(Notification(user_id=user.id, title="Deposit Confirmed ✅", message=f"Your deposit of Rs. {dep.amount_pkr} has been credited to your balance."))
         
-        # Referral Add Fund Bonus
-        ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
-        if ref_system_enabled and ref_system_enabled.value == "true":
-            if user.referred_by:
-                referrer = db.query(User).filter(User.id == user.referred_by).first()
-                if referrer:
-                    ref_dep_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_deposit_bonus_enabled").first()
-                    if ref_dep_bonus_enabled and ref_dep_bonus_enabled.value == "true":
-                        ref_dep_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_deposit_bonus_percent").first()
-                        rate = float(ref_dep_bonus_percent.value) if ref_dep_bonus_percent and ref_dep_bonus_percent.value else 0.0
-                        if rate > 0:
-                            commission = round(dep.amount_pkr * (rate / 100), 2)
-                            referrer.balance += commission
-                            referrer.total_earned += commission
-                            db.add(Earning(user_id=referrer.id, ad_id=0, amount=commission, type="referral_deposit"))
-                            db.add(Notification(user_id=referrer.id, title="Referral Commission! 💸", message=f"You earned Rs. {commission} from {user.username}'s deposit."))
+        # Handle Deposit Bonus
+        distribute_multi_level_commission(db, user, dep.amount_pkr, 'deposit', "Deposit Bonus")
     dep.status = "confirmed"
     db.commit()
     return {"message": f"Deposit confirmed. Rs. {dep.amount_pkr} added to user balance"}
@@ -600,13 +587,21 @@ def delete_admin_email(email_id: int, db: Session = Depends(get_db), admin=Depen
 class GlobalRefSettingsUpdate(BaseModel):
     ref_system_enabled: str
     ref_reg_bonus_enabled: str
-    ref_reg_bonus_amount: str
+    ref_reg_bonus_l1: str
+    ref_reg_bonus_l2: str
+    ref_reg_bonus_l3: str
     ref_plan_bonus_enabled: str
-    ref_plan_bonus_percent: str
+    ref_plan_bonus_l1: str
+    ref_plan_bonus_l2: str
+    ref_plan_bonus_l3: str
     ref_deposit_bonus_enabled: str
-    ref_deposit_bonus_percent: str
+    ref_deposit_bonus_l1: str
+    ref_deposit_bonus_l2: str
+    ref_deposit_bonus_l3: str
     ref_ad_bonus_enabled: str
-    ref_ad_bonus_percent: str
+    ref_ad_bonus_l1: str
+    ref_ad_bonus_l2: str
+    ref_ad_bonus_l3: str
     level_1_refs_needed: Optional[str] = "3"
     level_2_refs_needed: Optional[str] = "5"
     level_3_refs_needed: Optional[str] = "15"
@@ -614,10 +609,11 @@ class GlobalRefSettingsUpdate(BaseModel):
 def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin_user)):
     # Fetch from SiteSettings, setting defaults if missing
     keys = [
-        "ref_system_enabled", "ref_reg_bonus_enabled", "ref_reg_bonus_amount",
-        "ref_plan_bonus_enabled", "ref_plan_bonus_percent",
-        "ref_deposit_bonus_enabled", "ref_deposit_bonus_percent",
-        "ref_ad_bonus_enabled", "ref_ad_bonus_percent",
+        "ref_system_enabled", "ref_reg_bonus_enabled", 
+        "ref_reg_bonus_l1", "ref_reg_bonus_l2", "ref_reg_bonus_l3",
+        "ref_plan_bonus_enabled", "ref_plan_bonus_l1", "ref_plan_bonus_l2", "ref_plan_bonus_l3",
+        "ref_deposit_bonus_enabled", "ref_deposit_bonus_l1", "ref_deposit_bonus_l2", "ref_deposit_bonus_l3",
+        "ref_ad_bonus_enabled", "ref_ad_bonus_l1", "ref_ad_bonus_l2", "ref_ad_bonus_l3",
         "level_1_refs_needed", "level_2_refs_needed", "level_3_refs_needed"
     ]
     db_settings = {s.key: s.value for s in db.query(SiteSettings).filter(SiteSettings.key.in_(keys)).all()}
@@ -625,13 +621,21 @@ def get_referral_settings(db: Session = Depends(get_db), admin=Depends(get_admin
     defaults = {
         "ref_system_enabled": "false",
         "ref_reg_bonus_enabled": "false",
-        "ref_reg_bonus_amount": "0",
+        "ref_reg_bonus_l1": "0",
+        "ref_reg_bonus_l2": "0",
+        "ref_reg_bonus_l3": "0",
         "ref_plan_bonus_enabled": "false",
-        "ref_plan_bonus_percent": "0",
+        "ref_plan_bonus_l1": "0",
+        "ref_plan_bonus_l2": "0",
+        "ref_plan_bonus_l3": "0",
         "ref_deposit_bonus_enabled": "false",
-        "ref_deposit_bonus_percent": "0",
+        "ref_deposit_bonus_l1": "0",
+        "ref_deposit_bonus_l2": "0",
+        "ref_deposit_bonus_l3": "0",
         "ref_ad_bonus_enabled": "false",
-        "ref_ad_bonus_percent": "0",
+        "ref_ad_bonus_l1": "0",
+        "ref_ad_bonus_l2": "0",
+        "ref_ad_bonus_l3": "0",
         "level_1_refs_needed": "3",
         "level_2_refs_needed": "5",
         "level_3_refs_needed": "15"
@@ -890,22 +894,8 @@ def approve_plan_purchase(req_id: int, data: PlanPurchaseAction, db: Session = D
         # notify user
         db.add(Notification(user_id=user.id, title="Plan Activated ✅", message=f"Your {req.plan_name} plan has been activated successfully."))
         
-        # Referral Plan Purchase Bonus
-        ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
-        if ref_system_enabled and ref_system_enabled.value == "true":
-            if user.referred_by:
-                referrer = db.query(User).filter(User.id == user.referred_by).first()
-                if referrer:
-                    ref_plan_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_plan_bonus_enabled").first()
-                    if ref_plan_bonus_enabled and ref_plan_bonus_enabled.value == "true":
-                        ref_plan_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_plan_bonus_percent").first()
-                        rate = float(ref_plan_bonus_percent.value) if ref_plan_bonus_percent and ref_plan_bonus_percent.value else 0.0
-                        if rate > 0:
-                            commission = round(req.plan_price * (rate / 100), 2)
-                            referrer.balance += commission
-                            referrer.total_earned += commission
-                            db.add(Earning(user_id=referrer.id, ad_id=0, amount=commission, type="referral_plan"))
-                            db.add(Notification(user_id=referrer.id, title="Referral Commission! 💸", message=f"You earned Rs. {commission} from {user.username}'s plan purchase."))
+        # Handle Plan Purchase Bonus
+        distribute_multi_level_commission(db, user, req.plan_price, 'plan', "Plan Purchase Bonus")
     req.status = "approved"
     req.admin_note = data.admin_note
     db.commit()

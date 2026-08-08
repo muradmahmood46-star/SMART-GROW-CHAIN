@@ -133,10 +133,10 @@ export default function Landing() {
                   {p.price > 0 && <span style={{ fontSize: 13, color: '#64748b', fontWeight: 400 }}>/{p.period_days}d</span>}
                 </h2>
                 {[
-                  `${p.daily_ads} ads/day`,
-                  `Rs. ${p.earning_per_click} per click`,
-                  `👥 ${p.referral_commission > 0 ? `Rs. ${p.referral_commission}` : 'Global'} ref. commission`,
-                  `⬇️ Min Withdraw: Rs. ${p.min_withdrawal||0}`,
+                  `👁️ ${p.daily_ads} Ads Daily`,
+                  `💰 Rs. ${p.earning_per_click} Per Click`,
+                  `📅 ${p.period_days} Days Validity`,
+                  `🎁 Exclusive Member Benefits`,
                 ].map(f => <p key={f} style={s.planFeature}>✓ {f}</p>)}
                 <Link to="/register" style={{ ...s.planBtn, background: isPopular ? col : 'transparent', color: isPopular ? '#0f172a' : col, border: `1px solid ${col}` }}>
                   Get Started

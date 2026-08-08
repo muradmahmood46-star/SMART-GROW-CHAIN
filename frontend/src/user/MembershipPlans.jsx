@@ -217,15 +217,6 @@ export default function MembershipPlans({
             </p>
             <p style={{color:'#fca5a5',fontSize:10,fontWeight:700,margin:0,letterSpacing:0.5}}>Earn per Ad (Rs.)</p>
           </div>
-
-          {/* Referral % */}
-          <div style={{flex:'1 1 120px',background:'rgba(0,0,0,0.25)',borderRadius:12,padding:'12px 14px',textAlign:'center',border:'1px solid rgba(239,68,68,0.35)'}}>
-            <p style={{fontSize:22,margin:'0 0 2px'}}>👥</p>
-            <p style={{color:'#ffffff',fontSize:22,fontWeight:900,margin:'0 0 2px',fontFamily:'monospace'}}>
-              {hasActivatedPlan ? `${((profile.referral_commission || 0) * 100).toFixed(0)}%` : '0%'}
-            </p>
-            <p style={{color:'#fca5a5',fontSize:10,fontWeight:700,margin:0,letterSpacing:0.5}}>Referral %</p>
-          </div>
         </div>
 
         {!hasActivatedPlan && (
@@ -324,9 +315,6 @@ export default function MembershipPlans({
             let detailMap={};
             try{ lvlMap=JSON.parse(p.level_commissions||'{}'); }catch{}
             try{ detailMap=JSON.parse(p.level_details||'{}'); }catch{}
-            const refDisplay = Object.keys(lvlMap).length>0
-              ? Object.entries(lvlMap).map(([k,v])=>`L${k}:${v}%`).join(', ')
-              : `${(p.referral_commission*100).toFixed(0)}%`;
             const levelDetails = Object.entries(detailMap).filter(([,v])=>v).map(([k,v])=>`L${k}: ${v}`).join(' | ');
             return (
               <div key={p.id} style={{background:'var(--card)',border:`2px solid ${isActive?col:'var(--border)'}`,borderRadius:16,padding:24,position:'relative',transition:'transform .2s'}}>
@@ -337,7 +325,6 @@ export default function MembershipPlans({
                   {[
                     ['📺',`${p.daily_ads} ads/day`],
                     ['💰',`Rs. ${p.earning_per_click} per click`],
-                    ['👥',`${refDisplay} referral commission`],
                     ['⬇️',`Min Withdraw: Rs. ${p.min_withdrawal||0}`],
                     ['⬆️',`Max Withdraw: ${p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}`],
                     levelDetails ? ['i', levelDetails] : null

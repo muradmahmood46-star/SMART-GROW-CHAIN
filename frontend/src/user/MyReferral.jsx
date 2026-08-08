@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import API from '../api';
 
 import { parseUTCDate } from '../utils/dateUtils';
 
 export default function MyReferral({ referrals, referralMsg, selectedRefLevel, setSelectedRefLevel, refLevelData, setRefLevelData, refLevelLoading, setRefLevelLoading, loadRefLevel, notify }) {
+  const [sysSettings, setSysSettings] = useState(null);
+  useEffect(() => {
+    API.get('/user/settings').then(res => setSysSettings(res.data)).catch(e => console.error(e));
+  }, []);
+
   return (
     <div>
       <h2 className="sgc-heading">👥 My Referral</h2>
@@ -80,6 +86,59 @@ export default function MyReferral({ referrals, referralMsg, selectedRefLevel, s
           </div>
         ))}
       </div>
+
+      {/* Commission Matrix */}
+      {sysSettings && sysSettings.ref_system_enabled === 'true' && (
+        <div style={{marginBottom:24}}>
+          <h3 className="sgc-subheading" style={{marginBottom:14}}>💰 Network Commission Rates</h3>
+          <div style={{background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden'}}>
+            <table className="sgc-table">
+              <thead>
+                <tr>
+                  <th className="sgc-th" style={{textAlign:'left'}}>Bonus Type</th>
+                  <th className="sgc-th">Level 1</th>
+                  <th className="sgc-th">Level 2</th>
+                  <th className="sgc-th">Level 3</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sysSettings.ref_reg_bonus_enabled === 'true' && (
+                  <tr className="sgc-tr">
+                    <td className="sgc-td" style={{color:'var(--text)', fontWeight:600}}>🎁 Registration Bonus</td>
+                    <td className="sgc-td" style={{color:'var(--accent)'}}>Rs. {sysSettings.ref_reg_bonus_l1 || 0}</td>
+                    <td className="sgc-td" style={{color:'var(--yellow)'}}>Rs. {sysSettings.ref_reg_bonus_l2 || 0}</td>
+                    <td className="sgc-td" style={{color:'var(--purple)'}}>Rs. {sysSettings.ref_reg_bonus_l3 || 0}</td>
+                  </tr>
+                )}
+                {sysSettings.ref_plan_bonus_enabled === 'true' && (
+                  <tr className="sgc-tr">
+                    <td className="sgc-td" style={{color:'var(--text)', fontWeight:600}}>💳 Plan Purchase Bonus</td>
+                    <td className="sgc-td" style={{color:'var(--accent)'}}>{sysSettings.ref_plan_bonus_l1 || 0}%</td>
+                    <td className="sgc-td" style={{color:'var(--yellow)'}}>{sysSettings.ref_plan_bonus_l2 || 0}%</td>
+                    <td className="sgc-td" style={{color:'var(--purple)'}}>{sysSettings.ref_plan_bonus_l3 || 0}%</td>
+                  </tr>
+                )}
+                {sysSettings.ref_deposit_bonus_enabled === 'true' && (
+                  <tr className="sgc-tr">
+                    <td className="sgc-td" style={{color:'var(--text)', fontWeight:600}}>💰 Deposit Bonus</td>
+                    <td className="sgc-td" style={{color:'var(--accent)'}}>{sysSettings.ref_deposit_bonus_l1 || 0}%</td>
+                    <td className="sgc-td" style={{color:'var(--yellow)'}}>{sysSettings.ref_deposit_bonus_l2 || 0}%</td>
+                    <td className="sgc-td" style={{color:'var(--purple)'}}>{sysSettings.ref_deposit_bonus_l3 || 0}%</td>
+                  </tr>
+                )}
+                {sysSettings.ref_ad_bonus_enabled === 'true' && (
+                  <tr className="sgc-tr">
+                    <td className="sgc-td" style={{color:'var(--text)', fontWeight:600}}>📺 Ad View Bonus</td>
+                    <td className="sgc-td" style={{color:'var(--accent)'}}>{sysSettings.ref_ad_bonus_l1 || 0}%</td>
+                    <td className="sgc-td" style={{color:'var(--yellow)'}}>{sysSettings.ref_ad_bonus_l2 || 0}%</td>
+                    <td className="sgc-td" style={{color:'var(--purple)'}}>{sysSettings.ref_ad_bonus_l3 || 0}%</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Level Member List */}
       {selectedRefLevel && (

@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.models import User, Ad, Earning, Withdrawal, ClickLog, FundTransfer, SupportTicket, TicketResponse, MembershipPlan, UserAdRequest, SiteSettings, PlanPurchaseRequest, EasypaisaAccount, KYCRequest, Notification
 from app.schemas.schemas import WithdrawalCreate, UserOut
 from app.utils import decode_token, hash_password, verify_password
+from app.commission_utils import distribute_multi_level_commission
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import Optional
@@ -351,27 +352,9 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
         active_req.members_reached = (active_req.members_reached or 0) + 1
         if active_req.members_reached >= active_req.members_needed:
             active_req.status = "completed"
-    # Check if referral system is enabled globally
-    ref_system_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_system_enabled").first()
-    if ref_system_enabled and ref_system_enabled.value == "true":
-        if current_user.referred_by:
-            referrer = db.query(User).filter(User.id == current_user.referred_by).first()
-            if referrer:
-                # Check Ad View Bonus
-                ref_ad_bonus_enabled = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_enabled").first()
-                if ref_ad_bonus_enabled and ref_ad_bonus_enabled.value == "true":
-                    # We use the referrer's dynamic referral commission if possible, or fallback to site setting
-                    referrer_data = get_user_active_plans(referrer, db)
-                    rate = referrer_data["referral_commission"]
-                    if rate == 0:
-                        ref_ad_bonus_percent = db.query(SiteSettings).filter(SiteSettings.key == "ref_ad_bonus_percent").first()
-                        rate = float(ref_ad_bonus_percent.value) if ref_ad_bonus_percent and ref_ad_bonus_percent.value else 0.0
-                    
-                    if rate > 0:
-                        commission = round(total_earning * (rate / 100), 6)
-                        referrer.balance += commission
-                        referrer.total_earned += commission
-                        db.add(Earning(user_id=referrer.id, ad_id=ad_id, amount=commission, type="referral_ad_view"))
+    # Handle Ad View Bonus
+    distribute_multi_level_commission(db, current_user, total_earning, 'ad', "Ad View Bonus")
+    
     db.commit()
     return {"message": "Earning credited", "amount": total_earning, "new_balance": current_user.balance}
 
@@ -847,6 +830,9 @@ async def purchase_plan(
                 title="Plan Activated 🏆",
                 message=f"{current_user.username} activated {plan.name}."
             ))
+            
+        # Handle Plan Purchase Bonus
+        distribute_multi_level_commission(db, current_user, plan.price, 'plan', "Plan Purchase Bonus")
         
         db.commit()
         db.refresh(current_user)

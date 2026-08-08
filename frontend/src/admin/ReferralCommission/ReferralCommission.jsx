@@ -50,6 +50,30 @@ export default function ReferralCommission({ notify }) {
     </div>
   );
 
+  const renderLevels = (keyPrefix, symbol, suffix) => (
+    <div style={{display:'flex', gap: 24, marginTop: 16, flexWrap:'wrap', background:'rgba(255,255,255,0.02)', padding:16, borderRadius:8}}>
+      <div style={{display:'flex', alignItems:'center', gap: 8}}>
+        <span style={{color:'var(--text)', fontSize: 14, fontWeight:600}}>Level 1:</span>
+        <input type="number" min="0" step="any" className="sgc-input" style={{width: 80, margin: 0, padding: '6px 10px'}} 
+          value={settings[`${keyPrefix}_l1`] || ''} onChange={e=>handleChange(`${keyPrefix}_l1`, e.target.value)} />
+        <span style={{color:'var(--dim)', fontSize: 14, fontWeight:600}}>{symbol}</span>
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap: 8}}>
+        <span style={{color:'var(--text)', fontSize: 14, fontWeight:600}}>Level 2:</span>
+        <input type="number" min="0" step="any" className="sgc-input" style={{width: 80, margin: 0, padding: '6px 10px'}} 
+          value={settings[`${keyPrefix}_l2`] || ''} onChange={e=>handleChange(`${keyPrefix}_l2`, e.target.value)} />
+        <span style={{color:'var(--dim)', fontSize: 14, fontWeight:600}}>{symbol}</span>
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap: 8}}>
+        <span style={{color:'var(--text)', fontSize: 14, fontWeight:600}}>Level 3:</span>
+        <input type="number" min="0" step="any" className="sgc-input" style={{width: 80, margin: 0, padding: '6px 10px'}} 
+          value={settings[`${keyPrefix}_l3`] || ''} onChange={e=>handleChange(`${keyPrefix}_l3`, e.target.value)} />
+        <span style={{color:'var(--dim)', fontSize: 14, fontWeight:600}}>{symbol}</span>
+      </div>
+      <div style={{width:'100%', color:'var(--dim)', fontSize:12, marginTop: -8}}>{suffix}</div>
+    </div>
+  );
+
   return (
     <div style={{maxWidth: 800}}>
       <h2 className="sgc-heading">⚙️ Global Referral System</h2>
@@ -104,77 +128,50 @@ export default function ReferralCommission({ notify }) {
 
         {/* REGISTRATION BONUS */}
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
               <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>🎁 Registration Bonus (Fixed Amount)</h4>
-              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer instantly when someone signs up using their link.</p>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer instantly when someone signs up in their network.</p>
             </div>
             <Toggle active={settings.ref_reg_bonus_enabled === 'true'} onClick={()=>handleChange('ref_reg_bonus_enabled', settings.ref_reg_bonus_enabled === 'true' ? 'false' : 'true')} />
           </div>
-          {settings.ref_reg_bonus_enabled === 'true' && (
-            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
-              <span style={{color:'var(--text)', fontSize: 14}}>Bonus Amount: Rs.</span>
-              <input type="number" min="0" step="1" className="sgc-input" style={{width: 120, margin: 0, padding: '8px 12px'}} 
-                value={settings.ref_reg_bonus_amount} onChange={e=>handleChange('ref_reg_bonus_amount', e.target.value)} />
-            </div>
-          )}
+          {settings.ref_reg_bonus_enabled === 'true' && renderLevels('ref_reg_bonus', 'Rs.', '')}
         </div>
 
         {/* PLAN PURCHASE BONUS */}
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
               <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>💳 Plan Purchase Bonus (Percentage)</h4>
-              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer when their direct referral successfully purchases a Membership Plan.</p>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer when someone in their network purchases a Membership Plan.</p>
             </div>
             <Toggle active={settings.ref_plan_bonus_enabled === 'true'} onClick={()=>handleChange('ref_plan_bonus_enabled', settings.ref_plan_bonus_enabled === 'true' ? 'false' : 'true')} />
           </div>
-          {settings.ref_plan_bonus_enabled === 'true' && (
-            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
-              <span style={{color:'var(--text)', fontSize: 14}}>Commission Rate:</span>
-              <input type="number" min="0" max="100" step="0.1" className="sgc-input" style={{width: 100, margin: 0, padding: '8px 12px'}} 
-                value={settings.ref_plan_bonus_percent} onChange={e=>handleChange('ref_plan_bonus_percent', e.target.value)} />
-              <span style={{color:'var(--text)', fontSize: 14}}>% of plan price</span>
-            </div>
-          )}
+          {settings.ref_plan_bonus_enabled === 'true' && renderLevels('ref_plan_bonus', '%', 'Percentage of the plan price')}
         </div>
 
         {/* DEPOSIT BONUS */}
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
               <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>💰 Add Fund (Deposit) Bonus (Percentage)</h4>
-              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer when you approve a deposit from their direct referral.</p>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer when a deposit is approved in their network.</p>
             </div>
             <Toggle active={settings.ref_deposit_bonus_enabled === 'true'} onClick={()=>handleChange('ref_deposit_bonus_enabled', settings.ref_deposit_bonus_enabled === 'true' ? 'false' : 'true')} />
           </div>
-          {settings.ref_deposit_bonus_enabled === 'true' && (
-            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
-              <span style={{color:'var(--text)', fontSize: 14}}>Commission Rate:</span>
-              <input type="number" min="0" max="100" step="0.1" className="sgc-input" style={{width: 100, margin: 0, padding: '8px 12px'}} 
-                value={settings.ref_deposit_bonus_percent} onChange={e=>handleChange('ref_deposit_bonus_percent', e.target.value)} />
-              <span style={{color:'var(--text)', fontSize: 14}}>% of deposit amount</span>
-            </div>
-          )}
+          {settings.ref_deposit_bonus_enabled === 'true' && renderLevels('ref_deposit_bonus', '%', 'Percentage of the deposit amount')}
         </div>
 
         {/* AD VIEW BONUS */}
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
               <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>📺 Advertisement View Bonus (Percentage)</h4>
-              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer every time their direct referral finishes watching an Ad.</p>
+              <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Awarded to the referrer every time someone in their network finishes watching an Ad.</p>
             </div>
             <Toggle active={settings.ref_ad_bonus_enabled === 'true'} onClick={()=>handleChange('ref_ad_bonus_enabled', settings.ref_ad_bonus_enabled === 'true' ? 'false' : 'true')} />
           </div>
-          {settings.ref_ad_bonus_enabled === 'true' && (
-            <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 10}}>
-              <span style={{color:'var(--text)', fontSize: 14}}>Commission Rate:</span>
-              <input type="number" min="0" max="100" step="0.1" className="sgc-input" style={{width: 100, margin: 0, padding: '8px 12px'}} 
-                value={settings.ref_ad_bonus_percent} onChange={e=>handleChange('ref_ad_bonus_percent', e.target.value)} />
-              <span style={{color:'var(--text)', fontSize: 14}}>% of Ad earning</span>
-            </div>
-          )}
+          {settings.ref_ad_bonus_enabled === 'true' && renderLevels('ref_ad_bonus', '%', 'Percentage of the Ad earning amount')}
         </div>
 
       </div>
