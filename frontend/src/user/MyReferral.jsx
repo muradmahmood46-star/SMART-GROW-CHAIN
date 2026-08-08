@@ -91,8 +91,8 @@ export default function MyReferral({ referrals, referralMsg, selectedRefLevel, s
       {sysSettings && sysSettings.ref_system_enabled === 'true' && (
         <div style={{marginBottom:24}}>
           <h3 className="sgc-subheading" style={{marginBottom:14}}>💰 Network Commission Rates</h3>
-          <div style={{background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden'}}>
-            <table className="sgc-table">
+          <div style={{background:'var(--card)', border:'1px solid var(--border)', borderRadius:14, overflowX:'auto'}}>
+            <table className="sgc-table" style={{minWidth: 400}}>
               <thead>
                 <tr>
                   <th className="sgc-th" style={{textAlign:'left'}}>Bonus Type</th>
