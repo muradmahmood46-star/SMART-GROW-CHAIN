@@ -67,6 +67,41 @@ export default function ReferralCommission({ notify }) {
 
       <div style={{opacity: settings.ref_system_enabled === 'true' ? 1 : 0.5, pointerEvents: settings.ref_system_enabled === 'true' ? 'auto' : 'none', transition: 'opacity 0.3s'}}>
         
+        {/* NETWORK LEVEL THRESHOLDS */}
+        <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
+          <div style={{marginBottom:16}}>
+            <h4 style={{color:'var(--text)',fontWeight:700,fontSize:15,margin:0}}>📈 Network Level Thresholds</h4>
+            <p style={{color:'var(--dim)',fontSize:12,margin:'4px 0 0'}}>Define how many total direct referrals a user needs to reach each level.</p>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap: 12}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', padding:'10px 14px', borderRadius:8}}>
+              <span style={{color:'var(--text)', fontSize: 14, fontWeight:600}}>Level 2 Requirement:</span>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <input type="number" min="1" step="1" className="sgc-input" style={{width: 80, margin: 0, padding: '6px 10px'}} 
+                  value={settings.level_1_refs_needed || ''} onChange={e=>handleChange('level_1_refs_needed', e.target.value)} />
+                <span style={{color:'var(--dim)', fontSize:12}}>referrals</span>
+              </div>
+            </div>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', padding:'10px 14px', borderRadius:8}}>
+              <span style={{color:'var(--text)', fontSize: 14, fontWeight:600}}>Level 3 Requirement:</span>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <input type="number" min="1" step="1" className="sgc-input" style={{width: 80, margin: 0, padding: '6px 10px'}} 
+                  value={settings.level_2_refs_needed || ''} onChange={e=>handleChange('level_2_refs_needed', e.target.value)} />
+                <span style={{color:'var(--dim)', fontSize:12}}>referrals</span>
+              </div>
+            </div>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', padding:'10px 14px', borderRadius:8}}>
+              <span style={{color:'var(--text)', fontSize: 14, fontWeight:600}}>Level 4 (Max) Requirement:</span>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <input type="number" min="1" step="1" className="sgc-input" style={{width: 80, margin: 0, padding: '6px 10px'}} 
+                  value={settings.level_3_refs_needed || ''} onChange={e=>handleChange('level_3_refs_needed', e.target.value)} />
+                <span style={{color:'var(--dim)', fontSize:12}}>referrals</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
         {/* REGISTRATION BONUS */}
         <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:14,padding:'20px',marginBottom:16}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>

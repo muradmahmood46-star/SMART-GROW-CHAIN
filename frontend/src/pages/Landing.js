@@ -135,8 +135,8 @@ export default function Landing() {
                 {[
                   `${p.daily_ads} ads/day`,
                   `Rs. ${p.earning_per_click} per click`,
-                  `${(p.referral_commission * 100).toFixed(0)}% referral commission`,
-                  `${p.referral_levels || 'N/A'} referral levels`,
+                  `👥 ${p.referral_commission > 0 ? `Rs. ${p.referral_commission}` : 'Global'} ref. commission`,
+                  `⬇️ Min Withdraw: Rs. ${p.min_withdrawal||0}`,
                 ].map(f => <p key={f} style={s.planFeature}>✓ {f}</p>)}
                 <Link to="/register" style={{ ...s.planBtn, background: isPopular ? col : 'transparent', color: isPopular ? '#0f172a' : col, border: `1px solid ${col}` }}>
                   Get Started

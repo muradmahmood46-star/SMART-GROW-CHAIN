@@ -338,7 +338,6 @@ export default function MembershipPlans({
                     ['📺',`${p.daily_ads} ads/day`],
                     ['💰',`Rs. ${p.earning_per_click} per click`],
                     ['👥',`${refDisplay} referral commission`],
-                    ['🔗',`${p.referral_levels||'N/A'} referral levels`],
                     ['⬇️',`Min Withdraw: Rs. ${p.min_withdrawal||0}`],
                     ['⬆️',`Max Withdraw: ${p.max_withdrawal>0?`Rs. ${p.max_withdrawal}`:'No limit'}`],
                     levelDetails ? ['i', levelDetails] : null

@@ -6,7 +6,7 @@ export default function Plans({ notify, loadData }) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editPlan, setEditPlan] = useState(null);
-  const [newPlan, setNewPlan] = useState({ name:'', price:'', period_days:'', daily_ads:'', earning_per_click:'', referral_levels:'', referral_commission:'', min_withdrawal:'' });
+  const [newPlan, setNewPlan] = useState({ name:'', price:'', period_days:'', daily_ads:'', earning_per_click:'', referral_commission:'', min_withdrawal:'' });
 
   const fetchPlans = async () => {
     try {
@@ -33,7 +33,7 @@ export default function Plans({ notify, loadData }) {
       } else {
         await API.post('/admin/plans', newPlan);
       }
-      setNewPlan({ name:'', price:'', period_days:'', daily_ads:'', earning_per_click:'', referral_levels:'', referral_commission:'', min_withdrawal:'' });
+      setNewPlan({ name:'', price:'', period_days:'', daily_ads:'', earning_per_click:'', referral_commission:'', min_withdrawal:'' });
       fetchPlans();
       if (loadData) loadData();
       if (notify) notify(editPlan ? 'Plan updated ✅' : 'Plan added ✅');
@@ -50,7 +50,6 @@ export default function Plans({ notify, loadData }) {
       period_days: plan.period_days,
       daily_ads: plan.daily_ads,
       earning_per_click: plan.earning_per_click, 
-      referral_levels: plan.referral_levels,
       referral_commission: plan.referral_commission,
       min_withdrawal: plan.min_withdrawal
     });
@@ -113,14 +112,11 @@ export default function Plans({ notify, loadData }) {
             <label className="sgc-label">Earning Per Click (Rs.)</label>
             <input className="sgc-input" type="number" step="0.01" value={newPlan.earning_per_click} onChange={e=>setNewPlan({...newPlan,earning_per_click:e.target.value})} required/>
           </div>
-          <div>
-            <label className="sgc-label">Referral Levels</label>
-            <input className="sgc-input" type="number" value={newPlan.referral_levels} onChange={e=>setNewPlan({...newPlan,referral_levels:e.target.value})} required/>
-          </div>
+          <div></div>
         </div>
         <div style={{display:'flex',gap:10}}>
           <button className="sgc-btn-yellow" type="submit">{editPlan?'Update Plan':'Add Plan'}</button>
-          {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{setEditPlan(null);setNewPlan({name:'',price:'',period_days:'',daily_ads:'',earning_per_click:'',referral_levels:'',referral_commission:'',min_withdrawal:''});}}>Cancel</button>}
+          {editPlan&&<button type="button" className="sgc-btn-sm" style={{padding:13,borderRadius:10,background:'var(--border)',color:'var(--text)'}} onClick={()=>{setEditPlan(null);setNewPlan({name:'',price:'',period_days:'',daily_ads:'',earning_per_click:'',referral_commission:'',min_withdrawal:''});}}>Cancel</button>}
         </div>
       </form>
 

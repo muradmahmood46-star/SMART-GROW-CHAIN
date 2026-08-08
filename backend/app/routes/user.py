@@ -492,11 +492,34 @@ def get_referrals(current_user: User = Depends(get_current_user), db: Session = 
             "plan_expires_at": r.plan_expires_at or r.free_plan_expires_at
         })
     active_count = sum(1 for r in ref_list if r["plan_active"] and r["is_active"])
-    plan = db.query(MembershipPlan).filter(MembershipPlan.name == current_user.membership).first()
-    required_refs = plan.required_referrals_per_level if plan and plan.required_referrals_per_level else 3
-    required_refs = max(int(required_refs), 1)
-    current_level = (len(refs) // required_refs) + 1
-    refs_to_next = required_refs - (len(refs) % required_refs)
+    l1_req = 3
+    l2_req = 5
+    l3_req = 15
+    s1 = db.query(SiteSettings).filter(SiteSettings.key == 'level_1_refs_needed').first()
+    s2 = db.query(SiteSettings).filter(SiteSettings.key == 'level_2_refs_needed').first()
+    s3 = db.query(SiteSettings).filter(SiteSettings.key == 'level_3_refs_needed').first()
+    if s1 and s1.value.isdigit(): l1_req = int(s1.value)
+    if s2 and s2.value.isdigit(): l2_req = int(s2.value)
+    if s3 and s3.value.isdigit(): l3_req = int(s3.value)
+
+    total_refs = len(refs)
+    if total_refs < l1_req:
+        current_level = 1
+        refs_to_next = l1_req - total_refs
+        req_for_current = l1_req
+    elif total_refs < l2_req:
+        current_level = 2
+        refs_to_next = l2_req - total_refs
+        req_for_current = l2_req
+    elif total_refs < l3_req:
+        current_level = 3
+        refs_to_next = l3_req - total_refs
+        req_for_current = l3_req
+    else:
+        current_level = 4
+        refs_to_next = 0
+        req_for_current = l3_req
+
     return {
         "referral_code": current_user.referral_code,
         "referral_link": f"{os.getenv('FRONTEND_URL', 'https://smart-grow-chain.vercel.app')}/register?ref={current_user.referral_code}",
@@ -504,9 +527,9 @@ def get_referrals(current_user: User = Depends(get_current_user), db: Session = 
         "active_referrals": active_count,
         "total_commission": round(total_commission, 2),
         "current_level": current_level,
-        "required_referrals_per_level": required_refs,
+        "required_referrals_per_level": req_for_current,
         "referrals_to_next_level": refs_to_next,
-        "next_level_message": f"Send link to {refs_to_next} users to gain next level",
+        "next_level_message": f"Send link to {refs_to_next} users to gain next level" if current_level < 4 else "Maximum level reached! 🎉",
         "referral_message": referral_msg_row.value if referral_msg_row and referral_msg_row.value else "",
         "referrals": ref_list
     }
