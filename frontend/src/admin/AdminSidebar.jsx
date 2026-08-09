@@ -11,6 +11,7 @@ const TABS = [
   { key:'transfers',   icon:'🔄', label:'Fund Transfers'  },
   { key:'tickets',     icon:'🎫', label:'Support Tickets' },
   { key:'plans',       icon:'🏆', label:'Plans'           },
+  { key:'reg-bonus',   icon:'🎁', label:'Registration Bonus'},
   { key:'referrals',   icon:'👥', label:'Referrals'       },
   { key:'ref-settings',icon:'⚙️', label:'Referral Commission'},
   { key:'ad-view-log', icon:'📌', label:'Ad View Log'     },

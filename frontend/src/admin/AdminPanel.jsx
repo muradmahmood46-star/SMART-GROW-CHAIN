@@ -12,6 +12,7 @@ import FundRequests from './FundRequests/FundRequests';
 import FundTransfers from './FundTransfers/FundTransfers';
 import SupportTickets from './SupportTickets/SupportTickets';
 import Plans from './Plans/Plans';
+import RegistrationBonus from './RegistrationBonus/RegistrationBonus';
 import Referrals from './Referrals/Referrals';
 import ReferralCommission from './ReferralCommission/ReferralCommission';
 import AdViewLog from './AdViewLog/AdViewLog';
@@ -90,6 +91,7 @@ export default function AdminPanel() {
             {tab === 'transfers'    && <FundTransfers notify={notify} />}
             {tab === 'tickets'      && <SupportTickets notify={notify} />}
             {tab === 'plans'        && <Plans notify={notify} />}
+            {tab === 'reg-bonus'    && <RegistrationBonus notify={notify} />}
             {tab === 'referrals'    && <Referrals notify={notify} />}
             {tab === 'ref-settings' && <ReferralCommission notify={notify} />}
             {tab === 'ad-view-log'  && <AdViewLog notify={notify} />}

@@ -87,8 +87,14 @@ def _create_user(data, db: Session):
             referred_by = referrer.id
     d = data if isinstance(data, dict) else data.dict()
     # Registration bonus
+    enabled_row = db.query(SiteSettings).filter(SiteSettings.key == "registration_bonus_enabled").first()
     bonus_row = db.query(SiteSettings).filter(SiteSettings.key == "registration_bonus").first()
-    reg_bonus = float(bonus_row.value) if bonus_row and bonus_row.value else 0.0
+    reg_bonus = 0.0
+    if enabled_row and enabled_row.value == "true" and bonus_row and bonus_row.value:
+        try:
+            reg_bonus = float(bonus_row.value)
+        except:
+            pass
     # Generate unique referral code
     import random
     ref_code = f"REF{random.randint(1000, 9999)}"
