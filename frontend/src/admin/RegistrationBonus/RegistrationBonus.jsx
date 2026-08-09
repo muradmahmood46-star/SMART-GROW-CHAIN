@@ -15,10 +15,7 @@ export default function RegistrationBonus({ notify }) {
   const fetchSettings = async () => {
     try {
       const res = await API.get('/admin/settings');
-      const settings = res.data.reduce((acc, curr) => {
-        acc[curr.key] = curr.value;
-        return acc;
-      }, {});
+      const settings = res.data;
       
       setEnabled(settings.registration_bonus_enabled === 'true');
       setAmount(parseFloat(settings.registration_bonus) || 0);
@@ -33,8 +30,8 @@ export default function RegistrationBonus({ notify }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await API.post('/admin/settings/registration_bonus_enabled', { value: enabled ? 'true' : 'false' });
-      await API.post('/admin/settings/registration_bonus', { value: amount.toString() });
+      await API.put('/admin/settings/registration_bonus_enabled', { value: enabled ? 'true' : 'false' });
+      await API.put('/admin/settings/registration_bonus', { value: amount.toString() });
       notify('Registration Bonus settings updated successfully!');
     } catch (err) {
       console.error(err);
