@@ -54,7 +54,7 @@ def distribute_multi_level_commission(db: Session, base_user: User, base_amount:
                 from app.models.models import Earning, Notification
                 # Find appropriate type
                 e_type = f"referral_{bonus_type}"
-                db.add(Earning(user_id=referrer.id, ad_id=0, amount=comm_amount, type=e_type))
+                db.add(Earning(user_id=referrer.id, ad_id=None, amount=comm_amount, type=e_type))
                 db.add(Notification(user_id=referrer.id, title=f"Referral {detail_prefix}! 💸", message=f"You earned Rs. {comm_amount:.2f} from Level {level} network ({base_user.username})."))
                 
         # Move up the tree
