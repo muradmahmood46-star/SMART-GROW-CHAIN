@@ -379,6 +379,19 @@ def request_withdrawal(data: WithdrawalCreate, current_user: User = Depends(get_
         raise HTTPException(status_code=400, detail=msg)
     if current_user.kyc_status != "approved":
         raise HTTPException(status_code=400, detail="Please complete your KYC verification first before withdrawing.")
+        
+    # Check if user has an active plan
+    now = datetime.utcnow()
+    has_active_plan = False
+    if current_user.membership and current_user.membership != "none":
+        if current_user.membership == "free":
+            has_active_plan = bool(current_user.free_plan_expires_at and current_user.free_plan_expires_at > now)
+        else:
+            has_active_plan = bool(current_user.plan_expires_at and current_user.plan_expires_at > now)
+            
+    if not has_active_plan:
+        raise HTTPException(status_code=400, detail="You must have an active membership plan to request a withdrawal.")
+
     # Get plan-based min/max withdrawal
     plan = db.query(MembershipPlan).filter(MembershipPlan.name == current_user.membership).first()
     min_w = plan.min_withdrawal if plan and plan.min_withdrawal else 500
