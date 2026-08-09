@@ -452,7 +452,7 @@ def get_all_transactions(current_user: User = Depends(get_current_user), db: Ses
 def get_referrals(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     refs = db.query(User).filter(User.referred_by == current_user.id).order_by(User.created_at.desc()).all()
     total_commission = db.query(func.sum(Earning.amount)).filter(
-        Earning.user_id == current_user.id, Earning.type == "referral"
+        Earning.user_id == current_user.id, Earning.type.like("referral%")
     ).scalar() or 0
     referral_msg_row = db.query(SiteSettings).filter(SiteSettings.key == "referral_message").first()
     now = datetime.utcnow()
@@ -565,7 +565,7 @@ def get_referrals_by_level(level: int, current_user: User = Depends(get_current_
 
 @router.get("/referral-bonus")
 def get_referral_bonus(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    bonuses = db.query(Earning).filter(Earning.user_id == current_user.id, Earning.type == "referral").order_by(Earning.clicked_at.desc()).all()
+    bonuses = db.query(Earning).filter(Earning.user_id == current_user.id, Earning.type.like("referral%")).order_by(Earning.clicked_at.desc()).all()
     total = sum(b.amount for b in bonuses)
     return {
         "total_bonus": round(total, 2),

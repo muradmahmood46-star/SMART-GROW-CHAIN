@@ -838,7 +838,7 @@ def get_all_referrals(search: Optional[str] = None, db: Session = Depends(get_db
     for u in users:
         refs = db.query(User).filter(User.referred_by == u.id).all()
         commission = db.query(func.sum(Earning.amount)).filter(
-            Earning.user_id == u.id, Earning.type == "referral"
+            Earning.user_id == u.id, Earning.type.like("referral%")
         ).scalar() or 0
         result.append({
             "id": u.id, "username": u.username, "email": u.email,
