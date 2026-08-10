@@ -48,19 +48,23 @@ def get_user_active_plans(user: User, db: Session):
                     "expires_at": legacy_expiry.isoformat() if legacy_expiry else None
                 })
 
-    is_first_plan = (len(active_purchases) == 1 and not has_legacy)
     today = date.today()
 
-    for req in active_purchases:
+    # Sort active purchases by creation date so the oldest active plan is first
+    active_purchases.sort(key=lambda x: x.created_at if x.created_at else datetime.min)
+
+    for i, req in enumerate(active_purchases):
         plan = db.query(MembershipPlan).filter(MembershipPlan.id == req.plan_id).first()
         if plan:
             # daily ads limit is max of all plans
             max_daily_ads = max(max_daily_ads, plan.daily_ads or 0)
             
             # Next-Day Rule for Earnings:
+            # The FIRST active plan (i == 0) ALWAYS applies immediately.
+            # Any additional plans (i > 0) apply only if purchased before today.
             req_date = req.created_at.date() if req.created_at else today
             
-            if req_date < today or is_first_plan:
+            if req_date < today or i == 0:
                 total_earning_per_click += (plan.earning_per_click or 0.0)
                 total_referral_commission += (plan.referral_commission or 0.0)
             
