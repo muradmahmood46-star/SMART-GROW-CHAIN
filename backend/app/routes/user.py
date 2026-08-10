@@ -25,26 +25,12 @@ def get_user_active_plans(user: User, db: Session):
         PlanPurchaseRequest.expires_at > now
     ).all()
     
-    total_daily_ads = 0
+    max_daily_ads = 0
     total_earning_per_click = 0
     total_referral_commission = 0.0
     active_plan_names = []
     active_plans_details = []
 
-    for req in active_purchases:
-        plan = db.query(MembershipPlan).filter(MembershipPlan.id == req.plan_id).first()
-        if plan:
-            total_daily_ads += (plan.daily_ads or 0)
-            total_earning_per_click += (plan.earning_per_click or 0.0)
-            total_referral_commission += (plan.referral_commission or 0.0)
-            active_plan_names.append(plan.name)
-            active_plans_details.append({
-                "id": req.id,
-                "name": plan.name,
-                "expires_at": req.expires_at.isoformat() if req.expires_at else None
-            })
-
-    # Backward compatibility fallback if they have an active plan string but no tracked purchases
     has_legacy = False
     if len(active_purchases) == 0 and user.membership and user.membership != "none":
         legacy_expiry = user.free_plan_expires_at if user.membership == "free" else user.plan_expires_at
@@ -52,7 +38,7 @@ def get_user_active_plans(user: User, db: Session):
             has_legacy = True
             plan = db.query(MembershipPlan).filter(MembershipPlan.name == user.membership).first()
             if plan:
-                total_daily_ads += (plan.daily_ads or 0)
+                max_daily_ads = max(max_daily_ads, plan.daily_ads or 0)
                 total_earning_per_click += (plan.earning_per_click or 0.0)
                 total_referral_commission += (plan.referral_commission or 0.0)
                 active_plan_names.append(plan.name)
@@ -62,6 +48,29 @@ def get_user_active_plans(user: User, db: Session):
                     "expires_at": legacy_expiry.isoformat() if legacy_expiry else None
                 })
 
+    is_first_plan = (len(active_purchases) == 1 and not has_legacy)
+    today = date.today()
+
+    for req in active_purchases:
+        plan = db.query(MembershipPlan).filter(MembershipPlan.id == req.plan_id).first()
+        if plan:
+            # daily ads limit is max of all plans
+            max_daily_ads = max(max_daily_ads, plan.daily_ads or 0)
+            
+            # Next-Day Rule for Earnings:
+            req_date = req.created_at.date() if req.created_at else today
+            
+            if req_date < today or is_first_plan:
+                total_earning_per_click += (plan.earning_per_click or 0.0)
+                total_referral_commission += (plan.referral_commission or 0.0)
+            
+            active_plan_names.append(plan.name)
+            active_plans_details.append({
+                "id": req.id,
+                "name": plan.name,
+                "expires_at": req.expires_at.isoformat() if req.expires_at else None
+            })
+
     # Count duplicates to show 'Plan (x2)'
     from collections import Counter
     counts = Counter(active_plan_names)
@@ -69,7 +78,7 @@ def get_user_active_plans(user: User, db: Session):
 
     return {
         "active": len(active_purchases) > 0 or has_legacy,
-        "daily_ads": total_daily_ads,
+        "daily_ads": max_daily_ads,
         "earning_per_click": total_earning_per_click,
         "referral_commission": total_referral_commission,
         "plan_names": formatted_names,
@@ -203,15 +212,15 @@ def get_ads(current_user: User = Depends(get_current_user), db: Session = Depend
             if already_clicked:
                 continue
         else:
-            # ADMIN AD: 24-hour respawn rule
-            twenty_four_hours_ago = now - timedelta(hours=24)
-            already_clicked_recent = db.query(Earning).filter(
+            # ADMIN AD: Midnight Reset rule
+            today = date.today()
+            already_clicked_today = db.query(Earning).filter(
                 Earning.user_id == current_user.id,
                 Earning.ad_id == ad.id,
                 Earning.type == "click",
-                Earning.clicked_at >= twenty_four_hours_ago
+                cast(Earning.clicked_at, Date) == today
             ).first()
-            if already_clicked_recent:
+            if already_clicked_today:
                 continue
 
         is_own = is_sponsored and sponsored.user_id == current_user.id
@@ -279,13 +288,13 @@ def start_click(ad_id: int, request: Request, current_user: User = Depends(get_c
         if already_clicked:
             raise HTTPException(status_code=400, detail="Already clicked this sponsored ad")
     else:
-        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
-        already_clicked_recent = db.query(Earning).filter(
+        today = date.today()
+        already_clicked_today = db.query(Earning).filter(
             Earning.user_id == current_user.id, Earning.ad_id == ad_id,
-            Earning.type == "click", Earning.clicked_at >= twenty_four_hours_ago
+            Earning.type == "click", cast(Earning.clicked_at, Date) == today
         ).first()
-        if already_clicked_recent:
-            raise HTTPException(status_code=400, detail="You can click this ad again after 24 hours")
+        if already_clicked_today:
+            raise HTTPException(status_code=400, detail="You have already clicked this ad today. It will reset at midnight.")
     ip = request.client.host
     ua = request.headers.get("user-agent", "")
     today = date.today()
@@ -317,13 +326,13 @@ def complete_click(ad_id: int, current_user: User = Depends(get_current_user), d
         if already_clicked:
             raise HTTPException(status_code=400, detail="Already clicked this sponsored ad")
     else:
-        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
-        already_clicked_recent = db.query(Earning).filter(
+        today = date.today()
+        already_clicked_today = db.query(Earning).filter(
             Earning.user_id == current_user.id, Earning.ad_id == ad_id,
-            Earning.type == "click", Earning.clicked_at >= twenty_four_hours_ago
+            Earning.type == "click", cast(Earning.clicked_at, Date) == today
         ).first()
-        if already_clicked_recent:
-            raise HTTPException(status_code=400, detail="You can click this ad again after 24 hours")
+        if already_clicked_today:
+            raise HTTPException(status_code=400, detail="You have already clicked this ad today. It will reset at midnight.")
     today = date.today()
     log = db.query(ClickLog).filter(
         ClickLog.user_id == current_user.id, ClickLog.ad_id == ad_id,
